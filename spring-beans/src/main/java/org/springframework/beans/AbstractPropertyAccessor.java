@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,10 +16,12 @@
 
 package org.springframework.beans;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.lang.Nullable;
 
 /**
  * Abstract implementation of the {@link PropertyAccessor} interface.
@@ -27,90 +29,118 @@ import java.util.Map;
  * implementation of actual property access left to subclasses.
  *
  * @author Juergen Hoeller
+ * @author Stephane Nicoll
  * @since 2.0
  * @see #getPropertyValue
  * @see #setPropertyValue
  */
-public abstract class AbstractPropertyAccessor extends PropertyEditorRegistrySupport
-		implements ConfigurablePropertyAccessor {
+public abstract class AbstractPropertyAccessor extends TypeConverterSupport implements ConfigurablePropertyAccessor {
 
 	private boolean extractOldValueForEditor = false;
 
+	private boolean autoGrowNestedPaths = false;
 
+	boolean suppressNotWritablePropertyException = false;
+
+
+	@Override
 	public void setExtractOldValueForEditor(boolean extractOldValueForEditor) {
 		this.extractOldValueForEditor = extractOldValueForEditor;
 	}
 
+	@Override
 	public boolean isExtractOldValueForEditor() {
 		return this.extractOldValueForEditor;
 	}
 
+	@Override
+	public void setAutoGrowNestedPaths(boolean autoGrowNestedPaths) {
+		this.autoGrowNestedPaths = autoGrowNestedPaths;
+	}
 
+	@Override
+	public boolean isAutoGrowNestedPaths() {
+		return this.autoGrowNestedPaths;
+	}
+
+
+	@Override
 	public void setPropertyValue(PropertyValue pv) throws BeansException {
 		setPropertyValue(pv.getName(), pv.getValue());
 	}
 
+	@Override
 	public void setPropertyValues(Map<?, ?> map) throws BeansException {
 		setPropertyValues(new MutablePropertyValues(map));
 	}
 
+	@Override
 	public void setPropertyValues(PropertyValues pvs) throws BeansException {
 		setPropertyValues(pvs, false, false);
 	}
 
+	@Override
 	public void setPropertyValues(PropertyValues pvs, boolean ignoreUnknown) throws BeansException {
 		setPropertyValues(pvs, ignoreUnknown, false);
 	}
 
+	@Override
 	public void setPropertyValues(PropertyValues pvs, boolean ignoreUnknown, boolean ignoreInvalid)
 			throws BeansException {
 
 		List<PropertyAccessException> propertyAccessExceptions = null;
 		List<PropertyValue> propertyValues = (pvs instanceof MutablePropertyValues ?
 				((MutablePropertyValues) pvs).getPropertyValueList() : Arrays.asList(pvs.getPropertyValues()));
-		for (PropertyValue pv : propertyValues) {
-			try {
-				// This method may throw any BeansException, which won't be caught
+
+		if (ignoreUnknown) {
+			this.suppressNotWritablePropertyException = true;
+		}
+		try {
+			for (PropertyValue pv : propertyValues) {
+				// setPropertyValue may throw any BeansException, which won't be caught
 				// here, if there is a critical failure such as no matching field.
 				// We can attempt to deal only with less serious exceptions.
-				setPropertyValue(pv);
-			}
-			catch (NotWritablePropertyException ex) {
-				if (!ignoreUnknown) {
-					throw ex;
+				try {
+					setPropertyValue(pv);
 				}
-				// Otherwise, just ignore it and continue...
-			}
-			catch (NullValueInNestedPathException ex) {
-				if (!ignoreInvalid) {
-					throw ex;
+				catch (NotWritablePropertyException ex) {
+					if (!ignoreUnknown) {
+						throw ex;
+					}
+					// Otherwise, just ignore it and continue...
 				}
-				// Otherwise, just ignore it and continue...
-			}
-			catch (PropertyAccessException ex) {
-				if (propertyAccessExceptions == null) {
-					propertyAccessExceptions = new LinkedList<PropertyAccessException>();
+				catch (NullValueInNestedPathException ex) {
+					if (!ignoreInvalid) {
+						throw ex;
+					}
+					// Otherwise, just ignore it and continue...
 				}
-				propertyAccessExceptions.add(ex);
+				catch (PropertyAccessException ex) {
+					if (propertyAccessExceptions == null) {
+						propertyAccessExceptions = new ArrayList<>();
+					}
+					propertyAccessExceptions.add(ex);
+				}
+			}
+		}
+		finally {
+			if (ignoreUnknown) {
+				this.suppressNotWritablePropertyException = false;
 			}
 		}
 
 		// If we encountered individual exceptions, throw the composite exception.
 		if (propertyAccessExceptions != null) {
-			PropertyAccessException[] paeArray =
-					propertyAccessExceptions.toArray(new PropertyAccessException[propertyAccessExceptions.size()]);
+			PropertyAccessException[] paeArray = propertyAccessExceptions.toArray(new PropertyAccessException[0]);
 			throw new PropertyBatchUpdateException(paeArray);
 		}
-	}
-
-	public <T> T convertIfNecessary(Object value, Class<T> requiredType) throws TypeMismatchException {
-		return convertIfNecessary(value, requiredType, null);
 	}
 
 
 	// Redefined with public visibility.
 	@Override
-	public Class getPropertyType(String propertyPath) {
+	@Nullable
+	public Class<?> getPropertyType(String propertyPath) {
 		return null;
 	}
 
@@ -123,6 +153,8 @@ public abstract class AbstractPropertyAccessor extends PropertyEditorRegistrySup
 	 * @throws PropertyAccessException if the property was valid but the
 	 * accessor method failed
 	 */
+	@Override
+	@Nullable
 	public abstract Object getPropertyValue(String propertyName) throws BeansException;
 
 	/**
@@ -132,8 +164,9 @@ public abstract class AbstractPropertyAccessor extends PropertyEditorRegistrySup
 	 * @throws InvalidPropertyException if there is no such property or
 	 * if the property isn't writable
 	 * @throws PropertyAccessException if the property was valid but the
-	 * accessor method failed or a type mismatch occured
+	 * accessor method failed or a type mismatch occurred
 	 */
-	public abstract void setPropertyValue(String propertyName, Object value) throws BeansException;
+	@Override
+	public abstract void setPropertyValue(String propertyName, @Nullable Object value) throws BeansException;
 
 }

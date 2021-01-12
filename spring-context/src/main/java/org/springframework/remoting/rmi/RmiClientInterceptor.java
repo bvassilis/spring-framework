@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,6 +34,7 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 
 import org.springframework.aop.support.AopUtils;
+import org.springframework.lang.Nullable;
 import org.springframework.remoting.RemoteConnectFailureException;
 import org.springframework.remoting.RemoteInvocationFailureException;
 import org.springframework.remoting.RemoteLookupFailureException;
@@ -46,8 +47,8 @@ import org.springframework.remoting.support.RemoteInvocationUtils;
  * (e.g. "rmi://localhost:1099/myservice").
  *
  * <p>RMI invokers work at the RmiInvocationHandler level, needing only one stub for
- * any service. Service interfaces do not have to extend <code>java.rmi.Remote</code>
- * or throw <code>java.rmi.RemoteException</code>. Spring's unchecked
+ * any service. Service interfaces do not have to extend {@code java.rmi.Remote}
+ * or throw {@code java.rmi.RemoteException}. Spring's unchecked
  * RemoteAccessException will be thrown on remote invocation failure.
  * Of course, in and out parameters have to be serializable.
  *
@@ -66,7 +67,9 @@ import org.springframework.remoting.support.RemoteInvocationUtils;
  * @see org.springframework.remoting.RemoteAccessException
  * @see java.rmi.RemoteException
  * @see java.rmi.Remote
+ * @deprecated as of 5.3 (phasing out serialization-based remoting)
  */
+@Deprecated
 public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 		implements MethodInterceptor {
 
@@ -152,8 +155,8 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 				else if (getServiceInterface() != null) {
 					boolean isImpl = getServiceInterface().isInstance(remoteObj);
 					logger.debug("Using service interface [" + getServiceInterface().getName() +
-					    "] for RMI stub [" + getServiceUrl() + "] - " +
-					    (!isImpl ? "not " : "") + "directly implemented");
+						"] for RMI stub [" + getServiceUrl() + "] - " +
+						(!isImpl ? "not " : "") + "directly implemented");
 				}
 			}
 			if (this.cacheStub) {
@@ -167,7 +170,7 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 	 * <p>Called on interceptor initialization if "cacheStub" is "true";
 	 * else called for each invocation by {@link #getStub()}.
 	 * <p>The default implementation looks up the service URL via
-	 * <code>java.rmi.Naming</code>. This can be overridden in subclasses.
+	 * {@code java.rmi.Naming}. This can be overridden in subclasses.
 	 * @return the RMI stub to store in this interceptor
 	 * @throws RemoteLookupFailureException if RMI stub creation failed
 	 * @see #setCacheStub
@@ -243,7 +246,7 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 
 
 	/**
-	 * Fetches an RMI stub and delegates to <code>doInvoke</code>.
+	 * Fetches an RMI stub and delegates to {@code doInvoke}.
 	 * If configured to refresh on connect failure, it will call
 	 * {@link #refreshAndRetry} on corresponding RMI exceptions.
 	 * @see #getStub
@@ -253,6 +256,8 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 	 * @see java.rmi.ConnectIOException
 	 * @see java.rmi.NoSuchObjectException
 	 */
+	@Override
+	@Nullable
 	public Object invoke(MethodInvocation invocation) throws Throwable {
 		Remote stub = getStub();
 		try {
@@ -294,6 +299,7 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 	 * @see #setRefreshStubOnConnectFailure
 	 * @see #doInvoke
 	 */
+	@Nullable
 	private Object handleRemoteConnectFailure(MethodInvocation invocation, Exception ex) throws Throwable {
 		if (this.refreshStubOnConnectFailure) {
 			String msg = "Could not connect to RMI service [" + getServiceUrl() + "] - retrying";
@@ -318,6 +324,7 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 	 * @throws Throwable in case of invocation failure
 	 * @see #invoke
 	 */
+	@Nullable
 	protected Object refreshAndRetry(MethodInvocation invocation) throws Throwable {
 		Remote freshStub = null;
 		synchronized (this.stubMonitor) {
@@ -337,6 +344,7 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 	 * @return the invocation result, if any
 	 * @throws Throwable in case of invocation failure
 	 */
+	@Nullable
 	protected Object doInvoke(MethodInvocation invocation, Remote stub) throws Throwable {
 		if (stub instanceof RmiInvocationHandler) {
 			// RMI invoker
@@ -345,7 +353,7 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 			}
 			catch (RemoteException ex) {
 				throw RmiClientInterceptorUtils.convertRmiAccessException(
-				    invocation.getMethod(), ex, isConnectFailure(ex), getServiceUrl());
+					invocation.getMethod(), ex, isConnectFailure(ex), getServiceUrl());
 			}
 			catch (InvocationTargetException ex) {
 				Throwable exToThrow = ex.getTargetException();
@@ -388,8 +396,9 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 	 * @throws InvocationTargetException if the method invocation resulted in an exception
 	 * @see org.springframework.remoting.support.RemoteInvocation
 	 */
+	@Nullable
 	protected Object doInvoke(MethodInvocation methodInvocation, RmiInvocationHandler invocationHandler)
-	    throws RemoteException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+		throws RemoteException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
 
 		if (AopUtils.isToStringMethod(methodInvocation.getMethod())) {
 			return "RMI invoker proxy for service URL [" + getServiceUrl() + "]";
@@ -401,7 +410,7 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 
 	/**
 	 * Dummy URLStreamHandler that's just specified to suppress the standard
-	 * <code>java.net.URL</code> URLStreamHandler lookup, to be able to
+	 * {@code java.net.URL} URLStreamHandler lookup, to be able to
 	 * use the standard URL class for parsing "rmi:..." URLs.
 	 */
 	private static class DummyURLStreamHandler extends URLStreamHandler {

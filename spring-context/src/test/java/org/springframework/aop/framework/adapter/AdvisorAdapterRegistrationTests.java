@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2005 the original author or authors.
- * 
+ * Copyright 2002-2019 the original author or authors.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,19 +16,23 @@
 
 package org.springframework.aop.framework.adapter;
 
-import static org.junit.Assert.*;
-
 import java.io.Serializable;
 
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.aop.Advisor;
 import org.springframework.aop.BeforeAdvice;
 import org.springframework.aop.framework.Advised;
-import org.springframework.beans.ITestBean;
+import org.springframework.beans.testfixture.beans.ITestBean;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * TestCase for AdvisorAdapterRegistrationManager mechanism.
@@ -36,7 +40,13 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
  * @author Dmitriy Kopylenko
  * @author Chris Beams
  */
-public final class AdvisorAdapterRegistrationTests {
+public class AdvisorAdapterRegistrationTests {
+
+	@BeforeEach
+	@AfterEach
+	public void resetGlobalAdvisorAdapterRegistry() {
+		GlobalAdvisorAdapterRegistry.reset();
+	}
 
 	@Test
 	public void testAdvisorAdapterRegistrationManagerNotPresentInContext() {
@@ -44,14 +54,9 @@ public final class AdvisorAdapterRegistrationTests {
 			new ClassPathXmlApplicationContext(getClass().getSimpleName() + "-without-bpp.xml", getClass());
 		ITestBean tb = (ITestBean) ctx.getBean("testBean");
 		// just invoke any method to see if advice fired
-		try {
-			tb.getName();
-			fail("Should throw UnknownAdviceTypeException");
-		}
-		catch (UnknownAdviceTypeException ex) {
-			// expected
-			assertEquals(0, getAdviceImpl(tb).getInvocationCounter());
-		}
+		assertThatExceptionOfType(UnknownAdviceTypeException.class).isThrownBy(
+				tb::getName);
+		assertThat(getAdviceImpl(tb).getInvocationCounter()).isZero();
 	}
 
 	@Test
@@ -60,13 +65,8 @@ public final class AdvisorAdapterRegistrationTests {
 			new ClassPathXmlApplicationContext(getClass().getSimpleName() + "-with-bpp.xml", getClass());
 		ITestBean tb = (ITestBean) ctx.getBean("testBean");
 		// just invoke any method to see if advice fired
-		try {
-			tb.getName();
-			assertEquals(1, getAdviceImpl(tb).getInvocationCounter());
-		}
-		catch (UnknownAdviceTypeException ex) {
-			fail("Should not throw UnknownAdviceTypeException");
-		}
+		tb.getName();
+		getAdviceImpl(tb).getInvocationCounter();
 	}
 
 	private SimpleBeforeAdviceImpl getAdviceImpl(ITestBean tb) {
@@ -88,10 +88,12 @@ interface SimpleBeforeAdvice extends BeforeAdvice {
 @SuppressWarnings("serial")
 class SimpleBeforeAdviceAdapter implements AdvisorAdapter, Serializable {
 
+	@Override
 	public boolean supportsAdvice(Advice advice) {
 		return (advice instanceof SimpleBeforeAdvice);
 	}
 
+	@Override
 	public MethodInterceptor getInterceptor(Advisor advisor) {
 		SimpleBeforeAdvice advice = (SimpleBeforeAdvice) advisor.getAdvice();
 		return new SimpleBeforeAdviceInterceptor(advice) ;
@@ -101,9 +103,10 @@ class SimpleBeforeAdviceAdapter implements AdvisorAdapter, Serializable {
 
 
 class SimpleBeforeAdviceImpl implements SimpleBeforeAdvice {
-	
+
 	private int invocationCounter;
 
+	@Override
 	public void before() throws Throwable {
 		++invocationCounter;
 	}
@@ -116,16 +119,16 @@ class SimpleBeforeAdviceImpl implements SimpleBeforeAdvice {
 
 
 final class SimpleBeforeAdviceInterceptor implements MethodInterceptor {
-	
+
 	private SimpleBeforeAdvice advice;
-	
+
 	public SimpleBeforeAdviceInterceptor(SimpleBeforeAdvice advice) {
 		this.advice = advice;
 	}
 
+	@Override
 	public Object invoke(MethodInvocation mi) throws Throwable {
 		advice.before();
 		return mi.proceed();
 	}
-	
 }

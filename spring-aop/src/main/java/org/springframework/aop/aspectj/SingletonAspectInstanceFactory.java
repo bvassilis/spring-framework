@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,7 +16,10 @@
 
 package org.springframework.aop.aspectj;
 
+import java.io.Serializable;
+
 import org.springframework.core.Ordered;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -29,8 +32,9 @@ import org.springframework.util.Assert;
  * @since 2.0
  * @see SimpleAspectInstanceFactory
  */
-public class SingletonAspectInstanceFactory implements AspectInstanceFactory {
-	
+@SuppressWarnings("serial")
+public class SingletonAspectInstanceFactory implements AspectInstanceFactory, Serializable {
+
 	private final Object aspectInstance;
 
 
@@ -44,10 +48,13 @@ public class SingletonAspectInstanceFactory implements AspectInstanceFactory {
 	}
 
 
+	@Override
 	public final Object getAspectInstance() {
 		return this.aspectInstance;
 	}
 
+	@Override
+	@Nullable
 	public ClassLoader getAspectClassLoader() {
 		return this.aspectInstance.getClass().getClassLoader();
 	}
@@ -60,6 +67,7 @@ public class SingletonAspectInstanceFactory implements AspectInstanceFactory {
 	 * @see org.springframework.core.Ordered
 	 * @see #getOrderForAspectClass
 	 */
+	@Override
 	public int getOrder() {
 		if (this.aspectInstance instanceof Ordered) {
 			return ((Ordered) this.aspectInstance).getOrder();
@@ -71,7 +79,7 @@ public class SingletonAspectInstanceFactory implements AspectInstanceFactory {
 	 * Determine a fallback order for the case that the aspect instance
 	 * does not express an instance-specific order through implementing
 	 * the {@link org.springframework.core.Ordered} interface.
-	 * <p>The default implementation simply returns <code>Ordered.LOWEST_PRECEDENCE</code>.
+	 * <p>The default implementation simply returns {@code Ordered.LOWEST_PRECEDENCE}.
 	 * @param aspectClass the aspect class
 	 */
 	protected int getOrderForAspectClass(Class<?> aspectClass) {

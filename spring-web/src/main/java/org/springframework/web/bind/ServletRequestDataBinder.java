@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,10 +17,14 @@
 package org.springframework.web.bind;
 
 import javax.servlet.ServletRequest;
+import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.MutablePropertyValues;
+import org.springframework.lang.Nullable;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindException;
 import org.springframework.web.multipart.MultipartRequest;
+import org.springframework.web.multipart.support.StandardServletPartUtils;
 import org.springframework.web.util.WebUtils;
 
 /**
@@ -31,14 +35,10 @@ import org.springframework.web.util.WebUtils;
  * which include specifying allowed/required fields, and registering custom
  * property editors.
  *
- * <p>Used by Spring Web MVC's BaseCommandController and MultiActionController.
- * Note that BaseCommandController and its subclasses allow for easy customization
- * of the binder instances that they use through overriding <code>initBinder</code>.
- *
  * <p>Can also be used for manual data binding in custom web controllers:
  * for example, in a plain Controller implementation or in a MultiActionController
  * handler method. Simply instantiate a ServletRequestDataBinder for each binding
- * process, and invoke <code>bind</code> with the current ServletRequest as argument:
+ * process, and invoke {@code bind} with the current ServletRequest as argument:
  *
  * <pre class="code">
  * MyBean myBean = new MyBean();
@@ -59,27 +59,26 @@ import org.springframework.web.util.WebUtils;
  * @see #setAllowedFields
  * @see #setRequiredFields
  * @see #setFieldMarkerPrefix
- * @see org.springframework.web.servlet.mvc.BaseCommandController#initBinder
  */
 public class ServletRequestDataBinder extends WebDataBinder {
 
 	/**
 	 * Create a new ServletRequestDataBinder instance, with default object name.
-	 * @param target the target object to bind onto (or <code>null</code>
+	 * @param target the target object to bind onto (or {@code null}
 	 * if the binder is just used to convert a plain parameter value)
 	 * @see #DEFAULT_OBJECT_NAME
 	 */
-	public ServletRequestDataBinder(Object target) {
+	public ServletRequestDataBinder(@Nullable Object target) {
 		super(target);
 	}
 
 	/**
 	 * Create a new ServletRequestDataBinder instance.
-	 * @param target the target object to bind onto (or <code>null</code>
+	 * @param target the target object to bind onto (or {@code null}
 	 * if the binder is just used to convert a plain parameter value)
 	 * @param objectName the name of the target object
 	 */
-	public ServletRequestDataBinder(Object target, String objectName) {
+	public ServletRequestDataBinder(@Nullable Object target, String objectName) {
 		super(target, objectName);
 	}
 
@@ -96,10 +95,9 @@ public class ServletRequestDataBinder extends WebDataBinder {
 	 * <p>The type of the target property for a multipart file can be MultipartFile,
 	 * byte[], or String. The latter two receive the contents of the uploaded file;
 	 * all metadata like original file name, content type, etc are lost in those cases.
-	 * @param request request with parameters to bind (can be multipart)
+	 * @param request the request with parameters to bind (can be multipart)
 	 * @see org.springframework.web.multipart.MultipartHttpServletRequest
 	 * @see org.springframework.web.multipart.MultipartFile
-	 * @see #bindMultipartFiles
 	 * @see #bind(org.springframework.beans.PropertyValues)
 	 */
 	public void bind(ServletRequest request) {
@@ -108,6 +106,12 @@ public class ServletRequestDataBinder extends WebDataBinder {
 		if (multipartRequest != null) {
 			bindMultipart(multipartRequest.getMultiFileMap(), mpvs);
 		}
+		else if (StringUtils.startsWithIgnoreCase(request.getContentType(), "multipart/")) {
+			HttpServletRequest httpServletRequest = WebUtils.getNativeRequest(request, HttpServletRequest.class);
+			if (httpServletRequest != null) {
+				StandardServletPartUtils.bindParts(httpServletRequest, mpvs, isBindEmptyMultipartFiles());
+			}
+		}
 		addBindValues(mpvs, request);
 		doBind(mpvs);
 	}
@@ -115,7 +119,7 @@ public class ServletRequestDataBinder extends WebDataBinder {
 	/**
 	 * Extension point that subclasses can use to add extra bind values for a
 	 * request. Invoked before {@link #doBind(MutablePropertyValues)}.
-	 * The default implementation is empty. 
+	 * The default implementation is empty.
 	 * @param mpvs the property values that will be used for data binding
 	 * @param request the current request
 	 */

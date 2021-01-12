@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,16 +18,17 @@ package org.springframework.transaction.interceptor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.springframework.lang.Nullable;
+
 /**
  * TransactionAttribute implementation that works out whether a given exception
  * should cause transaction rollback by applying a number of rollback rules,
- * both positive and negative. If no rules are relevant to the exception, it
+ * both positive and negative. If no custom rollback rules apply, this attribute
  * behaves like DefaultTransactionAttribute (rolling back on runtime exceptions).
  *
  * <p>{@link TransactionAttributeEditor} creates objects of this class.
@@ -37,18 +38,20 @@ import org.apache.commons.logging.LogFactory;
  * @since 09.04.2003
  * @see TransactionAttributeEditor
  */
+@SuppressWarnings("serial")
 public class RuleBasedTransactionAttribute extends DefaultTransactionAttribute implements Serializable {
 
-	/** Prefix for rollback-on-exception rules in description strings */
+	/** Prefix for rollback-on-exception rules in description strings. */
 	public static final String PREFIX_ROLLBACK_RULE = "-";
 
-	/** Prefix for commit-on-exception rules in description strings */
+	/** Prefix for commit-on-exception rules in description strings. */
 	public static final String PREFIX_COMMIT_RULE = "+";
 
 
-	/** Static for optimal serializability */
+	/** Static for optimal serializability. */
 	private static final Log logger = LogFactory.getLog(RuleBasedTransactionAttribute.class);
 
+	@Nullable
 	private List<RollbackRuleAttribute> rollbackRules;
 
 
@@ -77,11 +80,11 @@ public class RuleBasedTransactionAttribute extends DefaultTransactionAttribute i
 	 */
 	public RuleBasedTransactionAttribute(RuleBasedTransactionAttribute other) {
 		super(other);
-		this.rollbackRules = new ArrayList<RollbackRuleAttribute>(other.rollbackRules);
+		this.rollbackRules = (other.rollbackRules != null ? new ArrayList<>(other.rollbackRules) : null);
 	}
 
 	/**
-	 * Create a new DefaultTransactionAttribute with the the given
+	 * Create a new DefaultTransactionAttribute with the given
 	 * propagation behavior. Can be modified through bean property setters.
 	 * @param propagationBehavior one of the propagation constants in the
 	 * TransactionDefinition interface
@@ -97,8 +100,8 @@ public class RuleBasedTransactionAttribute extends DefaultTransactionAttribute i
 
 
 	/**
-	 * Set the list of <code>RollbackRuleAttribute</code> objects
-	 * (and/or <code>NoRollbackRuleAttribute</code> objects) to apply.
+	 * Set the list of {@code RollbackRuleAttribute} objects
+	 * (and/or {@code NoRollbackRuleAttribute} objects) to apply.
 	 * @see RollbackRuleAttribute
 	 * @see NoRollbackRuleAttribute
 	 */
@@ -107,12 +110,12 @@ public class RuleBasedTransactionAttribute extends DefaultTransactionAttribute i
 	}
 
 	/**
-	 * Return the list of <code>RollbackRuleAttribute</code> objects
-	 * (never <code>null</code>).
+	 * Return the list of {@code RollbackRuleAttribute} objects
+	 * (never {@code null}).
 	 */
 	public List<RollbackRuleAttribute> getRollbackRules() {
 		if (this.rollbackRules == null) {
-			this.rollbackRules = new LinkedList<RollbackRuleAttribute>();
+			this.rollbackRules = new ArrayList<>();
 		}
 		return this.rollbackRules;
 	}
@@ -152,7 +155,7 @@ public class RuleBasedTransactionAttribute extends DefaultTransactionAttribute i
 			logger.trace("No relevant rollback rule found: applying default rules");
 			return super.rollbackOn(ex);
 		}
-			
+
 		return !(winner instanceof NoRollbackRuleAttribute);
 	}
 

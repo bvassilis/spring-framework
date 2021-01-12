@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,7 @@
 
 package org.springframework.web.bind.support;
 
+import org.springframework.lang.Nullable;
 import org.springframework.web.context.request.WebRequest;
 
 /**
@@ -41,11 +42,12 @@ public interface SessionAttributeStore {
 	 * Retrieve the specified attribute from the backend session.
 	 * <p>This will typically be called with the expectation that the
 	 * attribute is already present, with an exception to be thrown
-	 * if this method returns <code>null</code>.
+	 * if this method returns {@code null}.
 	 * @param request the current request
 	 * @param attributeName the name of the attribute
-	 * @return the current attribute value, or <code>null</code> if none
+	 * @return the current attribute value, or {@code null} if none
 	 */
+	@Nullable
 	Object retrieveAttribute(WebRequest request, String attributeName);
 
 	/**

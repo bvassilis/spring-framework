@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,7 @@
 package org.springframework.core.style;
 
 /**
- * Simple utility class to allow for convenient access to value 
+ * Simple utility class to allow for convenient access to value
  * styling logic, mainly to support descriptive logging messages.
  *
  * <p>For more sophisticated needs, use the {@link ValueStyler} abstraction
@@ -30,9 +30,9 @@ package org.springframework.core.style;
  * @see DefaultValueStyler
  */
 public abstract class StylerUtils {
-	
+
 	/**
-	 * Default ValueStyler instance used by the <code>style</code> method.
+	 * Default ValueStyler instance used by the {@code style} method.
 	 * Also available for the {@link ToStringCreator} class in this package.
 	 */
 	static final ValueStyler DEFAULT_VALUE_STYLER = new DefaultValueStyler();

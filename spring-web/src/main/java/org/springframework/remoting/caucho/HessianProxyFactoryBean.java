@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@ package org.springframework.remoting.caucho;
 
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.lang.Nullable;
 
 /**
  * {@link FactoryBean} for Hessian proxies. Exposes the proxied service
@@ -25,7 +26,8 @@ import org.springframework.beans.factory.FactoryBean;
  *
  * <p>Hessian is a slim, binary RPC protocol.
  * For information on Hessian, see the
- * <a href="http://www.caucho.com/hessian">Hessian website</a>
+ * <a href="http://hessian.caucho.com">Hessian website</a>
+ * <b>Note: As of Spring 4.0, this proxy factory requires Hessian 4.0 or above.</b>
  *
  * <p>The service URL must be an HTTP URL exposing a Hessian service.
  * For details, see the {@link HessianClientInterceptor} javadoc.
@@ -36,12 +38,14 @@ import org.springframework.beans.factory.FactoryBean;
  * @see #setServiceUrl
  * @see HessianClientInterceptor
  * @see HessianServiceExporter
- * @see org.springframework.remoting.caucho.BurlapProxyFactoryBean
  * @see org.springframework.remoting.httpinvoker.HttpInvokerProxyFactoryBean
  * @see org.springframework.remoting.rmi.RmiProxyFactoryBean
+ * @deprecated as of 5.3 (phasing out serialization-based remoting)
  */
+@Deprecated
 public class HessianProxyFactoryBean extends HessianClientInterceptor implements FactoryBean<Object> {
 
+	@Nullable
 	private Object serviceProxy;
 
 
@@ -52,14 +56,18 @@ public class HessianProxyFactoryBean extends HessianClientInterceptor implements
 	}
 
 
+	@Override
+	@Nullable
 	public Object getObject() {
 		return this.serviceProxy;
 	}
 
+	@Override
 	public Class<?> getObjectType() {
 		return getServiceInterface();
 	}
 
+	@Override
 	public boolean isSingleton() {
 		return true;
 	}

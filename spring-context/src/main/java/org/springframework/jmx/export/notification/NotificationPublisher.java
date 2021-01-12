@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2005 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,14 +23,14 @@ import javax.management.Notification;
  * without being aware of how those notifications are being transmitted to the
  * {@link javax.management.MBeanServer}.
  *
- * <p>Managed resources can access a <code>NotificationPublisher</code> by
+ * <p>Managed resources can access a {@code NotificationPublisher} by
  * implementing the {@link NotificationPublisherAware} interface. After a particular
  * managed resource instance is registered with the {@link javax.management.MBeanServer},
- * Spring will inject a <code>NotificationPublisher</code> instance into it if that
- * resource implements the {@link NotificationPublisherAware} inteface.
+ * Spring will inject a {@code NotificationPublisher} instance into it if that
+ * resource implements the {@link NotificationPublisherAware} interface.
  *
  * <p>Each managed resource instance will have a distinct instance of a
- * <code>NotificationPublisher</code> implementation. This instance will keep
+ * {@code NotificationPublisher} implementation. This instance will keep
  * track of all the {@link javax.management.NotificationListener NotificationListeners}
  * registered for a particular mananaged resource.
  *
@@ -42,6 +42,7 @@ import javax.management.Notification;
  * @see NotificationPublisherAware
  * @see org.springframework.jmx.export.MBeanExporter
  */
+@FunctionalInterface
 public interface NotificationPublisher {
 
 	/**

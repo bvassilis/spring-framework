@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,16 +41,16 @@ import java.util.concurrent.Future;
  */
 public interface AsyncTaskExecutor extends TaskExecutor {
 
-	/** Constant that indicates immediate execution */
+	/** Constant that indicates immediate execution. */
 	long TIMEOUT_IMMEDIATE = 0;
 
-	/** Constant that indicates no time limit */
+	/** Constant that indicates no time limit. */
 	long TIMEOUT_INDEFINITE = Long.MAX_VALUE;
 
 
 	/**
-	 * Execute the given <code>task</code>.
-	 * @param task the <code>Runnable</code> to execute (never <code>null</code>)
+	 * Execute the given {@code task}.
+	 * @param task the {@code Runnable} to execute (never {@code null})
 	 * @param startTimeout the time duration (milliseconds) within which the task is
 	 * supposed to start. This is intended as a hint to the executor, allowing for
 	 * preferred handling of immediate tasks. Typical values are {@link #TIMEOUT_IMMEDIATE}
@@ -63,19 +63,21 @@ public interface AsyncTaskExecutor extends TaskExecutor {
 
 	/**
 	 * Submit a Runnable task for execution, receiving a Future representing that task.
-	 * The Future will return a <code>null</code> result upon completion.
-	 * @param task the <code>Runnable</code> to execute (never <code>null</code>)
+	 * The Future will return a {@code null} result upon completion.
+	 * @param task the {@code Runnable} to execute (never {@code null})
 	 * @return a Future representing pending completion of the task
 	 * @throws TaskRejectedException if the given task was not accepted
+	 * @since 3.0
 	 */
 	Future<?> submit(Runnable task);
 
 	/**
 	 * Submit a Callable task for execution, receiving a Future representing that task.
 	 * The Future will return the Callable's result upon completion.
-	 * @param task the <code>Callable</code> to execute (never <code>null</code>)
+	 * @param task the {@code Callable} to execute (never {@code null})
 	 * @return a Future representing pending completion of the task
 	 * @throws TaskRejectedException if the given task was not accepted
+	 * @since 3.0
 	 */
 	<T> Future<T> submit(Callable<T> task);
 

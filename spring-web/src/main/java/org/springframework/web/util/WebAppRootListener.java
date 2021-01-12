@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,11 +25,11 @@ import javax.servlet.ServletContextListener;
  * parameter at the servlet context level (i.e. context-param in web.xml),
  * the default key is "webapp.root".
  *
- * <p>Can be used for toolkits that support substition with system properties
+ * <p>Can be used for toolkits that support substitution with system properties
  * (i.e. System.getProperty values), like log4j's "${key}" syntax within log
  * file locations.
  *
- * <p>Note: This listener should be placed before ContextLoaderListener in <code>web.xml</code>,
+ * <p>Note: This listener should be placed before ContextLoaderListener in {@code web.xml},
  * at least when used for log4j. Log4jConfigListener sets the system property
  * implicitly, so there's no need for this listener in addition to it.
  *
@@ -47,15 +47,16 @@ import javax.servlet.ServletContextListener;
  * @author Juergen Hoeller
  * @since 18.04.2003
  * @see WebUtils#setWebAppRootSystemProperty
- * @see Log4jConfigListener
- * @see java.lang.System#getProperty
+ * @see System#getProperty
  */
 public class WebAppRootListener implements ServletContextListener {
 
+	@Override
 	public void contextInitialized(ServletContextEvent event) {
 		WebUtils.setWebAppRootSystemProperty(event.getServletContext());
 	}
 
+	@Override
 	public void contextDestroyed(ServletContextEvent event) {
 		WebUtils.removeWebAppRootSystemProperty(event.getServletContext());
 	}

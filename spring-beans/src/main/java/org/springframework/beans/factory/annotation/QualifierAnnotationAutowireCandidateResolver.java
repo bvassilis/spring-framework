@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,7 @@
 package org.springframework.beans.factory.annotation;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -24,15 +25,18 @@ import java.util.Set;
 
 import org.springframework.beans.SimpleTypeConverter;
 import org.springframework.beans.TypeConverter;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.config.DependencyDescriptor;
 import org.springframework.beans.factory.support.AutowireCandidateQualifier;
 import org.springframework.beans.factory.support.AutowireCandidateResolver;
+import org.springframework.beans.factory.support.GenericTypeAwareAutowireCandidateResolver;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
@@ -46,18 +50,17 @@ import org.springframework.util.ObjectUtils;
  *
  * @author Mark Fisher
  * @author Juergen Hoeller
+ * @author Stephane Nicoll
  * @since 2.5
  * @see AutowireCandidateQualifier
  * @see Qualifier
  * @see Value
  */
-public class QualifierAnnotationAutowireCandidateResolver implements AutowireCandidateResolver, BeanFactoryAware {
+public class QualifierAnnotationAutowireCandidateResolver extends GenericTypeAwareAutowireCandidateResolver {
 
-	private final Set<Class<? extends Annotation>> qualifierTypes = new LinkedHashSet<Class<? extends Annotation>>();
+	private final Set<Class<? extends Annotation>> qualifierTypes = new LinkedHashSet<>(2);
 
 	private Class<? extends Annotation> valueAnnotationType = Value.class;
-
-	private BeanFactory beanFactory;
 
 
 	/**
@@ -68,9 +71,9 @@ public class QualifierAnnotationAutowireCandidateResolver implements AutowireCan
 	@SuppressWarnings("unchecked")
 	public QualifierAnnotationAutowireCandidateResolver() {
 		this.qualifierTypes.add(Qualifier.class);
-		ClassLoader cl = QualifierAnnotationAutowireCandidateResolver.class.getClassLoader();
 		try {
-			this.qualifierTypes.add((Class<? extends Annotation>) cl.loadClass("javax.inject.Qualifier"));
+			this.qualifierTypes.add((Class<? extends Annotation>) ClassUtils.forName("javax.inject.Qualifier",
+							QualifierAnnotationAutowireCandidateResolver.class.getClassLoader()));
 		}
 		catch (ClassNotFoundException ex) {
 			// JSR-330 API not available - simply skip.
@@ -125,10 +128,6 @@ public class QualifierAnnotationAutowireCandidateResolver implements AutowireCan
 		this.valueAnnotationType = valueAnnotationType;
 	}
 
-	public void setBeanFactory(BeanFactory beanFactory) {
-		this.beanFactory = beanFactory;
-	}
-
 
 	/**
 	 * Determine whether the provided bean definition is an autowire candidate.
@@ -142,22 +141,18 @@ public class QualifierAnnotationAutowireCandidateResolver implements AutowireCan
 	 * attribute does not match.
 	 * @see Qualifier
 	 */
+	@Override
 	public boolean isAutowireCandidate(BeanDefinitionHolder bdHolder, DependencyDescriptor descriptor) {
-		if (!bdHolder.getBeanDefinition().isAutowireCandidate()) {
-			// if explicitly false, do not proceed with qualifier check
-			return false;
-		}
-		if (descriptor == null) {
-			// no qualification necessary
-			return true;
-		}
-		boolean match = checkQualifiers(bdHolder, descriptor.getAnnotations());
+		boolean match = super.isAutowireCandidate(bdHolder, descriptor);
 		if (match) {
-			MethodParameter methodParam = descriptor.getMethodParameter();
-			if (methodParam != null) {
-				Method method = methodParam.getMethod();
-				if (method == null || void.class.equals(method.getReturnType())) {
-					match = checkQualifiers(bdHolder, methodParam.getMethodAnnotations());
+			match = checkQualifiers(bdHolder, descriptor.getAnnotations());
+			if (match) {
+				MethodParameter methodParam = descriptor.getMethodParameter();
+				if (methodParam != null) {
+					Method method = methodParam.getMethod();
+					if (method == null || void.class == method.getReturnType()) {
+						match = checkQualifiers(bdHolder, methodParam.getMethodAnnotations());
+					}
 				}
 			}
 		}
@@ -174,8 +169,31 @@ public class QualifierAnnotationAutowireCandidateResolver implements AutowireCan
 		SimpleTypeConverter typeConverter = new SimpleTypeConverter();
 		for (Annotation annotation : annotationsToSearch) {
 			Class<? extends Annotation> type = annotation.annotationType();
+			boolean checkMeta = true;
+			boolean fallbackToMeta = false;
 			if (isQualifier(type)) {
 				if (!checkQualifier(bdHolder, annotation, typeConverter)) {
+					fallbackToMeta = true;
+				}
+				else {
+					checkMeta = false;
+				}
+			}
+			if (checkMeta) {
+				boolean foundMeta = false;
+				for (Annotation metaAnn : type.getAnnotations()) {
+					Class<? extends Annotation> metaType = metaAnn.annotationType();
+					if (isQualifier(metaType)) {
+						foundMeta = true;
+						// Only accept fallback match if @Qualifier annotation has a value...
+						// Otherwise it is just a marker for a custom qualifier annotation.
+						if ((fallbackToMeta && ObjectUtils.isEmpty(AnnotationUtils.getValue(metaAnn))) ||
+								!checkQualifier(bdHolder, metaAnn, typeConverter)) {
+							return false;
+						}
+					}
+				}
+				if (fallbackToMeta && !foundMeta) {
 					return false;
 				}
 			}
@@ -203,55 +221,70 @@ public class QualifierAnnotationAutowireCandidateResolver implements AutowireCan
 
 		Class<? extends Annotation> type = annotation.annotationType();
 		RootBeanDefinition bd = (RootBeanDefinition) bdHolder.getBeanDefinition();
+
 		AutowireCandidateQualifier qualifier = bd.getQualifier(type.getName());
 		if (qualifier == null) {
 			qualifier = bd.getQualifier(ClassUtils.getShortName(type));
 		}
 		if (qualifier == null) {
-			Annotation targetAnnotation = null;
-			if (bd.getResolvedFactoryMethod() != null) {
-				targetAnnotation = bd.getResolvedFactoryMethod().getAnnotation(type);
+			// First, check annotation on qualified element, if any
+			Annotation targetAnnotation = getQualifiedElementAnnotation(bd, type);
+			// Then, check annotation on factory method, if applicable
+			if (targetAnnotation == null) {
+				targetAnnotation = getFactoryMethodAnnotation(bd, type);
 			}
 			if (targetAnnotation == null) {
-				// look for matching annotation on the target class
-				if (this.beanFactory != null) {
-					Class<?> beanType = this.beanFactory.getType(bdHolder.getBeanName());
-					if (beanType != null) {
-						targetAnnotation = ClassUtils.getUserClass(beanType).getAnnotation(type);
+				RootBeanDefinition dbd = getResolvedDecoratedDefinition(bd);
+				if (dbd != null) {
+					targetAnnotation = getFactoryMethodAnnotation(dbd, type);
+				}
+			}
+			if (targetAnnotation == null) {
+				// Look for matching annotation on the target class
+				if (getBeanFactory() != null) {
+					try {
+						Class<?> beanType = getBeanFactory().getType(bdHolder.getBeanName());
+						if (beanType != null) {
+							targetAnnotation = AnnotationUtils.getAnnotation(ClassUtils.getUserClass(beanType), type);
+						}
+					}
+					catch (NoSuchBeanDefinitionException ex) {
+						// Not the usual case - simply forget about the type check...
 					}
 				}
 				if (targetAnnotation == null && bd.hasBeanClass()) {
-					targetAnnotation = ClassUtils.getUserClass(bd.getBeanClass()).getAnnotation(type);
+					targetAnnotation = AnnotationUtils.getAnnotation(ClassUtils.getUserClass(bd.getBeanClass()), type);
 				}
 			}
 			if (targetAnnotation != null && targetAnnotation.equals(annotation)) {
 				return true;
 			}
 		}
+
 		Map<String, Object> attributes = AnnotationUtils.getAnnotationAttributes(annotation);
 		if (attributes.isEmpty() && qualifier == null) {
-			// if no attributes, the qualifier must be present
+			// If no attributes, the qualifier must be present
 			return false;
 		}
 		for (Map.Entry<String, Object> entry : attributes.entrySet()) {
 			String attributeName = entry.getKey();
 			Object expectedValue = entry.getValue();
 			Object actualValue = null;
-			// check qualifier first
+			// Check qualifier first
 			if (qualifier != null) {
 				actualValue = qualifier.getAttribute(attributeName);
 			}
 			if (actualValue == null) {
-				// fall back on bean definition attribute
+				// Fall back on bean definition attribute
 				actualValue = bd.getAttribute(attributeName);
 			}
 			if (actualValue == null && attributeName.equals(AutowireCandidateQualifier.VALUE_KEY) &&
 					expectedValue instanceof String && bdHolder.matchesName((String) expectedValue)) {
-				// fall back on bean name (or alias) match
+				// Fall back on bean name (or alias) match
 				continue;
 			}
 			if (actualValue == null && qualifier != null) {
-				// fall back on default, but only if the qualifier is present
+				// Fall back on default, but only if the qualifier is present
 				actualValue = AnnotationUtils.getDefaultValue(annotation, attributeName);
 			}
 			if (actualValue != null) {
@@ -264,11 +297,54 @@ public class QualifierAnnotationAutowireCandidateResolver implements AutowireCan
 		return true;
 	}
 
+	@Nullable
+	protected Annotation getQualifiedElementAnnotation(RootBeanDefinition bd, Class<? extends Annotation> type) {
+		AnnotatedElement qualifiedElement = bd.getQualifiedElement();
+		return (qualifiedElement != null ? AnnotationUtils.getAnnotation(qualifiedElement, type) : null);
+	}
+
+	@Nullable
+	protected Annotation getFactoryMethodAnnotation(RootBeanDefinition bd, Class<? extends Annotation> type) {
+		Method resolvedFactoryMethod = bd.getResolvedFactoryMethod();
+		return (resolvedFactoryMethod != null ? AnnotationUtils.getAnnotation(resolvedFactoryMethod, type) : null);
+	}
+
 
 	/**
-	 * Determine whether the given dependency carries a value annotation.
+	 * Determine whether the given dependency declares an autowired annotation,
+	 * checking its required flag.
+	 * @see Autowired#required()
+	 */
+	@Override
+	public boolean isRequired(DependencyDescriptor descriptor) {
+		if (!super.isRequired(descriptor)) {
+			return false;
+		}
+		Autowired autowired = descriptor.getAnnotation(Autowired.class);
+		return (autowired == null || autowired.required());
+	}
+
+	/**
+	 * Determine whether the given dependency declares a qualifier annotation.
+	 * @see #isQualifier(Class)
+	 * @see Qualifier
+	 */
+	@Override
+	public boolean hasQualifier(DependencyDescriptor descriptor) {
+		for (Annotation ann : descriptor.getAnnotations()) {
+			if (isQualifier(ann.annotationType())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Determine whether the given dependency declares a value annotation.
 	 * @see Value
 	 */
+	@Override
+	@Nullable
 	public Object getSuggestedValue(DependencyDescriptor descriptor) {
 		Object value = findValue(descriptor.getAnnotations());
 		if (value == null) {
@@ -283,17 +359,28 @@ public class QualifierAnnotationAutowireCandidateResolver implements AutowireCan
 	/**
 	 * Determine a suggested value from any of the given candidate annotations.
 	 */
+	@Nullable
 	protected Object findValue(Annotation[] annotationsToSearch) {
-		for (Annotation annotation : annotationsToSearch) {
-			if (this.valueAnnotationType.isInstance(annotation)) {
-				Object value = AnnotationUtils.getValue(annotation);
-				if (value == null) {
-					throw new IllegalStateException("Value annotation must have a value attribute");
-				}
-				return value;
+		if (annotationsToSearch.length > 0) {   // qualifier annotations have to be local
+			AnnotationAttributes attr = AnnotatedElementUtils.getMergedAnnotationAttributes(
+					AnnotatedElementUtils.forAnnotations(annotationsToSearch), this.valueAnnotationType);
+			if (attr != null) {
+				return extractValue(attr);
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Extract the value attribute from the given annotation.
+	 * @since 4.3
+	 */
+	protected Object extractValue(AnnotationAttributes attr) {
+		Object value = attr.get(AnnotationUtils.VALUE);
+		if (value == null) {
+			throw new IllegalStateException("Value annotation must have a value attribute");
+		}
+		return value;
 	}
 
 }

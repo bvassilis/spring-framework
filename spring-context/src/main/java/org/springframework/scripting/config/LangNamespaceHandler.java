@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,11 +19,11 @@ package org.springframework.scripting.config;
 import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
 
 /**
- * <code>NamespaceHandler</code> that supports the wiring of
+ * {@code NamespaceHandler} that supports the wiring of
  * objects backed by dynamic languages such as Groovy, JRuby and
  * BeanShell. The following is an example (from the reference
  * documentation) that details the wiring of a Groovy backed bean:
- * 
+ *
  * <pre class="code">
  * &lt;lang:groovy id="messenger"
  *     refresh-check-delay="5000"
@@ -31,7 +31,7 @@ import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
  * &lt;lang:property name="message" value="I Can Do The Frug"/&gt;
  * &lt;/lang:groovy&gt;
  * </pre>
- * 
+ *
  * @author Rob Harrop
  * @author Juergen Hoeller
  * @author Mark Fisher
@@ -39,10 +39,11 @@ import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
  */
 public class LangNamespaceHandler extends NamespaceHandlerSupport {
 
+	@Override
 	public void init() {
 		registerScriptBeanDefinitionParser("groovy", "org.springframework.scripting.groovy.GroovyScriptFactory");
-		registerScriptBeanDefinitionParser("jruby", "org.springframework.scripting.jruby.JRubyScriptFactory");
 		registerScriptBeanDefinitionParser("bsh", "org.springframework.scripting.bsh.BshScriptFactory");
+		registerScriptBeanDefinitionParser("std", "org.springframework.scripting.support.StandardScriptFactory");
 		registerBeanDefinitionParser("defaults", new ScriptingDefaultsParser());
 	}
 

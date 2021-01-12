@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,9 +16,6 @@
 
 package org.springframework.ejb.access;
 
-import static org.easymock.EasyMock.*;
-import static org.junit.Assert.*;
-
 import java.rmi.ConnectException;
 import java.rmi.RemoteException;
 
@@ -28,10 +25,18 @@ import javax.ejb.EJBObject;
 import javax.naming.Context;
 import javax.naming.NamingException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.jndi.JndiTemplate;
 import org.springframework.remoting.RemoteAccessException;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * @author Rod Johnson
@@ -41,20 +46,12 @@ import org.springframework.remoting.RemoteAccessException;
 public class SimpleRemoteSlsbInvokerInterceptorTests {
 
 	private Context mockContext(
-			String jndiName, RemoteInterface ejbInstance, int createCount, int lookupCount, int closeCount)
+			String jndiName, RemoteInterface ejbInstance)
 			throws Exception {
-
-		final SlsbHome mockHome = createMock(SlsbHome.class);
-		expect(mockHome.create()).andReturn(ejbInstance).times(createCount);
-		replay(mockHome);
-
-		final Context mockCtx = createMock(Context.class);
-
-		expect(mockCtx.lookup("java:comp/env/" + jndiName)).andReturn(mockHome).times(lookupCount);
-		mockCtx.close();
-		expectLastCall().times(closeCount);
-		replay(mockCtx);
-
+		SlsbHome mockHome = mock(SlsbHome.class);
+		given(mockHome.create()).willReturn(ejbInstance);
+		Context mockCtx = mock(Context.class);
+		given(mockCtx.lookup("java:comp/env/" + jndiName)).willReturn(mockHome);
 		return mockCtx;
 	}
 
@@ -63,6 +60,7 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 
 		SimpleRemoteSlsbInvokerInterceptor si = createInterceptor();
 		si.setJndiTemplate(new JndiTemplate() {
+			@Override
 			protected Context createInitialContext() {
 				return mockCtx;
 			}
@@ -79,7 +77,7 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 
 	protected Object configuredProxy(SimpleRemoteSlsbInvokerInterceptor si, Class<?> ifc) throws NamingException {
 		si.afterPropertiesSet();
-		ProxyFactory pf = new ProxyFactory(new Class[] {ifc});
+		ProxyFactory pf = new ProxyFactory(new Class<?>[] {ifc});
 		pf.addAdvice(si);
 		return pf.getProxy();
 	}
@@ -87,33 +85,32 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 
 	@Test
 	public void testPerformsLookup() throws Exception {
-		RemoteInterface ejb = createMock(RemoteInterface.class);
-		replay(ejb);
+		RemoteInterface ejb = mock(RemoteInterface.class);
 
 		String jndiName= "foobar";
-		Context mockContext = mockContext(jndiName, ejb, 1, 1, 1);
+		Context mockContext = mockContext(jndiName, ejb);
 
 		SimpleRemoteSlsbInvokerInterceptor si = configuredInterceptor(mockContext, jndiName);
 		configuredProxy(si, RemoteInterface.class);
 
-		verify(mockContext);
+		verify(mockContext).close();
 	}
 
 	@Test
 	public void testPerformsLookupWithAccessContext() throws Exception {
-		RemoteInterface ejb = createMock(RemoteInterface.class);
-		expect(ejb.targetMethod()).andReturn(null);
-		replay(ejb);
+		RemoteInterface ejb = mock(RemoteInterface.class);
 
 		String jndiName= "foobar";
-		Context mockContext = mockContext(jndiName, ejb, 1, 1, 2);
+		Context mockContext = mockContext(jndiName, ejb);
 
 		SimpleRemoteSlsbInvokerInterceptor si = configuredInterceptor(mockContext, jndiName);
 		si.setExposeAccessContext(true);
 		RemoteInterface target = (RemoteInterface) configuredProxy(si, RemoteInterface.class);
-		assertNull(target.targetMethod());
+		assertThat(target.targetMethod()).isNull();
 
-		verify(mockContext);
+		verify(mockContext, times(2)).close();
+		verify(ejb).targetMethod();
+
 	}
 
 	@Test
@@ -121,8 +118,9 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 		final NamingException nex = new NamingException();
 		final String jndiName = "foobar";
 		JndiTemplate jt = new JndiTemplate() {
+			@Override
 			public Object lookup(String name) throws NamingException {
-				assertTrue(jndiName.equals(name));
+				assertThat(jndiName.equals(name)).isTrue();
 				throw nex;
 			}
 		};
@@ -132,13 +130,9 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 		// default resourceRef=false should cause this to fail, as java:/comp/env will not
 		// automatically be added
 		si.setJndiTemplate(jt);
-		try {
-			si.afterPropertiesSet();
-			fail("Should have failed with naming exception");
-		}
-		catch (NamingException ex) {
-			assertTrue(ex == nex);
-		}
+		assertThatExceptionOfType(NamingException.class)
+			.isThrownBy(si::afterPropertiesSet)
+			.isSameAs(nex);
 	}
 
 	@Test
@@ -163,10 +157,8 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 
 	private void doTestInvokesMethodOnEjbInstance(boolean lookupHomeOnStartup, boolean cacheHome) throws Exception {
 		Object retVal = new Object();
-		final RemoteInterface ejb = createMock(RemoteInterface.class);
-		expect(ejb.targetMethod()).andReturn(retVal).times(2);
-		ejb.remove();
-		replay(ejb);
+		final RemoteInterface ejb = mock(RemoteInterface.class);
+		given(ejb.targetMethod()).willReturn(retVal);
 
 		int lookupCount = 1;
 		if (!cacheHome) {
@@ -177,61 +169,37 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 		}
 
 		final String jndiName= "foobar";
-		Context mockContext = mockContext(jndiName, ejb, 2, lookupCount, lookupCount);
+		Context mockContext = mockContext(jndiName, ejb);
 
 		SimpleRemoteSlsbInvokerInterceptor si = configuredInterceptor(mockContext, jndiName);
 		si.setLookupHomeOnStartup(lookupHomeOnStartup);
 		si.setCacheHome(cacheHome);
 
 		RemoteInterface target = (RemoteInterface) configuredProxy(si, RemoteInterface.class);
-		assertTrue(target.targetMethod() == retVal);
-		assertTrue(target.targetMethod() == retVal);
+		assertThat(target.targetMethod() == retVal).isTrue();
+		assertThat(target.targetMethod() == retVal).isTrue();
 
-		verify(mockContext, ejb);
-	}
-
-	@Test
-	public void testInvokesMethodOnEjbInstanceWithHomeInterface() throws Exception {
-		Object retVal = new Object();
-		final RemoteInterface ejb = createMock(RemoteInterface.class);
-		expect(ejb.targetMethod()).andReturn(retVal);
-		ejb.remove();
-		replay(ejb);
-
-		final String jndiName= "foobar";
-		Context mockContext = mockContext(jndiName, ejb, 1, 1, 1);
-
-		SimpleRemoteSlsbInvokerInterceptor si = configuredInterceptor(mockContext, jndiName);
-		si.setHomeInterface(SlsbHome.class);
-
-		RemoteInterface target = (RemoteInterface) configuredProxy(si, RemoteInterface.class);
-		assertTrue(target.targetMethod() == retVal);
-
-		verify(mockContext, ejb);
+		verify(mockContext, times(lookupCount)).close();
+		verify(ejb, times(2)).remove();
 	}
 
 	@Test
 	public void testInvokesMethodOnEjbInstanceWithRemoteException() throws Exception {
-		final RemoteInterface ejb = createMock(RemoteInterface.class);
-		expect(ejb.targetMethod()).andThrow(new RemoteException());
+		final RemoteInterface ejb = mock(RemoteInterface.class);
+		given(ejb.targetMethod()).willThrow(new RemoteException());
 		ejb.remove();
-		replay(ejb);
 
 		final String jndiName= "foobar";
-		Context mockContext = mockContext(jndiName, ejb, 1, 1, 1);
+		Context mockContext = mockContext(jndiName, ejb);
 
 		SimpleRemoteSlsbInvokerInterceptor si = configuredInterceptor(mockContext, jndiName);
 
 		RemoteInterface target = (RemoteInterface) configuredProxy(si, RemoteInterface.class);
-		try {
-			target.targetMethod();
-			fail("Should have thrown RemoteException");
-		}
-		catch (RemoteException ex) {
-			// expected
-		}
+		assertThatExceptionOfType(RemoteException.class).isThrownBy(
+				target::targetMethod);
 
-		verify(mockContext, ejb);
+		verify(mockContext).close();
+		verify(ejb, times(2)).remove();
 	}
 
 	@Test
@@ -257,11 +225,8 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 	private void doTestInvokesMethodOnEjbInstanceWithConnectExceptionWithRefresh(
 			boolean lookupHomeOnStartup, boolean cacheHome) throws Exception {
 
-		final RemoteInterface ejb = createMock(RemoteInterface.class);
-		expect(ejb.targetMethod()).andThrow(new ConnectException("")).times(2);
-		ejb.remove();
-		expectLastCall().times(2);
-		replay(ejb);
+		final RemoteInterface ejb = mock(RemoteInterface.class);
+		given(ejb.targetMethod()).willThrow(new ConnectException(""));
 
 		int lookupCount = 2;
 		if (!cacheHome) {
@@ -272,7 +237,7 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 		}
 
 		final String jndiName= "foobar";
-		Context mockContext = mockContext(jndiName, ejb, 2, lookupCount, lookupCount);
+		Context mockContext = mockContext(jndiName, ejb);
 
 		SimpleRemoteSlsbInvokerInterceptor si = configuredInterceptor(mockContext, jndiName);
 		si.setRefreshHomeOnConnectFailure(true);
@@ -280,58 +245,47 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 		si.setCacheHome(cacheHome);
 
 		RemoteInterface target = (RemoteInterface) configuredProxy(si, RemoteInterface.class);
-		try {
-			target.targetMethod();
-			fail("Should have thrown RemoteException");
-		}
-		catch (ConnectException ex) {
-			// expected
-		}
+		assertThatExceptionOfType(ConnectException.class).isThrownBy(
+				target::targetMethod);
 
-		verify(mockContext, ejb);
+		verify(mockContext, times(lookupCount)).close();
+		verify(ejb, times(2)).remove();
 	}
 
 	@Test
 	public void testInvokesMethodOnEjbInstanceWithBusinessInterface() throws Exception {
 		Object retVal = new Object();
-		final RemoteInterface ejb = createMock(RemoteInterface.class);
-		expect(ejb.targetMethod()).andReturn(retVal);
-		ejb.remove();
-		replay(ejb);
+		final RemoteInterface ejb = mock(RemoteInterface.class);
+		given(ejb.targetMethod()).willReturn(retVal);
 
 		final String jndiName= "foobar";
-		Context mockContext = mockContext(jndiName, ejb, 1, 1, 1);
+		Context mockContext = mockContext(jndiName, ejb);
 
 		SimpleRemoteSlsbInvokerInterceptor si = configuredInterceptor(mockContext, jndiName);
 
 		BusinessInterface target = (BusinessInterface) configuredProxy(si, BusinessInterface.class);
-		assertTrue(target.targetMethod() == retVal);
+		assertThat(target.targetMethod() == retVal).isTrue();
 
-		verify(mockContext, ejb);
+		verify(mockContext).close();
+		verify(ejb).remove();
 	}
 
 	@Test
 	public void testInvokesMethodOnEjbInstanceWithBusinessInterfaceWithRemoteException() throws Exception {
-		final RemoteInterface ejb = createMock(RemoteInterface.class);
-		expect(ejb.targetMethod()).andThrow(new RemoteException());
-		ejb.remove();
-		replay(ejb);
+		final RemoteInterface ejb = mock(RemoteInterface.class);
+		given(ejb.targetMethod()).willThrow(new RemoteException());
 
 		final String jndiName= "foobar";
-		Context mockContext = mockContext(jndiName, ejb, 1, 1, 1);
+		Context mockContext = mockContext(jndiName, ejb);
 
 		SimpleRemoteSlsbInvokerInterceptor si = configuredInterceptor(mockContext, jndiName);
 
 		BusinessInterface target = (BusinessInterface) configuredProxy(si, BusinessInterface.class);
-		try {
-			target.targetMethod();
-			fail("Should have thrown RemoteAccessException");
-		}
-		catch (RemoteAccessException ex) {
-			// expected
-		}
+		assertThatExceptionOfType(RemoteAccessException.class).isThrownBy(
+				target::targetMethod);
 
-		verify(mockContext, ejb);
+		verify(mockContext).close();
+		verify(ejb).remove();
 	}
 
 	@Test
@@ -345,26 +299,20 @@ public class SimpleRemoteSlsbInvokerInterceptorTests {
 	}
 
 	private void doTestException(Exception expected) throws Exception {
-		final RemoteInterface ejb = createMock(RemoteInterface.class);
-		expect(ejb.targetMethod()).andThrow(expected);
-		ejb.remove();
-		replay(ejb);
+		final RemoteInterface ejb = mock(RemoteInterface.class);
+		given(ejb.targetMethod()).willThrow(expected);
 
 		final String jndiName= "foobar";
-		Context mockContext = mockContext(jndiName, ejb, 1, 1, 1);
+		Context mockContext = mockContext(jndiName, ejb);
 
 		SimpleRemoteSlsbInvokerInterceptor si = configuredInterceptor(mockContext, jndiName);
 
 		RemoteInterface target = (RemoteInterface) configuredProxy(si, RemoteInterface.class);
-		try {
-			target.targetMethod();
-			fail("Should have thrown remote exception");
-		}
-		catch (Exception thrown) {
-			assertTrue(thrown == expected);
-		}
-
-		verify(mockContext, ejb);
+		assertThatExceptionOfType(Exception.class)
+			.isThrownBy(target::targetMethod)
+			.isSameAs(expected);
+		verify(mockContext).close();
+		verify(ejb).remove();
 	}
 
 

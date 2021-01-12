@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,28 +16,26 @@
 
 package org.springframework.web.method.annotation;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.lang.reflect.Method;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.MethodParameter;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.support.GenericWebApplicationContext;
-import org.springframework.web.method.annotation.ExpressionValueMethodArgumentResolver;
+import org.springframework.web.testfixture.servlet.MockHttpServletRequest;
+import org.springframework.web.testfixture.servlet.MockHttpServletResponse;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Test fixture with {@link ExpressionValueMethodArgumentResolver}.
- * 
+ *
  * @author Rossen Stoyanchev
  */
 public class ExpressionValueMethodArgumentResolverTests {
@@ -52,33 +50,34 @@ public class ExpressionValueMethodArgumentResolverTests {
 
 	private NativeWebRequest webRequest;
 
-	@Before
+	@BeforeEach
+	@SuppressWarnings("resource")
 	public void setUp() throws Exception {
 		GenericWebApplicationContext context = new GenericWebApplicationContext();
 		context.refresh();
 		resolver = new ExpressionValueMethodArgumentResolver(context.getBeanFactory());
-		
+
 		Method method = getClass().getMethod("params", int.class, String.class, String.class);
 		paramSystemProperty = new MethodParameter(method, 0);
 		paramContextPath = new MethodParameter(method, 1);
 		paramNotSupported = new MethodParameter(method, 2);
 
 		webRequest = new ServletWebRequest(new MockHttpServletRequest(), new MockHttpServletResponse());
-		
+
 		// Expose request to the current thread (for SpEL expressions)
 		RequestContextHolder.setRequestAttributes(webRequest);
 	}
-	
-	@After
+
+	@AfterEach
 	public void teardown() {
 		RequestContextHolder.resetRequestAttributes();
 	}
 
 	@Test
 	public void supportsParameter() throws Exception {
-		assertTrue(resolver.supportsParameter(paramSystemProperty));
-		assertTrue(resolver.supportsParameter(paramContextPath));
-		assertFalse(resolver.supportsParameter(paramNotSupported));
+		assertThat(resolver.supportsParameter(paramSystemProperty)).isTrue();
+		assertThat(resolver.supportsParameter(paramContextPath)).isTrue();
+		assertThat(resolver.supportsParameter(paramNotSupported)).isFalse();
 	}
 
 	@Test
@@ -86,21 +85,20 @@ public class ExpressionValueMethodArgumentResolverTests {
 		System.setProperty("systemProperty", "22");
 		Object value = resolver.resolveArgument(paramSystemProperty, null, webRequest, null);
 		System.clearProperty("systemProperty");
-		
-		assertEquals("22", value);
+
+		assertThat(value).isEqualTo("22");
 	}
 
 	@Test
 	public void resolveContextPath() throws Exception {
 		webRequest.getNativeRequest(MockHttpServletRequest.class).setContextPath("/contextPath");
 		Object value = resolver.resolveArgument(paramContextPath, null, webRequest, null);
-		
-		assertEquals("/contextPath", value);
+
+		assertThat(value).isEqualTo("/contextPath");
 	}
 
 	public void params(@Value("#{systemProperties.systemProperty}") int param1,
-					   @Value("#{request.contextPath}") String param2,
-					   String notSupported) {
+			@Value("#{request.contextPath}") String param2, String notSupported) {
 	}
 
 }

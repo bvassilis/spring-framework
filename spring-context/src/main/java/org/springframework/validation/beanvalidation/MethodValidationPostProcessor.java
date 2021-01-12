@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,27 +17,20 @@
 package org.springframework.validation.beanvalidation;
 
 import java.lang.annotation.Annotation;
+
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
 
 import org.aopalliance.aop.Advice;
 
-import org.springframework.aop.Advisor;
 import org.springframework.aop.Pointcut;
-import org.springframework.aop.framework.Advised;
-import org.springframework.aop.framework.AopInfrastructureBean;
-import org.springframework.aop.framework.ProxyConfig;
-import org.springframework.aop.framework.ProxyFactory;
-import org.springframework.aop.support.AopUtils;
+import org.springframework.aop.framework.autoproxy.AbstractBeanFactoryAwareAdvisingPostProcessor;
 import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.aop.support.annotation.AnnotationMatchingPointcut;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.core.Ordered;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
 import org.springframework.validation.annotation.Validated;
 
 /**
@@ -57,26 +50,21 @@ import org.springframework.validation.annotation.Validated;
  * inline constraint annotations. Validation groups can be specified through {@code @Validated}
  * as well. By default, JSR-303 will validate against its default group only.
  *
- * <p>As of Spring 3.1, this functionality requires Hibernate Validator 4.2 or higher.
- * In Spring 3.1.2, this class will autodetect a Bean Validation 1.1 compliant provider
- * and automatically use the standard method validation support there (once available).
+ * <p>As of Spring 5.0, this functionality requires a Bean Validation 1.1+ provider.
  *
  * @author Juergen Hoeller
  * @since 3.1
  * @see MethodValidationInterceptor
- * @see org.hibernate.validator.method.MethodValidator
+ * @see javax.validation.executable.ExecutableValidator
  */
 @SuppressWarnings("serial")
-public class MethodValidationPostProcessor extends ProxyConfig
-		implements BeanPostProcessor, BeanClassLoaderAware, Ordered, InitializingBean {
+public class MethodValidationPostProcessor extends AbstractBeanFactoryAwareAdvisingPostProcessor
+		implements InitializingBean {
 
 	private Class<? extends Annotation> validatedAnnotationType = Validated.class;
 
+	@Nullable
 	private Validator validator;
-
-	private ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader();
-
-	private Advisor advisor;
 
 
 	/**
@@ -97,7 +85,16 @@ public class MethodValidationPostProcessor extends ProxyConfig
 	 * <p>Default is the default ValidatorFactory's default Validator.
 	 */
 	public void setValidator(Validator validator) {
-		this.validator = validator;
+		// Unwrap to the native Validator with forExecutables support
+		if (validator instanceof LocalValidatorFactoryBean) {
+			this.validator = ((LocalValidatorFactoryBean) validator).getValidator();
+		}
+		else if (validator instanceof SpringValidatorAdapter) {
+			this.validator = validator.unwrap(Validator.class);
+		}
+		else {
+			this.validator = validator;
+		}
 	}
 
 	/**
@@ -110,52 +107,23 @@ public class MethodValidationPostProcessor extends ProxyConfig
 		this.validator = validatorFactory.getValidator();
 	}
 
-	public void setBeanClassLoader(ClassLoader classLoader) {
-		this.beanClassLoader = classLoader;
-	}
 
-	public int getOrder() {
-		// This should run after all other post-processors, so that it can just add
-		// an advisor to existing proxies rather than double-proxy.
-		return LOWEST_PRECEDENCE;
-	}
-
-
+	@Override
 	public void afterPropertiesSet() {
 		Pointcut pointcut = new AnnotationMatchingPointcut(this.validatedAnnotationType, true);
-		Advice advice = (this.validator != null ? new MethodValidationInterceptor(this.validator) :
-				new MethodValidationInterceptor());
-		this.advisor = new DefaultPointcutAdvisor(pointcut, advice);
+		this.advisor = new DefaultPointcutAdvisor(pointcut, createMethodValidationAdvice(this.validator));
 	}
 
-
-	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-		return bean;
-	}
-
-	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-		if (bean instanceof AopInfrastructureBean) {
-			// Ignore AOP infrastructure such as scoped proxies.
-			return bean;
-		}
-		Class<?> targetClass = AopUtils.getTargetClass(bean);
-		if (AopUtils.canApply(this.advisor, targetClass)) {
-			if (bean instanceof Advised) {
-				((Advised) bean).addAdvisor(this.advisor);
-				return bean;
-			}
-			else {
-				ProxyFactory proxyFactory = new ProxyFactory(bean);
-				// Copy our properties (proxyTargetClass etc) inherited from ProxyConfig.
-				proxyFactory.copyFrom(this);
-				proxyFactory.addAdvisor(this.advisor);
-				return proxyFactory.getProxy(this.beanClassLoader);
-			}
-		}
-		else {
-			// This is not a repository.
-			return bean;
-		}
+	/**
+	 * Create AOP advice for method validation purposes, to be applied
+	 * with a pointcut for the specified 'validated' annotation.
+	 * @param validator the JSR-303 Validator to delegate to
+	 * @return the interceptor to use (typically, but not necessarily,
+	 * a {@link MethodValidationInterceptor} or subclass thereof)
+	 * @since 4.2
+	 */
+	protected Advice createMethodValidationAdvice(@Nullable Validator validator) {
+		return (validator != null ? new MethodValidationInterceptor(validator) : new MethodValidationInterceptor());
 	}
 
 }

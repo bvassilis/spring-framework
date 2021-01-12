@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,11 +20,10 @@ import java.util.Comparator;
 import java.util.Map;
 
 /**
- * Strategy interface for <code>String</code>-based path matching.
+ * Strategy interface for {@code String}-based path matching.
  *
  * <p>Used by {@link org.springframework.core.io.support.PathMatchingResourcePatternResolver},
  * {@link org.springframework.web.servlet.handler.AbstractUrlHandlerMapping},
- * {@link org.springframework.web.servlet.mvc.multiaction.PropertiesMethodNameResolver},
  * and {@link org.springframework.web.servlet.mvc.WebContentInterceptor}.
  *
  * <p>The default implementation is {@link AntPathMatcher}, supporting the
@@ -37,35 +36,35 @@ import java.util.Map;
 public interface PathMatcher {
 
 	/**
-	 * Does the given <code>path</code> represent a pattern that can be matched
+	 * Does the given {@code path} represent a pattern that can be matched
 	 * by an implementation of this interface?
-	 * <p>If the return value is <code>false</code>, then the {@link #match}
+	 * <p>If the return value is {@code false}, then the {@link #match}
 	 * method does not have to be used because direct equality comparisons
 	 * on the static path Strings will lead to the same result.
-	 * @param path the path String to check
-	 * @return <code>true</code> if the given <code>path</code> represents a pattern
+	 * @param path the path to check
+	 * @return {@code true} if the given {@code path} represents a pattern
 	 */
 	boolean isPattern(String path);
 
 	/**
-	 * Match the given <code>path</code> against the given <code>pattern</code>,
+	 * Match the given {@code path} against the given {@code pattern},
 	 * according to this PathMatcher's matching strategy.
 	 * @param pattern the pattern to match against
-	 * @param path the path String to test
-	 * @return <code>true</code> if the supplied <code>path</code> matched,
-	 * <code>false</code> if it didn't
+	 * @param path the path to test
+	 * @return {@code true} if the supplied {@code path} matched,
+	 * {@code false} if it didn't
 	 */
 	boolean match(String pattern, String path);
 
 	/**
-	 * Match the given <code>path</code> against the corresponding part of the given
-	 * <code>pattern</code>, according to this PathMatcher's matching strategy.
+	 * Match the given {@code path} against the corresponding part of the given
+	 * {@code pattern}, according to this PathMatcher's matching strategy.
 	 * <p>Determines whether the pattern at least matches as far as the given base
 	 * path goes, assuming that a full path may then match as well.
 	 * @param pattern the pattern to match against
-	 * @param path the path String to test
-	 * @return <code>true</code> if the supplied <code>path</code> matched,
-	 * <code>false</code> if it didn't
+	 * @param path the path to test
+	 * @return {@code true} if the supplied {@code path} matched,
+	 * {@code false} if it didn't
 	 */
 	boolean matchStart(String pattern, String path);
 
@@ -80,14 +79,14 @@ public interface PathMatcher {
 	 * determination rules are specified to this PathMatcher's matching strategy.
 	 * <p>A simple implementation may return the given full path as-is in case
 	 * of an actual pattern, and the empty String in case of the pattern not
-	 * containing any dynamic parts (i.e. the <code>pattern</code> parameter being
+	 * containing any dynamic parts (i.e. the {@code pattern} parameter being
 	 * a static path that wouldn't qualify as an actual {@link #isPattern pattern}).
 	 * A sophisticated implementation will differentiate between the static parts
 	 * and the dynamic parts of the given path pattern.
 	 * @param pattern the path pattern
 	 * @param path the full path to introspect
-	 * @return the pattern-mapped part of the given <code>path</code>
-	 * (never <code>null</code>)
+	 * @return the pattern-mapped part of the given {@code path}
+	 * (never {@code null})
 	 */
 	String extractPathWithinPattern(String pattern, String path);
 
@@ -105,9 +104,9 @@ public interface PathMatcher {
 	/**
 	 * Given a full path, returns a {@link Comparator} suitable for sorting patterns
 	 * in order of explicitness for that path.
-	 * <p>The full algorithm used depends on the underlying implementation, but generally,
-	 * the returned <code>Comparator</code> will
-	 * {@linkplain java.util.Collections#sort(java.util.List, java.util.Comparator) sort}
+	 * <p>The full algorithm used depends on the underlying implementation,
+	 * but generally, the returned {@code Comparator} will
+	 * {@linkplain java.util.List#sort(java.util.Comparator) sort}
 	 * a list so that more specific patterns come before generic patterns.
 	 * @param path the full path to use for comparison
 	 * @return a comparator capable of sorting patterns in order of explicitness

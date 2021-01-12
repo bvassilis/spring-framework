@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,13 +20,13 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 /**
- * A contract for media type expressions (e.g. "text/plain", "!text/plain") as 
- * defined in the {@code @RequestMapping} annotation for "consumes" and 
+ * A contract for media type expressions (e.g. "text/plain", "!text/plain") as
+ * defined in the {@code @RequestMapping} annotation for "consumes" and
  * "produces" conditions.
  *
  * @author Rossen Stoyanchev
  * @since 3.1
- * 
+ *
  * @see RequestMapping#consumes()
  * @see RequestMapping#produces()
  */

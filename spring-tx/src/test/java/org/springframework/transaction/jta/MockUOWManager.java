@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,8 +16,8 @@
 
 package org.springframework.transaction.jta;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -43,11 +43,12 @@ public class MockUOWManager implements UOWManager {
 
 	private int status = UOW_STATUS_NONE;
 
-	private final Map resources = new HashMap();
+	private final Map<Object, Object> resources = new HashMap<>();
 
-	private final List synchronizations = new LinkedList();
+	private final List<Synchronization> synchronizations = new ArrayList<>();
 
 
+	@Override
 	public void runUnderUOW(int type, boolean join, UOWAction action) throws UOWActionException, UOWException {
 		this.type = type;
 		this.joined = join;
@@ -56,11 +57,7 @@ public class MockUOWManager implements UOWManager {
 			action.run();
 			this.status = (this.rollbackOnly ? UOW_STATUS_ROLLEDBACK : UOW_STATUS_COMMITTED);
 		}
-		catch (Error err) {
-			this.status = UOW_STATUS_ROLLEDBACK;
-			throw err;
-		}
-		catch (RuntimeException ex) {
+		catch (Error | RuntimeException ex) {
 			this.status = UOW_STATUS_ROLLEDBACK;
 			throw ex;
 		}
@@ -70,6 +67,7 @@ public class MockUOWManager implements UOWManager {
 		}
 	}
 
+	@Override
 	public int getUOWType() {
 		return this.type;
 	}
@@ -78,22 +76,27 @@ public class MockUOWManager implements UOWManager {
 		return this.joined;
 	}
 
+	@Override
 	public long getLocalUOWId() {
 		return 0;
 	}
 
+	@Override
 	public void setUOWTimeout(int uowType, int timeout) {
 		this.timeout = timeout;
 	}
 
+	@Override
 	public int getUOWTimeout() {
 		return this.timeout;
 	}
 
+	@Override
 	public void setRollbackOnly() {
 		this.rollbackOnly = true;
 	}
 
+	@Override
 	public boolean getRollbackOnly() {
 		return this.rollbackOnly;
 	}
@@ -102,23 +105,27 @@ public class MockUOWManager implements UOWManager {
 		this.status = status;
 	}
 
+	@Override
 	public int getUOWStatus() {
 		return this.status;
 	}
 
+	@Override
 	public void putResource(Object key, Object value) {
 		this.resources.put(key, value);
 	}
 
+	@Override
 	public Object getResource(Object key) throws NullPointerException {
 		return this.resources.get(key);
 	}
 
+	@Override
 	public void registerInterposedSynchronization(Synchronization sync) {
 		this.synchronizations.add(sync);
 	}
 
-	public List getSynchronizations() {
+	public List<Synchronization> getSynchronizations() {
 		return this.synchronizations;
 	}
 

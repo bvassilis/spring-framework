@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,21 +24,24 @@ import javax.naming.NamingException;
 import org.springframework.jndi.JndiTemplate;
 
 /**
- * Simple extension of the JndiTemplate class that always returns a given
- * object. Very useful for testing. Effectively a mock object.
- * 
+ * Simple extension of the JndiTemplate class that always returns a given object.
+ *
+ * <p>Very useful for testing. Effectively a mock object.
+ *
  * @author Rod Johnson
  * @author Juergen Hoeller
+ * @deprecated Deprecated as of Spring Framework 5.2 in favor of complete solutions from
+ * third parties such as <a href="https://github.com/h-thurow/Simple-JNDI">Simple-JNDI</a>
  */
+@Deprecated
 public class ExpectedLookupTemplate extends JndiTemplate {
 
-	private final Map<String, Object> jndiObjects = new ConcurrentHashMap<String, Object>();
+	private final Map<String, Object> jndiObjects = new ConcurrentHashMap<>(16);
 
 
 	/**
 	 * Construct a new JndiTemplate that will always return given objects for
-	 * given names. To be populated through <code>addObject</code> calls.
-	 * 
+	 * given names. To be populated through {@code addObject} calls.
 	 * @see #addObject(String, Object)
 	 */
 	public ExpectedLookupTemplate() {
@@ -47,7 +50,6 @@ public class ExpectedLookupTemplate extends JndiTemplate {
 	/**
 	 * Construct a new JndiTemplate that will always return the given object,
 	 * but honour only requests for the given name.
-	 * 
 	 * @param name the name the client is expected to look up
 	 * @param object the object that will be returned
 	 */
@@ -55,10 +57,9 @@ public class ExpectedLookupTemplate extends JndiTemplate {
 		addObject(name, object);
 	}
 
+
 	/**
-	 * Add the given object to the list of JNDI objects that this template will
-	 * expose.
-	 * 
+	 * Add the given object to the list of JNDI objects that this template will expose.
 	 * @param name the name the client is expected to look up
 	 * @param object the object that will be returned
 	 */
@@ -71,6 +72,7 @@ public class ExpectedLookupTemplate extends JndiTemplate {
 	 * object provided in the constructor. If the name is unexpected, a
 	 * respective NamingException gets thrown.
 	 */
+	@Override
 	public Object lookup(String name) throws NamingException {
 		Object object = this.jndiObjects.get(name);
 		if (object == null) {

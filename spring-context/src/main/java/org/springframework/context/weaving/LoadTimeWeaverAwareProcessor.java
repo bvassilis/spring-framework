@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +22,7 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.instrument.classloading.LoadTimeWeaver;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -31,7 +32,7 @@ import org.springframework.util.Assert;
  *
  * <p>{@link org.springframework.context.ApplicationContext Application contexts}
  * will automatically register this with their underlying {@link BeanFactory bean factory},
- * provided that a default <code>LoadTimeWeaver</code> is actually available.
+ * provided that a default {@code LoadTimeWeaver} is actually available.
  *
  * <p>Applications should not use this class directly.
  *
@@ -42,13 +43,15 @@ import org.springframework.util.Assert;
  */
 public class LoadTimeWeaverAwareProcessor implements BeanPostProcessor, BeanFactoryAware {
 
+	@Nullable
 	private LoadTimeWeaver loadTimeWeaver;
 
+	@Nullable
 	private BeanFactory beanFactory;
 
 
 	/**
-	 * Create a new <code>LoadTimeWeaverAwareProcessor</code> that will
+	 * Create a new {@code LoadTimeWeaverAwareProcessor} that will
 	 * auto-retrieve the {@link LoadTimeWeaver} from the containing
 	 * {@link BeanFactory}, expecting a bean named
 	 * {@link ConfigurableApplicationContext#LOAD_TIME_WEAVER_BEAN_NAME "loadTimeWeaver"}.
@@ -57,21 +60,21 @@ public class LoadTimeWeaverAwareProcessor implements BeanPostProcessor, BeanFact
 	}
 
 	/**
-	 * Create a new <code>LoadTimeWeaverAwareProcessor</code> for the given
+	 * Create a new {@code LoadTimeWeaverAwareProcessor} for the given
 	 * {@link LoadTimeWeaver}.
-	 * <p>If the given <code>loadTimeWeaver</code> is <code>null</code>, then a
-	 * <code>LoadTimeWeaver</code> will be auto-retrieved from the containing
+	 * <p>If the given {@code loadTimeWeaver} is {@code null}, then a
+	 * {@code LoadTimeWeaver} will be auto-retrieved from the containing
 	 * {@link BeanFactory}, expecting a bean named
 	 * {@link ConfigurableApplicationContext#LOAD_TIME_WEAVER_BEAN_NAME "loadTimeWeaver"}.
-	 * @param loadTimeWeaver the specific <code>LoadTimeWeaver</code> that is to be used
+	 * @param loadTimeWeaver the specific {@code LoadTimeWeaver} that is to be used
 	 */
-	public LoadTimeWeaverAwareProcessor(LoadTimeWeaver loadTimeWeaver) {
+	public LoadTimeWeaverAwareProcessor(@Nullable LoadTimeWeaver loadTimeWeaver) {
 		this.loadTimeWeaver = loadTimeWeaver;
 	}
 
 	/**
-	 * Create a new <code>LoadTimeWeaverAwareProcessor</code>.
-	 * <p>The <code>LoadTimeWeaver</code> will be auto-retrieved from
+	 * Create a new {@code LoadTimeWeaverAwareProcessor}.
+	 * <p>The {@code LoadTimeWeaver} will be auto-retrieved from
 	 * the given {@link BeanFactory}, expecting a bean named
 	 * {@link ConfigurableApplicationContext#LOAD_TIME_WEAVER_BEAN_NAME "loadTimeWeaver"}.
 	 * @param beanFactory the BeanFactory to retrieve the LoadTimeWeaver from
@@ -81,11 +84,13 @@ public class LoadTimeWeaverAwareProcessor implements BeanPostProcessor, BeanFact
 	}
 
 
+	@Override
 	public void setBeanFactory(BeanFactory beanFactory) {
 		this.beanFactory = beanFactory;
 	}
 
 
+	@Override
 	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
 		if (bean instanceof LoadTimeWeaverAware) {
 			LoadTimeWeaver ltw = this.loadTimeWeaver;
@@ -100,6 +105,7 @@ public class LoadTimeWeaverAwareProcessor implements BeanPostProcessor, BeanFact
 		return bean;
 	}
 
+	@Override
 	public Object postProcessAfterInitialization(Object bean, String name) {
 		return bean;
 	}

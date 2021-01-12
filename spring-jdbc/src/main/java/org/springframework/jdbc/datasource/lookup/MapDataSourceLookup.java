@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,8 +19,10 @@ package org.springframework.jdbc.datasource.lookup;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.sql.DataSource;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -36,7 +38,7 @@ import org.springframework.util.Assert;
  */
 public class MapDataSourceLookup implements DataSourceLookup {
 
-	private final Map<String, DataSource> dataSources = new HashMap<String, DataSource>(4);
+	private final Map<String, DataSource> dataSources = new HashMap<>(4);
 
 
 	/**
@@ -67,11 +69,11 @@ public class MapDataSourceLookup implements DataSourceLookup {
 	/**
 	 * Set the {@link Map} of {@link DataSource DataSources}; the keys
 	 * are {@link String Strings}, the values are actual {@link DataSource} instances.
-	 * <p>If the supplied {@link Map} is <code>null</code>, then this method
-	 * call effectively has no effect. 
+	 * <p>If the supplied {@link Map} is {@code null}, then this method
+	 * call effectively has no effect.
 	 * @param dataSources said {@link Map} of {@link DataSource DataSources}
 	 */
-	public void setDataSources(Map<String, DataSource> dataSources) {
+	public void setDataSources(@Nullable Map<String, DataSource> dataSources) {
 		if (dataSources != null) {
 			this.dataSources.putAll(dataSources);
 		}
@@ -80,7 +82,7 @@ public class MapDataSourceLookup implements DataSourceLookup {
 	/**
 	 * Get the {@link Map} of {@link DataSource DataSources} maintained by this object.
 	 * <p>The returned {@link Map} is {@link Collections#unmodifiableMap(java.util.Map) unmodifiable}.
-	 * @return said {@link Map} of {@link DataSource DataSources} (never <code>null</code>) 
+	 * @return said {@link Map} of {@link DataSource DataSources} (never {@code null})
 	 */
 	public Map<String, DataSource> getDataSources() {
 		return Collections.unmodifiableMap(this.dataSources);
@@ -98,6 +100,7 @@ public class MapDataSourceLookup implements DataSourceLookup {
 		this.dataSources.put(dataSourceName, dataSource);
 	}
 
+	@Override
 	public DataSource getDataSource(String dataSourceName) throws DataSourceLookupFailureException {
 		Assert.notNull(dataSourceName, "DataSource name must not be null");
 		DataSource dataSource = this.dataSources.get(dataSourceName);

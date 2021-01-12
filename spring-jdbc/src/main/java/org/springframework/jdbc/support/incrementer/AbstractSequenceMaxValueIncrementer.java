@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -88,7 +88,7 @@ public abstract class AbstractSequenceMaxValueIncrementer extends AbstractDataFi
 	/**
 	 * Return the database-specific query to use for retrieving a sequence value.
 	 * <p>The provided SQL is supposed to result in a single row with a single
-	 * column that allows for extracting a <code>long</code> value.
+	 * column that allows for extracting a {@code long} value.
 	 */
 	protected abstract String getSequenceQuery();
 

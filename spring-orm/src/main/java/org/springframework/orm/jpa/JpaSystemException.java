@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2006 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,23 +16,22 @@
 
 package org.springframework.orm.jpa;
 
-import javax.persistence.PersistenceException;
-
 import org.springframework.dao.UncategorizedDataAccessException;
 
 /**
  * JPA-specific subclass of UncategorizedDataAccessException,
  * for JPA system errors that do not match any concrete
- * <code>org.springframework.dao</code> exceptions.
+ * {@code org.springframework.dao} exceptions.
  *
  * @author Juergen Hoeller
  * @since 2.0
  * @see EntityManagerFactoryUtils#convertJpaAccessExceptionIfPossible
  */
+@SuppressWarnings("serial")
 public class JpaSystemException extends UncategorizedDataAccessException {
 
-	public JpaSystemException(PersistenceException ex) {
+	public JpaSystemException(RuntimeException ex) {
 		super(ex.getMessage(), ex);
 	}
-	
+
 }

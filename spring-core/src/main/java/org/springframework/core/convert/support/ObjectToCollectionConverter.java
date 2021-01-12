@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@ import org.springframework.core.CollectionFactory;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.core.convert.converter.ConditionalGenericConverter;
+import org.springframework.lang.Nullable;
 
 /**
  * Converts an Object to a single-element Collection containing the Object.
@@ -37,29 +38,38 @@ final class ObjectToCollectionConverter implements ConditionalGenericConverter {
 
 	private final ConversionService conversionService;
 
+
 	public ObjectToCollectionConverter(ConversionService conversionService) {
 		this.conversionService = conversionService;
 	}
 
+
+	@Override
 	public Set<ConvertiblePair> getConvertibleTypes() {
 		return Collections.singleton(new ConvertiblePair(Object.class, Collection.class));
 	}
 
+	@Override
 	public boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType) {
 		return ConversionUtils.canConvertElements(sourceType, targetType.getElementTypeDescriptor(), this.conversionService);
 	}
 
-	@SuppressWarnings("unchecked")
-	public Object convert(Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
+	@Override
+	@Nullable
+	public Object convert(@Nullable Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
 		if (source == null) {
 			return null;
 		}
-		Collection<Object> target = CollectionFactory.createCollection(targetType.getType(), 1);
-		if (targetType.getElementTypeDescriptor() == null || targetType.getElementTypeDescriptor().isCollection()) {
+
+		TypeDescriptor elementDesc = targetType.getElementTypeDescriptor();
+		Collection<Object> target = CollectionFactory.createCollection(targetType.getType(),
+				(elementDesc != null ? elementDesc.getType() : null), 1);
+
+		if (elementDesc == null || elementDesc.isCollection()) {
 			target.add(source);
 		}
 		else {
-			Object singleElement = this.conversionService.convert(source, sourceType, targetType.getElementTypeDescriptor());
+			Object singleElement = this.conversionService.convert(source, sourceType, elementDesc);
 			target.add(singleElement);
 		}
 		return target;

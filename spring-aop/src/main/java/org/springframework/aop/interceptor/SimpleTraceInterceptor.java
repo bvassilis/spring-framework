@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,12 +19,14 @@ package org.springframework.aop.interceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.logging.Log;
 
+import org.springframework.util.Assert;
+
 /**
- * Simple AOP Alliance <code>MethodInterceptor</code> that can be introduced
+ * Simple AOP Alliance {@code MethodInterceptor} that can be introduced
  * in a chain to display verbose trace information about intercepted method
  * invocations, with method entry and method exit info.
  *
- * <p>Consider using <code>CustomizableTraceInterceptor</code> for more
+ * <p>Consider using {@code CustomizableTraceInterceptor} for more
  * advanced needs.
  *
  * @author Dmitriy Kopylenko
@@ -32,6 +34,7 @@ import org.apache.commons.logging.Log;
  * @since 1.2
  * @see CustomizableTraceInterceptor
  */
+@SuppressWarnings("serial")
 public class SimpleTraceInterceptor extends AbstractTraceInterceptor {
 
 	/**
@@ -54,14 +57,14 @@ public class SimpleTraceInterceptor extends AbstractTraceInterceptor {
 	@Override
 	protected Object invokeUnderTrace(MethodInvocation invocation, Log logger) throws Throwable {
 		String invocationDescription = getInvocationDescription(invocation);
-		logger.trace("Entering " + invocationDescription);
+		writeToLog(logger, "Entering " + invocationDescription);
 		try {
 			Object rval = invocation.proceed();
-			logger.trace("Exiting " + invocationDescription);
+			writeToLog(logger, "Exiting " + invocationDescription);
 			return rval;
 		}
 		catch (Throwable ex) {
-			logger.trace("Exception thrown in " + invocationDescription, ex);
+			writeToLog(logger, "Exception thrown in " + invocationDescription, ex);
 			throw ex;
 		}
 	}
@@ -72,8 +75,10 @@ public class SimpleTraceInterceptor extends AbstractTraceInterceptor {
 	 * @return the description
 	 */
 	protected String getInvocationDescription(MethodInvocation invocation) {
-		return "method '" + invocation.getMethod().getName() + "' of class [" +
-				invocation.getThis().getClass().getName() + "]";
+		Object target = invocation.getThis();
+		Assert.state(target != null, "Target must not be null");
+		String className = target.getClass().getName();
+		return "method '" + invocation.getMethod().getName() + "' of class [" + className + "]";
 	}
 
 }

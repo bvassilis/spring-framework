@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,12 +25,12 @@ import org.springframework.web.servlet.support.RequestContextUtils;
 import org.springframework.web.util.UrlPathHelper;
 
 /**
- * Abstract base class for <code>Controllers</code> that return a view name
+ * Abstract base class for {@code Controllers} that return a view name
  * based on the request URL.
  *
  * <p>Provides infrastructure for determining view names from URLs and configurable
- * URL lookup. For information on the latter, see <code>alwaysUseFullPath</code>
- * and <code>urlDecode</code> properties.
+ * URL lookup. For information on the latter, see {@code alwaysUseFullPath}
+ * and {@code urlDecode} properties.
  *
  * @author Juergen Hoeller
  * @since 1.2.6
@@ -66,6 +66,14 @@ public abstract class AbstractUrlViewController extends AbstractController {
 	}
 
 	/**
+	 * Set if ";" (semicolon) content should be stripped from the request URI.
+	 * @see org.springframework.web.util.UrlPathHelper#setRemoveSemicolonContent(boolean)
+	 */
+	public void setRemoveSemicolonContent(boolean removeSemicolonContent) {
+		this.urlPathHelper.setRemoveSemicolonContent(removeSemicolonContent);
+	}
+
+	/**
 	 * Set the UrlPathHelper to use for the resolution of lookup paths.
 	 * <p>Use this to override the default UrlPathHelper with a custom subclass,
 	 * or to share common UrlPathHelper settings across multiple MethodNameResolvers
@@ -87,15 +95,14 @@ public abstract class AbstractUrlViewController extends AbstractController {
 
 	/**
 	 * Retrieves the URL path to use for lookup and delegates to
-	 * {@link #getViewNameForRequest}. Also adds the content of 
+	 * {@link #getViewNameForRequest}. Also adds the content of
 	 * {@link RequestContextUtils#getInputFlashMap} to the model.
 	 */
 	@Override
 	protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) {
-		String lookupPath = getUrlPathHelper().getLookupPathForRequest(request);
 		String viewName = getViewNameForRequest(request);
-		if (logger.isDebugEnabled()) {
-			logger.debug("Returning view name '" + viewName + "' for lookup path [" + lookupPath + "]");
+		if (logger.isTraceEnabled()) {
+			logger.trace("Returning view name '" + viewName + "'");
 		}
 		return new ModelAndView(viewName, RequestContextUtils.getInputFlashMap(request));
 	}
@@ -104,7 +111,7 @@ public abstract class AbstractUrlViewController extends AbstractController {
 	 * Return the name of the view to render for this request, based on the
 	 * given lookup path. Called by {@link #handleRequestInternal}.
 	 * @param request current HTTP request
-	 * @return a view name for this request (never <code>null</code>)
+	 * @return a view name for this request (never {@code null})
 	 * @see #handleRequestInternal
 	 * @see #setAlwaysUseFullPath
 	 * @see #setUrlDecode

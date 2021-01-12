@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,15 +17,16 @@
 package org.springframework.oxm;
 
 import java.io.IOException;
+
 import javax.xml.transform.Result;
 
 /**
  * Defines the contract for Object XML Mapping Marshallers. Implementations of this interface
  * can serialize a given Object to an XML Stream.
  *
- * <p>Although the <code>marshal</code> method accepts a <code>java.lang.Object</code> as its
- * first parameter, most <code>Marshaller</code> implementations cannot handle arbitrary
- * <code>Object</code>s. Instead, a object class must be registered with the marshaller,
+ * <p>Although the {@code marshal} method accepts a {@code java.lang.Object} as its
+ * first parameter, most {@code Marshaller} implementations cannot handle arbitrary
+ * {@code Object}s. Instead, a object class must be registered with the marshaller,
  * or have a common base class.
  *
  * @author Arjen Poutsma
@@ -35,15 +36,15 @@ import javax.xml.transform.Result;
 public interface Marshaller {
 
 	/**
-	 * Indicates whether this marshaller can marshal instances of the supplied type.
+	 * Indicate whether this marshaller can marshal instances of the supplied type.
 	 * @param clazz the class that this marshaller is being asked if it can marshal
-	 * @return <code>true</code> if this marshaller can indeed marshal instances of the supplied class;
-	 * <code>false</code> otherwise
+	 * @return {@code true} if this marshaller can indeed marshal instances of the supplied class;
+	 * {@code false} otherwise
 	 */
 	boolean supports(Class<?> clazz);
 
 	/**
-	 * Marshals the object graph with the given root into the provided {@link Result}.
+	 * Marshal the object graph with the given root into the provided {@link Result}.
 	 * @param graph the root of the object graph to marshal
 	 * @param result the result to marshal to
 	 * @throws IOException if an I/O error occurs

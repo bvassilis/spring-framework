@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +23,7 @@ import java.sql.SQLException;
  * Simple interface for complex types to be set as statement parameters.
  *
  * <p>Implementations perform the actual work of setting the actual values. They must
- * implement the callback method <code>setValue</code> which can throw SQLExceptions
+ * implement the callback method {@code setValue} which can throw SQLExceptions
  * that will be caught and translated by the calling code. This callback method has
  * access to the underlying Connection via the given PreparedStatement object, if that
  * should be needed to create any database-specific objects.
@@ -39,7 +39,7 @@ public interface SqlValue {
 	 * Set the value on the given PreparedStatement.
 	 * @param ps the PreparedStatement to work on
 	 * @param paramIndex the index of the parameter for which we need to set the value
-	 * @throws SQLException if a SQLException is encountered while setting parameter values
+	 * @throws SQLException if an SQLException is encountered while setting parameter values
 	 */
 	void setValue(PreparedStatement ps, int paramIndex)	throws SQLException;
 

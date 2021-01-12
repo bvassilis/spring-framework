@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,13 +30,14 @@ import groovy.lang.GroovyObject;
  * @since 2.0.2
  * @see GroovyScriptFactory
  */
+@FunctionalInterface
 public interface GroovyObjectCustomizer {
 
 	/**
 	 * Customize the supplied {@link GroovyObject}.
 	 * <p>For example, this can be used to set a custom metaclass to
 	 * handle missing methods.
-	 * @param goo the <code>GroovyObject</code> to customize
+	 * @param goo the {@code GroovyObject} to customize
 	 */
 	void customize(GroovyObject goo);
 

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,7 +28,7 @@ import org.springframework.transaction.TransactionDefinition;
  * @since 1.2
  */
 public enum Isolation {
-	
+
 	/**
 	 * Use the default isolation level of the underlying datastore.
 	 * All other levels correspond to the JDBC isolation levels.
@@ -68,10 +68,10 @@ public enum Isolation {
 	/**
 	 * A constant indicating that dirty reads, non-repeatable reads and phantom
 	 * reads are prevented. This level includes the prohibitions in
-	 * <code>ISOLATION_REPEATABLE_READ</code> and further prohibits the situation
-	 * where one transaction reads all rows that satisfy a <code>WHERE</code>
+	 * {@code ISOLATION_REPEATABLE_READ} and further prohibits the situation
+	 * where one transaction reads all rows that satisfy a {@code WHERE}
 	 * condition, a second transaction inserts a row that satisfies that
-	 * <code>WHERE</code> condition, and the first transaction rereads for the
+	 * {@code WHERE} condition, and the first transaction rereads for the
 	 * same condition, retrieving the additional "phantom" row in the second read.
 	 * @see java.sql.Connection#TRANSACTION_SERIALIZABLE
 	 */
@@ -81,8 +81,12 @@ public enum Isolation {
 	private final int value;
 
 
-	Isolation(int value) { this.value = value; }
-	
-	public int value() { return this.value; }
-	
+	Isolation(int value) {
+		this.value = value;
+	}
+
+	public int value() {
+		return this.value;
+	}
+
 }

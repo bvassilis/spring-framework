@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,9 +19,11 @@ package org.springframework.beans.propertyeditors;
 import java.beans.PropertyEditorSupport;
 import java.util.regex.Pattern;
 
+import org.springframework.lang.Nullable;
+
 /**
- * Editor for <code>java.util.regex.Pattern</code>, to directly populate a Pattern property.
- * Expects the same syntax as Pattern's <code>compile</code> method.
+ * Editor for {@code java.util.regex.Pattern}, to directly populate a Pattern property.
+ * Expects the same syntax as Pattern's {@code compile} method.
  *
  * @author Juergen Hoeller
  * @since 2.0.1
@@ -42,7 +44,7 @@ public class PatternEditor extends PropertyEditorSupport {
 
 	/**
 	 * Create a new PatternEditor with the given settings.
-	 * @param flags the <code>java.util.regex.Pattern</code> flags to apply
+	 * @param flags the {@code java.util.regex.Pattern} flags to apply
 	 * @see java.util.regex.Pattern#compile(String, int)
 	 * @see java.util.regex.Pattern#CASE_INSENSITIVE
 	 * @see java.util.regex.Pattern#MULTILINE
@@ -56,7 +58,7 @@ public class PatternEditor extends PropertyEditorSupport {
 
 
 	@Override
-	public void setAsText(String text) {
+	public void setAsText(@Nullable String text) {
 		setValue(text != null ? Pattern.compile(text, this.flags) : null);
 	}
 

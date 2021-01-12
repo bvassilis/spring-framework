@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,473 +28,403 @@ import javax.jms.TopicConnection;
 import javax.jms.TopicConnectionFactory;
 import javax.jms.TopicSession;
 
-import junit.framework.TestCase;
-import org.easymock.MockControl;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 /**
  * @author Juergen Hoeller
  * @since 26.07.2004
  */
-public class SingleConnectionFactoryTests extends TestCase {
+public class SingleConnectionFactoryTests {
 
+	@Test
 	public void testWithConnection() throws JMSException {
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
-
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		conControl.replay();
+		Connection con = mock(Connection.class);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(con);
 		Connection con1 = scf.createConnection();
 		con1.start();
-		con1.stop();  // should be ignored
-		con1.close();  // should be ignored
+		con1.stop();
+		con1.close();
 		Connection con2 = scf.createConnection();
-		con2.start();  // should be ignored
-		con2.stop();  // should be ignored
-		con2.close();  // should be ignored
+		con2.start();
+		con2.stop();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		conControl.verify();
+		verify(con, times(2)).start();
+		verify(con, times(2)).stop();
+		verify(con).close();
+		verifyNoMoreInteractions(con);
 	}
 
+	@Test
 	public void testWithQueueConnection() throws JMSException {
-		MockControl conControl = MockControl.createControl(QueueConnection.class);
-		Connection con = (QueueConnection) conControl.getMock();
-
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		conControl.replay();
+		Connection con = mock(QueueConnection.class);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(con);
 		QueueConnection con1 = scf.createQueueConnection();
 		con1.start();
-		con1.stop();  // should be ignored
-		con1.close();  // should be ignored
+		con1.stop();
+		con1.close();
 		QueueConnection con2 = scf.createQueueConnection();
 		con2.start();
-		con2.stop();  // should be ignored
-		con2.close();  // should be ignored
+		con2.stop();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		conControl.verify();
+		verify(con, times(2)).start();
+		verify(con, times(2)).stop();
+		verify(con).close();
+		verifyNoMoreInteractions(con);
 	}
 
+	@Test
 	public void testWithTopicConnection() throws JMSException {
-		MockControl conControl = MockControl.createControl(TopicConnection.class);
-		Connection con = (TopicConnection) conControl.getMock();
-
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		conControl.replay();
+		Connection con = mock(TopicConnection.class);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(con);
 		TopicConnection con1 = scf.createTopicConnection();
 		con1.start();
-		con1.stop();  // should be ignored
-		con1.close();  // should be ignored
+		con1.stop();
+		con1.close();
 		TopicConnection con2 = scf.createTopicConnection();
 		con2.start();
-		con2.stop();  // should be ignored
-		con2.close();  // should be ignored
+		con2.stop();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		conControl.verify();
+		verify(con, times(2)).start();
+		verify(con, times(2)).stop();
+		verify(con).close();
+		verifyNoMoreInteractions(con);
 	}
 
+	@Test
 	public void testWithConnectionFactory() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		cfControl.replay();
-		conControl.replay();
+		given(cf.createConnection()).willReturn(con);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(cf);
 		Connection con1 = scf.createConnection();
-		con1.start();
-		con1.close();  // should be ignored
 		Connection con2 = scf.createConnection();
+		con1.start();
 		con2.start();
-		con2.close();  // should be ignored
+		con1.close();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
+		verify(con).start();
+		verify(con).stop();
+		verify(con).close();
+		verifyNoMoreInteractions(con);
 	}
 
+	@Test
 	public void testWithQueueConnectionFactoryAndJms11Usage() throws JMSException {
-		MockControl cfControl = MockControl.createControl(QueueConnectionFactory.class);
-		QueueConnectionFactory cf = (QueueConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(QueueConnection.class);
-		QueueConnection con = (QueueConnection) conControl.getMock();
+		QueueConnectionFactory cf = mock(QueueConnectionFactory.class);
+		QueueConnection con = mock(QueueConnection.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		cfControl.replay();
-		conControl.replay();
+		given(cf.createConnection()).willReturn(con);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(cf);
 		Connection con1 = scf.createConnection();
-		con1.start();
-		con1.close();  // should be ignored
 		Connection con2 = scf.createConnection();
+		con1.start();
 		con2.start();
-		con2.close();  // should be ignored
+		con1.close();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
+		verify(con).start();
+		verify(con).stop();
+		verify(con).close();
+		verifyNoMoreInteractions(con);
 	}
 
+	@Test
 	public void testWithQueueConnectionFactoryAndJms102Usage() throws JMSException {
-		MockControl cfControl = MockControl.createControl(QueueConnectionFactory.class);
-		QueueConnectionFactory cf = (QueueConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(QueueConnection.class);
-		QueueConnection con = (QueueConnection) conControl.getMock();
+		QueueConnectionFactory cf = mock(QueueConnectionFactory.class);
+		QueueConnection con = mock(QueueConnection.class);
 
-		cf.createQueueConnection();
-		cfControl.setReturnValue(con, 1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		cfControl.replay();
-		conControl.replay();
+		given(cf.createQueueConnection()).willReturn(con);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(cf);
 		Connection con1 = scf.createQueueConnection();
-		con1.start();
-		con1.close();  // should be ignored
 		Connection con2 = scf.createQueueConnection();
+		con1.start();
 		con2.start();
-		con2.close();  // should be ignored
+		con1.close();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
+		verify(con).start();
+		verify(con).stop();
+		verify(con).close();
+		verifyNoMoreInteractions(con);
 	}
 
+	@Test
 	public void testWithTopicConnectionFactoryAndJms11Usage() throws JMSException {
-		MockControl cfControl = MockControl.createControl(TopicConnectionFactory.class);
-		TopicConnectionFactory cf = (TopicConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(TopicConnection.class);
-		TopicConnection con = (TopicConnection) conControl.getMock();
+		TopicConnectionFactory cf = mock(TopicConnectionFactory.class);
+		TopicConnection con = mock(TopicConnection.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		cfControl.replay();
-		conControl.replay();
+		given(cf.createConnection()).willReturn(con);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(cf);
 		Connection con1 = scf.createConnection();
-		con1.start();
-		con1.close();  // should be ignored
 		Connection con2 = scf.createConnection();
+		con1.start();
 		con2.start();
-		con2.close();  // should be ignored
+		con1.close();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
+		verify(con).start();
+		verify(con).stop();
+		verify(con).close();
+		verifyNoMoreInteractions(con);
 	}
 
+	@Test
 	public void testWithTopicConnectionFactoryAndJms102Usage() throws JMSException {
-		MockControl cfControl = MockControl.createControl(TopicConnectionFactory.class);
-		TopicConnectionFactory cf = (TopicConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(TopicConnection.class);
-		TopicConnection con = (TopicConnection) conControl.getMock();
+		TopicConnectionFactory cf = mock(TopicConnectionFactory.class);
+		TopicConnection con = mock(TopicConnection.class);
 
-		cf.createTopicConnection();
-		cfControl.setReturnValue(con, 1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		cfControl.replay();
-		conControl.replay();
+		given(cf.createTopicConnection()).willReturn(con);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(cf);
 		Connection con1 = scf.createTopicConnection();
-		con1.start();
-		con1.close();  // should be ignored
 		Connection con2 = scf.createTopicConnection();
+		con1.start();
 		con2.start();
-		con2.close();  // should be ignored
+		con1.close();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
+		verify(con).start();
+		verify(con).stop();
+		verify(con).close();
+		verifyNoMoreInteractions(con);
 	}
 
+	@Test
+	public void testWithConnectionAggregatedStartStop() throws JMSException {
+		Connection con = mock(Connection.class);
+
+		SingleConnectionFactory scf = new SingleConnectionFactory(con);
+		Connection con1 = scf.createConnection();
+		con1.start();
+		verify(con).start();
+		con1.stop();
+		verify(con).stop();
+		Connection con2 = scf.createConnection();
+		con2.start();
+		verify(con, times(2)).start();
+		con2.stop();
+		verify(con, times(2)).stop();
+		con2.start();
+		verify(con, times(3)).start();
+		con1.start();
+		con2.stop();
+		con1.stop();
+		verify(con, times(3)).stop();
+		con1.start();
+		verify(con, times(4)).start();
+		con1.close();
+		verify(con, times(4)).stop();
+		con2.close();
+		scf.destroy();
+		verify(con).close();
+
+		verifyNoMoreInteractions(con);
+	}
+
+	@Test
 	public void testWithConnectionFactoryAndClientId() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
-
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.setClientID("myId");
-		conControl.setVoidCallable(1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		cfControl.replay();
-		conControl.replay();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
+		given(cf.createConnection()).willReturn(con);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(cf);
 		scf.setClientId("myId");
 		Connection con1 = scf.createConnection();
-		con1.start();
-		con1.close();  // should be ignored
 		Connection con2 = scf.createConnection();
+		con1.start();
 		con2.start();
-		con2.close();  // should be ignored
+		con1.close();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
+		verify(con).setClientID("myId");
+		verify(con).start();
+		verify(con).stop();
+		verify(con).close();
+		verifyNoMoreInteractions(con);
 	}
 
+	@Test
 	public void testWithConnectionFactoryAndExceptionListener() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
 
 		ExceptionListener listener = new ChainedExceptionListener();
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.setExceptionListener(listener);
-		conControl.setVoidCallable(1);
-		con.getExceptionListener();
-		conControl.setReturnValue(listener, 1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		cfControl.replay();
-		conControl.replay();
+		given(cf.createConnection()).willReturn(con);
+		given(con.getExceptionListener()).willReturn(listener);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(cf);
 		scf.setExceptionListener(listener);
 		Connection con1 = scf.createConnection();
-		assertEquals(listener, con1.getExceptionListener());
+		assertThat(con1.getExceptionListener()).isEqualTo(listener);
 		con1.start();
-		con1.stop();  // should be ignored
-		con1.close();  // should be ignored
+		con1.stop();
+		con1.close();
 		Connection con2 = scf.createConnection();
 		con2.start();
-		con2.stop();  // should be ignored
-		con2.close();  // should be ignored
+		con2.stop();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
+		verify(con).setExceptionListener(listener);
+		verify(con, times(2)).start();
+		verify(con, times(2)).stop();
+		verify(con).close();
 	}
 
+	@Test
 	public void testWithConnectionFactoryAndReconnectOnException() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
 		TestConnection con = new TestConnection();
-
-		cf.createConnection();
-		cfControl.setReturnValue(con, 2);
-		cfControl.replay();
+		given(cf.createConnection()).willReturn(con);
 
 		SingleConnectionFactory scf = new SingleConnectionFactory(cf);
 		scf.setReconnectOnException(true);
 		Connection con1 = scf.createConnection();
-		assertNull(con1.getExceptionListener());
+		assertThat(con1.getExceptionListener()).isNull();
 		con1.start();
 		con.getExceptionListener().onException(new JMSException(""));
 		Connection con2 = scf.createConnection();
 		con2.start();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		assertEquals(2, con.getStartCount());
-		assertEquals(2, con.getCloseCount());
+		assertThat(con.getStartCount()).isEqualTo(2);
+		assertThat(con.getCloseCount()).isEqualTo(2);
 	}
 
+	@Test
 	public void testWithConnectionFactoryAndExceptionListenerAndReconnectOnException() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
 		TestConnection con = new TestConnection();
+		given(cf.createConnection()).willReturn(con);
 
 		TestExceptionListener listener = new TestExceptionListener();
-		cf.createConnection();
-		cfControl.setReturnValue(con, 2);
-		cfControl.replay();
-
 		SingleConnectionFactory scf = new SingleConnectionFactory(cf);
 		scf.setExceptionListener(listener);
 		scf.setReconnectOnException(true);
 		Connection con1 = scf.createConnection();
-		assertSame(listener, con1.getExceptionListener());
+		assertThat(con1.getExceptionListener()).isSameAs(listener);
 		con1.start();
 		con.getExceptionListener().onException(new JMSException(""));
 		Connection con2 = scf.createConnection();
 		con2.start();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		assertEquals(2, con.getStartCount());
-		assertEquals(2, con.getCloseCount());
-		assertEquals(1, listener.getCount());
+		assertThat(con.getStartCount()).isEqualTo(2);
+		assertThat(con.getCloseCount()).isEqualTo(2);
+		assertThat(listener.getCount()).isEqualTo(1);
 	}
 
-	public void testConnectionFactory102WithQueue() throws JMSException {
-		MockControl cfControl = MockControl.createControl(QueueConnectionFactory.class);
-		QueueConnectionFactory cf = (QueueConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(QueueConnection.class);
-		QueueConnection con = (QueueConnection) conControl.getMock();
+	@Test
+	public void testWithConnectionFactoryAndLocalExceptionListenerWithCleanup() throws JMSException {
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		TestConnection con = new TestConnection();
+		given(cf.createConnection()).willReturn(con);
 
-		cf.createQueueConnection();
-		cfControl.setReturnValue(con, 1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
+		TestExceptionListener listener0 = new TestExceptionListener();
+		TestExceptionListener listener1 = new TestExceptionListener();
+		TestExceptionListener listener2 = new TestExceptionListener();
 
-		cfControl.replay();
-		conControl.replay();
-
-		SingleConnectionFactory scf = new SingleConnectionFactory102(cf, false);
-		QueueConnection con1 = scf.createQueueConnection();
-		con1.start();
-		con1.close();  // should be ignored
-		QueueConnection con2 = scf.createQueueConnection();
-		con2.start();
-		con2.close();  // should be ignored
+		SingleConnectionFactory scf = new SingleConnectionFactory(cf) {
+			@Override
+			public void onException(JMSException ex) {
+				// no-op
+			}
+		};
+		scf.setReconnectOnException(true);
+		scf.setExceptionListener(listener0);
+		Connection con1 = scf.createConnection();
+		con1.setExceptionListener(listener1);
+		assertThat(con1.getExceptionListener()).isSameAs(listener1);
+		Connection con2 = scf.createConnection();
+		con2.setExceptionListener(listener2);
+		assertThat(con2.getExceptionListener()).isSameAs(listener2);
+		con.getExceptionListener().onException(new JMSException(""));
+		con2.close();
+		con.getExceptionListener().onException(new JMSException(""));
+		con1.close();
+		con.getExceptionListener().onException(new JMSException(""));
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
+		assertThat(con.getStartCount()).isEqualTo(0);
+		assertThat(con.getCloseCount()).isEqualTo(1);
+		assertThat(listener0.getCount()).isEqualTo(3);
+		assertThat(listener1.getCount()).isEqualTo(2);
+		assertThat(listener2.getCount()).isEqualTo(1);
 	}
 
-	public void testConnectionFactory102WithTopic() throws JMSException {
-		MockControl cfControl = MockControl.createControl(TopicConnectionFactory.class);
-		TopicConnectionFactory cf = (TopicConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(TopicConnection.class);
-		TopicConnection con = (TopicConnection) conControl.getMock();
+	@Test
+	public void testWithConnectionFactoryAndLocalExceptionListenerWithReconnect() throws JMSException {
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		TestConnection con = new TestConnection();
+		given(cf.createConnection()).willReturn(con);
 
-		cf.createTopicConnection();
-		cfControl.setReturnValue(con, 1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
+		TestExceptionListener listener0 = new TestExceptionListener();
+		TestExceptionListener listener1 = new TestExceptionListener();
+		TestExceptionListener listener2 = new TestExceptionListener();
 
-		cfControl.replay();
-		conControl.replay();
-
-		SingleConnectionFactory scf = new SingleConnectionFactory102(cf, true);
-		TopicConnection con1 = scf.createTopicConnection();
+		SingleConnectionFactory scf = new SingleConnectionFactory(cf);
+		scf.setReconnectOnException(true);
+		scf.setExceptionListener(listener0);
+		Connection con1 = scf.createConnection();
+		con1.setExceptionListener(listener1);
+		assertThat(con1.getExceptionListener()).isSameAs(listener1);
 		con1.start();
-		con1.close();  // should be ignored
-		TopicConnection con2 = scf.createTopicConnection();
-		con2.start();
-		con2.close();  // should be ignored
+		Connection con2 = scf.createConnection();
+		con2.setExceptionListener(listener2);
+		assertThat(con2.getExceptionListener()).isSameAs(listener2);
+		con.getExceptionListener().onException(new JMSException(""));
+		con2.close();
+		con1.getMetaData();
+		con.getExceptionListener().onException(new JMSException(""));
+		con1.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
+		assertThat(con.getStartCount()).isEqualTo(2);
+		assertThat(con.getCloseCount()).isEqualTo(2);
+		assertThat(listener0.getCount()).isEqualTo(2);
+		assertThat(listener1.getCount()).isEqualTo(2);
+		assertThat(listener2.getCount()).isEqualTo(1);
 	}
 
+	@Test
 	public void testCachingConnectionFactory() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
-		MockControl txSessionControl = MockControl.createControl(Session.class);
-		Session txSession = (Session) txSessionControl.getMock();
-		MockControl nonTxSessionControl = MockControl.createControl(Session.class);
-		Session nonTxSession = (Session) nonTxSessionControl.getMock();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
+		Session txSession = mock(Session.class);
+		Session nonTxSession = mock(Session.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.createSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(txSession, 1);
-		txSession.getTransacted();
-		txSessionControl.setReturnValue(true, 1);
-		txSession.commit();
-		txSessionControl.setVoidCallable(1);
-		txSession.close();
-		txSessionControl.setVoidCallable(1);
-		con.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-		conControl.setReturnValue(nonTxSession, 1);
-		nonTxSession.close();
-		nonTxSessionControl.setVoidCallable(1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		cfControl.replay();
-		conControl.replay();
-		txSessionControl.replay();
-		nonTxSessionControl.replay();
+		given(cf.createConnection()).willReturn(con);
+		given(con.createSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(txSession);
+		given(txSession.getTransacted()).willReturn(true);
+		given(con.createSession(false, Session.CLIENT_ACKNOWLEDGE)).willReturn(nonTxSession);
 
 		CachingConnectionFactory scf = new CachingConnectionFactory(cf);
 		scf.setReconnectOnException(false);
@@ -503,120 +433,78 @@ public class SingleConnectionFactoryTests extends TestCase {
 		session1.getTransacted();
 		session1.close();  // should lead to rollback
 		session1 = con1.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-		session1.close();  // should be ignored
+		session1.close();
 		con1.start();
-		con1.close();  // should be ignored
 		Connection con2 = scf.createConnection();
 		Session session2 = con2.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-		session2.close();  // should be ignored
+		session2.close();
 		session2 = con2.createSession(true, Session.AUTO_ACKNOWLEDGE);
 		session2.commit();
-		session2.close();  // should be ignored
+		session2.close();
 		con2.start();
-		con2.close();  // should be ignored
+		con1.close();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
-		txSessionControl.verify();
-		nonTxSessionControl.verify();
+		verify(txSession).commit();
+		verify(txSession).close();
+		verify(nonTxSession).close();
+		verify(con).start();
+		verify(con).stop();
+		verify(con).close();
 	}
 
+	@Test
 	public void testCachingConnectionFactoryWithQueueConnectionFactoryAndJms102Usage() throws JMSException {
-		MockControl cfControl = MockControl.createControl(QueueConnectionFactory.class);
-		QueueConnectionFactory cf = (QueueConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(QueueConnection.class);
-		QueueConnection con = (QueueConnection) conControl.getMock();
-		MockControl txSessionControl = MockControl.createControl(QueueSession.class);
-		QueueSession txSession = (QueueSession) txSessionControl.getMock();
-		MockControl nonTxSessionControl = MockControl.createControl(QueueSession.class);
-		QueueSession nonTxSession = (QueueSession) nonTxSessionControl.getMock();
+		QueueConnectionFactory cf = mock(QueueConnectionFactory.class);
+		QueueConnection con = mock(QueueConnection.class);
+		QueueSession txSession = mock(QueueSession.class);
+		QueueSession nonTxSession = mock(QueueSession.class);
 
-		cf.createQueueConnection();
-		cfControl.setReturnValue(con, 1);
-		con.createQueueSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(txSession, 1);
-		txSession.getTransacted();
-		txSessionControl.setReturnValue(true, 1);
-		txSession.rollback();
-		txSessionControl.setVoidCallable(1);
-		txSession.close();
-		txSessionControl.setVoidCallable(1);
-		con.createQueueSession(false, Session.CLIENT_ACKNOWLEDGE);
-		conControl.setReturnValue(nonTxSession, 1);
-		nonTxSession.close();
-		nonTxSessionControl.setVoidCallable(1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		cfControl.replay();
-		conControl.replay();
-		txSessionControl.replay();
-		nonTxSessionControl.replay();
+		given(cf.createQueueConnection()).willReturn(con);
+		given(con.createQueueSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(txSession);
+		given(txSession.getTransacted()).willReturn(true);
+		given(con.createQueueSession(false, Session.CLIENT_ACKNOWLEDGE)).willReturn(nonTxSession);
 
 		CachingConnectionFactory scf = new CachingConnectionFactory(cf);
 		scf.setReconnectOnException(false);
 		Connection con1 = scf.createQueueConnection();
 		Session session1 = con1.createSession(true, Session.AUTO_ACKNOWLEDGE);
 		session1.rollback();
-		session1.close();  // should be ignored
+		session1.close();
 		session1 = con1.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-		session1.close();  // should be ignored
+		session1.close();
 		con1.start();
-		con1.close();  // should be ignored
 		QueueConnection con2 = scf.createQueueConnection();
 		Session session2 = con2.createQueueSession(false, Session.CLIENT_ACKNOWLEDGE);
-		session2.close();  // should be ignored
+		session2.close();
 		session2 = con2.createSession(true, Session.AUTO_ACKNOWLEDGE);
 		session2.getTransacted();
 		session2.close();  // should lead to rollback
 		con2.start();
-		con2.close();  // should be ignored
+		con1.close();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
-		txSessionControl.verify();
-		nonTxSessionControl.verify();
+		verify(txSession).rollback();
+		verify(txSession).close();
+		verify(nonTxSession).close();
+		verify(con).start();
+		verify(con).stop();
+		verify(con).close();
 	}
 
+	@Test
 	public void testCachingConnectionFactoryWithTopicConnectionFactoryAndJms102Usage() throws JMSException {
-		MockControl cfControl = MockControl.createControl(TopicConnectionFactory.class);
-		TopicConnectionFactory cf = (TopicConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(TopicConnection.class);
-		TopicConnection con = (TopicConnection) conControl.getMock();
-		MockControl txSessionControl = MockControl.createControl(TopicSession.class);
-		TopicSession txSession = (TopicSession) txSessionControl.getMock();
-		MockControl nonTxSessionControl = MockControl.createControl(TopicSession.class);
-		TopicSession nonTxSession = (TopicSession) nonTxSessionControl.getMock();
+		TopicConnectionFactory cf = mock(TopicConnectionFactory.class);
+		TopicConnection con = mock(TopicConnection.class);
+		TopicSession txSession = mock(TopicSession.class);
+		TopicSession nonTxSession = mock(TopicSession.class);
 
-		cf.createTopicConnection();
-		cfControl.setReturnValue(con, 1);
-		con.createTopicSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(txSession, 1);
-		txSession.getTransacted();
-		txSessionControl.setReturnValue(true, 2);
-		txSession.close();
-		txSessionControl.setVoidCallable(1);
-		con.createTopicSession(false, Session.CLIENT_ACKNOWLEDGE);
-		conControl.setReturnValue(nonTxSession, 1);
-		nonTxSession.close();
-		nonTxSessionControl.setVoidCallable(1);
-		con.start();
-		conControl.setVoidCallable(1);
-		con.stop();
-		conControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		cfControl.replay();
-		conControl.replay();
-		txSessionControl.replay();
-		nonTxSessionControl.replay();
+		given(cf.createTopicConnection()).willReturn(con);
+		given(con.createTopicSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(txSession);
+		given(txSession.getTransacted()).willReturn(true);
+		given(con.createTopicSession(false, Session.CLIENT_ACKNOWLEDGE)).willReturn(nonTxSession);
 
 		CachingConnectionFactory scf = new CachingConnectionFactory(cf);
 		scf.setReconnectOnException(false);
@@ -625,23 +513,24 @@ public class SingleConnectionFactoryTests extends TestCase {
 		session1.getTransacted();
 		session1.close();  // should lead to rollback
 		session1 = con1.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-		session1.close();  // should be ignored
+		session1.close();
 		con1.start();
-		con1.close();  // should be ignored
 		TopicConnection con2 = scf.createTopicConnection();
 		Session session2 = con2.createTopicSession(false, Session.CLIENT_ACKNOWLEDGE);
-		session2.close();  // should be ignored
+		session2.close();
 		session2 = con2.createSession(true, Session.AUTO_ACKNOWLEDGE);
 		session2.getTransacted();
-		session2.close();  // should be ignored
+		session2.close();
 		con2.start();
-		con2.close();  // should be ignored
+		con1.close();
+		con2.close();
 		scf.destroy();  // should trigger actual close
 
-		cfControl.verify();
-		conControl.verify();
-		txSessionControl.verify();
-		nonTxSessionControl.verify();
+		verify(txSession).close();
+		verify(nonTxSession).close();
+		verify(con).start();
+		verify(con).stop();
+		verify(con).close();
 	}
 
 }

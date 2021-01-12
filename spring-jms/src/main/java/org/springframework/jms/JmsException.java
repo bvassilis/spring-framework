@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +19,7 @@ package org.springframework.jms;
 import javax.jms.JMSException;
 
 import org.springframework.core.NestedRuntimeException;
+import org.springframework.lang.Nullable;
 
 /**
  * Base class for exception thrown by the framework whenever it
@@ -28,6 +29,7 @@ import org.springframework.core.NestedRuntimeException;
  * @author Juergen Hoeller
  * @since 1.1
  */
+@SuppressWarnings("serial")
 public abstract class JmsException extends NestedRuntimeException {
 
 	/**
@@ -45,17 +47,17 @@ public abstract class JmsException extends NestedRuntimeException {
 	 * expected to be a proper subclass of {@link javax.jms.JMSException},
 	 * but can also be a JNDI NamingException or the like.
 	 */
-	public JmsException(String msg, Throwable cause) {
+	public JmsException(String msg, @Nullable Throwable cause) {
 		super(msg, cause);
 	}
 
 	/**
 	 * Constructor that takes a plain root cause, intended for
-	 * subclasses mirroring corresponding <code>javax.jms</code> exceptions.
+	 * subclasses mirroring corresponding {@code javax.jms} exceptions.
 	 * @param cause the cause of the exception. This argument is generally
 	 * expected to be a proper subclass of {@link javax.jms.JMSException}.
 	 */
-	public JmsException(Throwable cause) {
+	public JmsException(@Nullable Throwable cause) {
 		super(cause != null ? cause.getMessage() : null, cause);
 	}
 
@@ -64,8 +66,9 @@ public abstract class JmsException extends NestedRuntimeException {
 	 * Convenience method to get the vendor specific error code if
 	 * the root cause was an instance of JMSException.
 	 * @return a string specifying the vendor-specific error code if the
-	 * root cause is an instance of JMSException, or <code>null</code>
+	 * root cause is an instance of JMSException, or {@code null}
 	 */
+	@Nullable
 	public String getErrorCode() {
 		Throwable cause = getCause();
 		if (cause instanceof JMSException) {
@@ -79,6 +82,8 @@ public abstract class JmsException extends NestedRuntimeException {
 	 * if there is one.
 	 * @see javax.jms.JMSException#getLinkedException()
 	 */
+	@Override
+	@Nullable
 	public String getMessage() {
 		String message = super.getMessage();
 		Throwable cause = getCause();

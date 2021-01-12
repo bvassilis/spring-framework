@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,15 +20,17 @@ import java.lang.reflect.Method;
 
 import org.aopalliance.intercept.MethodInvocation;
 
+import org.springframework.lang.Nullable;
+
 /**
  * Base class for monitoring interceptors, such as performance monitors.
- * Provides <code>prefix</code> and <code>suffix</code> properties
- * that help to classify/group performance monitoring results.
+ * Provides configurable "prefix and "suffix" properties that help to
+ * classify/group performance monitoring results.
  *
- * <p>Subclasses should call the <code>createInvocationTraceName(MethodInvocation)</code>
- * method to create a name for the given trace that includes information about the
- * method invocation under trace along with the prefix and suffix added as appropriate.
- * 
+ * <p>In their {@link #invokeUnderTrace} implementation, subclasses should call the
+ * {@link #createInvocationTraceName} method to create a name for the given trace,
+ * including information about the method invocation along with a prefix/suffix.
+ *
  * @author Rob Harrop
  * @author Juergen Hoeller
  * @since 1.2.7
@@ -36,6 +38,7 @@ import org.aopalliance.intercept.MethodInvocation;
  * @see #setSuffix
  * @see #createInvocationTraceName
  */
+@SuppressWarnings("serial")
 public abstract class AbstractMonitoringInterceptor extends AbstractTraceInterceptor {
 
 	private String prefix = "";
@@ -49,7 +52,7 @@ public abstract class AbstractMonitoringInterceptor extends AbstractTraceInterce
 	 * Set the text that will get appended to the trace data.
 	 * <p>Default is none.
 	 */
-	public void setPrefix(String prefix) {
+	public void setPrefix(@Nullable String prefix) {
 		this.prefix = (prefix != null ? prefix : "");
 	}
 
@@ -64,7 +67,7 @@ public abstract class AbstractMonitoringInterceptor extends AbstractTraceInterce
 	 * Set the text that will get prepended to the trace data.
 	 * <p>Default is none.
 	 */
-	public void setSuffix(String suffix) {
+	public void setSuffix(@Nullable String suffix) {
 		this.suffix = (suffix != null ? suffix : "");
 	}
 
@@ -87,7 +90,7 @@ public abstract class AbstractMonitoringInterceptor extends AbstractTraceInterce
 
 
 	/**
-	 * Create a <code>String</code> name for the given <code>MethodInvocation</code>
+	 * Create a {@code String} name for the given {@code MethodInvocation}
 	 * that can be used for trace/logging purposes. This name is made up of the
 	 * configured prefix, followed by the fully-qualified name of the method being
 	 * invoked, followed by the configured suffix.
@@ -95,16 +98,13 @@ public abstract class AbstractMonitoringInterceptor extends AbstractTraceInterce
 	 * @see #setSuffix
 	 */
 	protected String createInvocationTraceName(MethodInvocation invocation) {
-		StringBuilder sb = new StringBuilder(getPrefix());
 		Method method = invocation.getMethod();
-		Class clazz = method.getDeclaringClass();
+		Class<?> clazz = method.getDeclaringClass();
 		if (this.logTargetClassInvocation && clazz.isInstance(invocation.getThis())) {
 			clazz = invocation.getThis().getClass();
 		}
-		sb.append(clazz.getName());
-		sb.append('.').append(method.getName());
-		sb.append(getSuffix());
-		return sb.toString();
+		String className = clazz.getName();
+		return getPrefix() + className + '.' + method.getName() + getSuffix();
 	}
 
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2006 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,43 +16,46 @@
 
 package org.springframework.aop.aspectj.autoproxy;
 
-import static org.junit.Assert.*;
+import java.io.IOException;
 
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
-import org.junit.Test;
-import org.springframework.beans.ITestBean;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.aop.support.AopUtils;
+import org.springframework.beans.testfixture.beans.ITestBean;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-import java.io.IOException;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Rob Harrop
  * @author Chris Beams
  * @since 2.0
  */
-public final class AtAspectJAfterThrowingTests {
+public class AtAspectJAfterThrowingTests {
 
 	@Test
-	public void testAccessThrowable() throws Exception {
+	public void testAccessThrowable() {
 		ClassPathXmlApplicationContext ctx =
-			new ClassPathXmlApplicationContext(getClass().getSimpleName() + "-context.xml", getClass());
+				new ClassPathXmlApplicationContext(getClass().getSimpleName() + "-context.xml", getClass());
 
 		ITestBean bean = (ITestBean) ctx.getBean("testBean");
 		ExceptionHandlingAspect aspect = (ExceptionHandlingAspect) ctx.getBean("aspect");
 
-		assertTrue(AopUtils.isAopProxy(bean));
+		assertThat(AopUtils.isAopProxy(bean)).isTrue();
+		IOException exceptionThrown = null;
 		try {
 			bean.unreliableFileOperation();
 		}
-		catch (IOException e) {
-			//
+		catch (IOException ex) {
+			exceptionThrown = ex;
 		}
 
-		assertEquals(1, aspect.handled);
-		assertNotNull(aspect.lastException);
+		assertThat(aspect.handled).isEqualTo(1);
+		assertThat(aspect.lastException).isSameAs(exceptionThrown);
 	}
+
 }
 
 
@@ -63,7 +66,7 @@ class ExceptionHandlingAspect {
 
 	public IOException lastException;
 
-	@AfterThrowing(pointcut = "within(org.springframework.beans.ITestBean+)", throwing = "ex")
+	@AfterThrowing(pointcut = "within(org.springframework.beans.testfixture.beans.ITestBean+)", throwing = "ex")
 	public void handleIOException(IOException ex) {
 		handled++;
 		lastException = ex;

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,7 @@ package org.springframework.orm.jpa.vendor;
  * the strategy class can still be specified using the fully-qualified class name.
  * This enumeration is merely a convenience. The database products listed here
  * are the same as those explicitly supported for Spring JDBC exception translation
- * in <code>sql-error-codes.xml</code>.
+ * in {@code sql-error-codes.xml}.
  *
  * @author Rod Johnson
  * @author Juergen Hoeller
@@ -39,7 +39,11 @@ public enum Database {
 
 	DERBY,
 
+	/** @since 2.5.5 */
 	H2,
+
+	/** @since 5.1 */
+	HANA,
 
 	HSQL,
 
@@ -49,7 +53,7 @@ public enum Database {
 
 	ORACLE,
 
-	POSTGRESQL, 
+	POSTGRESQL,
 
 	SQL_SERVER,
 

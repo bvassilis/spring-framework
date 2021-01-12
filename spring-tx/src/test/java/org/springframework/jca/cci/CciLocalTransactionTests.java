@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2005 the original author or authors.
- * 
+ * Copyright 2002-2019 the original author or authors.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,9 +16,6 @@
 
 package org.springframework.jca.cci;
 
-import static org.easymock.EasyMock.*;
-import static org.junit.Assert.assertTrue;
-
 import javax.resource.ResourceException;
 import javax.resource.cci.Connection;
 import javax.resource.cci.ConnectionFactory;
@@ -27,8 +24,10 @@ import javax.resource.cci.InteractionSpec;
 import javax.resource.cci.LocalTransaction;
 import javax.resource.cci.Record;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.dao.DataRetrievalFailureException;
+import org.springframework.jca.cci.connection.CciLocalTransactionManager;
 import org.springframework.jca.cci.core.CciTemplate;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -36,10 +35,16 @@ import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
 /**
  * @author Thierry Templier
  * @author Chris Beams
  */
+@Deprecated
 public class CciLocalTransactionTests {
 
 	/**
@@ -49,46 +54,36 @@ public class CciLocalTransactionTests {
 	 */
 	@Test
 	public void testLocalTransactionCommit() throws ResourceException {
-		final ConnectionFactory connectionFactory = createMock(ConnectionFactory.class);
-		Connection connection = createMock(Connection.class);
-		Interaction interaction = createMock(Interaction.class);
-		LocalTransaction localTransaction = createMock(LocalTransaction.class);
-		final Record record = createMock(Record.class);
-		final InteractionSpec interactionSpec = createMock(InteractionSpec.class);
+		final ConnectionFactory connectionFactory = mock(ConnectionFactory.class);
+		Connection connection = mock(Connection.class);
+		Interaction interaction = mock(Interaction.class);
+		LocalTransaction localTransaction = mock(LocalTransaction.class);
+		final Record record = mock(Record.class);
+		final InteractionSpec interactionSpec = mock(InteractionSpec.class);
 
-		expect(connectionFactory.getConnection()).andReturn(connection);
+		given(connectionFactory.getConnection()).willReturn(connection);
+		given(connection.getLocalTransaction()).willReturn(localTransaction);
+		given(connection.createInteraction()).willReturn(interaction);
+		given(interaction.execute(interactionSpec, record, record)).willReturn(true);
+		given(connection.getLocalTransaction()).willReturn(localTransaction);
 
-		expect(connection.getLocalTransaction()).andReturn(localTransaction);
-
-		localTransaction.begin();
-
-		expect(connection.createInteraction()).andReturn(interaction);
-
-		expect(interaction.execute(interactionSpec, record, record)).andReturn(true);
-
-		interaction.close();
-
-		expect(connection.getLocalTransaction()).andReturn(localTransaction);
-
-		localTransaction.commit();
-
-		connection.close();
-
-		replay(connectionFactory, connection, localTransaction, interaction, record);
-
-		org.springframework.jca.cci.connection.CciLocalTransactionManager tm = new org.springframework.jca.cci.connection.CciLocalTransactionManager();
+		CciLocalTransactionManager tm = new CciLocalTransactionManager();
 		tm.setConnectionFactory(connectionFactory);
 		TransactionTemplate tt = new TransactionTemplate(tm);
 
 		tt.execute(new TransactionCallbackWithoutResult() {
+			@Override
 			protected void doInTransactionWithoutResult(TransactionStatus status) {
-				assertTrue("Has thread connection", TransactionSynchronizationManager.hasResource(connectionFactory));
+				assertThat(TransactionSynchronizationManager.hasResource(connectionFactory)).as("Has thread connection").isTrue();
 				CciTemplate ct = new CciTemplate(connectionFactory);
 				ct.execute(interactionSpec, record, record);
 			}
 		});
 
-		verify(connectionFactory, connection, localTransaction, interaction, record);
+		verify(localTransaction).begin();
+		verify(interaction).close();
+		verify(localTransaction).commit();
+		verify(connection).close();
 	}
 
 	/**
@@ -98,41 +93,28 @@ public class CciLocalTransactionTests {
 	 */
 	@Test
 	public void testLocalTransactionRollback() throws ResourceException {
-		final ConnectionFactory connectionFactory = createMock(ConnectionFactory.class);
-		Connection connection = createMock(Connection.class);
-		Interaction interaction = createMock(Interaction.class);
-		LocalTransaction localTransaction = createMock(LocalTransaction.class);
-		final Record record = createMock(Record.class);
-		final InteractionSpec interactionSpec = createMock(InteractionSpec.class);
-		
-		expect(connectionFactory.getConnection()).andReturn(connection);
+		final ConnectionFactory connectionFactory = mock(ConnectionFactory.class);
+		Connection connection = mock(Connection.class);
+		Interaction interaction = mock(Interaction.class);
+		LocalTransaction localTransaction = mock(LocalTransaction.class);
+		final Record record = mock(Record.class);
+		final InteractionSpec interactionSpec = mock(InteractionSpec.class);
 
-		expect(connection.getLocalTransaction()).andReturn(localTransaction);
+		given(connectionFactory.getConnection()).willReturn(connection);
+		given(connection.getLocalTransaction()).willReturn(localTransaction);
+		given(connection.createInteraction()).willReturn(interaction);
+		given(interaction.execute(interactionSpec, record, record)).willReturn(true);
+		given(connection.getLocalTransaction()).willReturn(localTransaction);
 
-		localTransaction.begin();
-
-		expect(connection.createInteraction()).andReturn(interaction);
-
-		expect(interaction.execute(interactionSpec, record, record)).andReturn(true);
-
-		interaction.close();
-
-		expect(connection.getLocalTransaction()).andReturn(localTransaction);
-
-		localTransaction.rollback();
-
-		connection.close();
-		
-		replay(connectionFactory, connection, localTransaction, interaction, record);
-
-		org.springframework.jca.cci.connection.CciLocalTransactionManager tm = new org.springframework.jca.cci.connection.CciLocalTransactionManager();
+		CciLocalTransactionManager tm = new CciLocalTransactionManager();
 		tm.setConnectionFactory(connectionFactory);
 		TransactionTemplate tt = new TransactionTemplate(tm);
 
 		try {
-			tt.execute(new TransactionCallback() {
-				public Object doInTransaction(TransactionStatus status) {
-					assertTrue("Has thread connection", TransactionSynchronizationManager.hasResource(connectionFactory));
+			tt.execute(new TransactionCallback<Void>() {
+				@Override
+				public Void doInTransaction(TransactionStatus status) {
+					assertThat(TransactionSynchronizationManager.hasResource(connectionFactory)).as("Has thread connection").isTrue();
 					CciTemplate ct = new CciTemplate(connectionFactory);
 					ct.execute(interactionSpec, record, record);
 					throw new DataRetrievalFailureException("error");
@@ -142,6 +124,9 @@ public class CciLocalTransactionTests {
 		catch (Exception ex) {
 		}
 
-		verify(connectionFactory, connection, localTransaction, interaction, record);
+		verify(localTransaction).begin();
+		verify(interaction).close();
+		verify(localTransaction).rollback();
+		verify(connection).close();
 	}
 }

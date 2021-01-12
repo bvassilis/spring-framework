@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2006 the original author or authors.
- * 
+ * Copyright 2002-2018 the original author or authors.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,11 +16,12 @@
 
 package org.springframework.jdbc.core;
 
-import org.springframework.jdbc.support.JdbcUtils;
-
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+
+import org.springframework.jdbc.support.JdbcUtils;
+import org.springframework.lang.Nullable;
 
 /**
  * Implementation of RowCallbackHandler. Convenient superclass for callback handlers.
@@ -34,7 +35,7 @@ import java.sql.SQLException;
  * <p>A usage example with JdbcTemplate:
  *
  * <pre class="code">JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);  // reusable object
- * 
+ *
  * RowCountCallbackHandler countCallback = new RowCountCallbackHandler();  // not reusable
  * jdbcTemplate.query("select * from user", countCallback);
  * int rowCount = countCallback.getRowCount();</pre>
@@ -44,21 +45,23 @@ import java.sql.SQLException;
  */
 public class RowCountCallbackHandler implements RowCallbackHandler {
 
-	/** Rows we've seen so far */
+	/** Rows we've seen so far. */
 	private int rowCount;
 
-	/** Columns we've seen so far */
+	/** Columns we've seen so far. */
 	private int columnCount;
 
 	/**
 	 * Indexed from 0. Type (as in java.sql.Types) for the columns
 	 * as returned by ResultSetMetaData object.
 	 */
+	@Nullable
 	private int[] columnTypes;
-	
+
 	/**
 	 * Indexed from 0. Column name as returned by ResultSetMetaData object.
 	 */
+	@Nullable
 	private String[] columnNames;
 
 
@@ -66,9 +69,10 @@ public class RowCountCallbackHandler implements RowCallbackHandler {
 	 * Implementation of ResultSetCallbackHandler.
 	 * Work out column size if this is the first row, otherwise just count rows.
 	 * <p>Subclasses can perform custom extraction or processing
-	 * by overriding the <code>processRow(ResultSet, int)</code> method.
+	 * by overriding the {@code processRow(ResultSet, int)} method.
 	 * @see #processRow(java.sql.ResultSet, int)
 	 */
+	@Override
 	public final void processRow(ResultSet rs) throws SQLException {
 		if (this.rowCount == 0) {
 			ResultSetMetaData rsmd = rs.getMetaData();
@@ -84,10 +88,10 @@ public class RowCountCallbackHandler implements RowCallbackHandler {
 		processRow(rs, this.rowCount++);
 	}
 
-	/** 
+	/**
 	 * Subclasses may override this to perform custom extraction
 	 * or processing. This class's implementation does nothing.
-	 * @param rs ResultSet to extract data from. This method is
+	 * @param rs the ResultSet to extract data from. This method is
 	 * invoked for each row
 	 * @param rowNum number of the current row (starting from 0)
 	 */
@@ -101,37 +105,39 @@ public class RowCountCallbackHandler implements RowCallbackHandler {
 	 * @return the types of the columns as java.sql.Types constants.
 	 * <b>Indexed from 0 to n-1.</b>
 	 */
+	@Nullable
 	public final int[] getColumnTypes() {
-		return columnTypes;
+		return this.columnTypes;
 	}
-	
-	/** 
+
+	/**
 	 * Return the names of the columns.
 	 * Valid after processRow is invoked the first time.
 	 * @return the names of the columns.
 	 * <b>Indexed from 0 to n-1.</b>
 	 */
+	@Nullable
 	public final String[] getColumnNames() {
-		return columnNames;
+		return this.columnNames;
 	}
 
-	/** 
-	 * Return the row count of this ResultSet
+	/**
+	 * Return the row count of this ResultSet.
 	 * Only valid after processing is complete
 	 * @return the number of rows in this ResultSet
 	 */
 	public final int getRowCount() {
-		return rowCount;
+		return this.rowCount;
 	}
 
-	/** 
+	/**
 	 * Return the number of columns in this result set.
 	 * Valid once we've seen the first row,
 	 * so subclasses can use it during processing
 	 * @return the number of columns in this result set
 	 */
 	public final int getColumnCount() {
-		return columnCount;
+		return this.columnCount;
 	}
 
 }

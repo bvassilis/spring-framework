@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,8 @@
  */
 
 package org.springframework.ui.context;
+
+import org.springframework.lang.Nullable;
 
 /**
  * Interface to be implemented by objects that can resolve {@link Theme Themes}.
@@ -32,12 +34,13 @@ public interface ThemeSource {
 	 * <p>The returned Theme will resolve theme-specific messages, codes,
 	 * file paths, etc (e.g. CSS and image files in a web environment).
 	 * @param themeName the name of the theme
-	 * @return the corresponding Theme, or <code>null</code> if none defined.
+	 * @return the corresponding Theme, or {@code null} if none defined.
 	 * Note that, by convention, a ThemeSource should at least be able to
 	 * return a default Theme for the default theme name "theme" but may also
 	 * return default Themes for other theme names.
 	 * @see org.springframework.web.servlet.theme.AbstractThemeResolver#ORIGINAL_DEFAULT_THEME_NAME
 	 */
+	@Nullable
 	Theme getTheme(String themeName);
 
 }

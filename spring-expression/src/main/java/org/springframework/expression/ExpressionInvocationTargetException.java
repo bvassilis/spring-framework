@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.expression;
 
 /**
- * This exception wraps (as cause) a checked exception thrown by some method that SpEL invokes.
- * It differs from a SpelEvaluationException because this indicates the occurrence of a checked exception
- * that the invoked method was defined to throw.  SpelEvaluationExceptions are for handling (and wrapping)
- * unexpected exceptions.
- * 
+ * This exception wraps (as cause) a checked exception thrown by some method that SpEL
+ * invokes. It differs from a SpelEvaluationException because this indicates the
+ * occurrence of a checked exception that the invoked method was defined to throw.
+ * SpelEvaluationExceptions are for handling (and wrapping) unexpected exceptions.
+ *
  * @author Andy Clement
  * @since 3.0.3
  */
+@SuppressWarnings("serial")
 public class ExpressionInvocationTargetException extends EvaluationException {
 
 	public ExpressionInvocationTargetException(int position, String message, Throwable cause) {

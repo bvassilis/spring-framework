@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,6 +20,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.springframework.aop.TargetSource;
+import org.springframework.lang.Nullable;
 
 /**
  * Abstract {@link org.springframework.aop.TargetSource} implementation that
@@ -38,9 +39,10 @@ import org.springframework.aop.TargetSource;
  */
 public abstract class AbstractRefreshableTargetSource implements TargetSource, Refreshable {
 
-	/** Logger available to subclasses */
-	protected Log logger = LogFactory.getLog(getClass());
+	/** Logger available to subclasses. */
+	protected final Log logger = LogFactory.getLog(getClass());
 
+	@Nullable
 	protected Object targetObject;
 
 	private long refreshCheckDelay = -1;
@@ -56,13 +58,14 @@ public abstract class AbstractRefreshableTargetSource implements TargetSource, R
 	 * Set the delay between refresh checks, in milliseconds.
 	 * Default is -1, indicating no refresh checks at all.
 	 * <p>Note that an actual refresh will only happen when
-	 * {@link #requiresRefresh()} returns <code>true</code>.
+	 * {@link #requiresRefresh()} returns {@code true}.
 	 */
 	public void setRefreshCheckDelay(long refreshCheckDelay) {
 		this.refreshCheckDelay = refreshCheckDelay;
 	}
 
 
+	@Override
 	public synchronized Class<?> getTargetClass() {
 		if (this.targetObject == null) {
 			refresh();
@@ -73,10 +76,13 @@ public abstract class AbstractRefreshableTargetSource implements TargetSource, R
 	/**
 	 * Not static.
 	 */
+	@Override
 	public boolean isStatic() {
 		return false;
 	}
 
+	@Override
+	@Nullable
 	public final synchronized Object getTarget() {
 		if ((refreshCheckDelayElapsed() && requiresRefresh()) || this.targetObject == null) {
 			refresh();
@@ -87,10 +93,12 @@ public abstract class AbstractRefreshableTargetSource implements TargetSource, R
 	/**
 	 * No need to release target.
 	 */
+	@Override
 	public void releaseTarget(Object object) {
 	}
 
 
+	@Override
 	public final synchronized void refresh() {
 		logger.debug("Attempting to refresh target");
 
@@ -101,10 +109,12 @@ public abstract class AbstractRefreshableTargetSource implements TargetSource, R
 		logger.debug("Target refreshed successfully");
 	}
 
+	@Override
 	public synchronized long getRefreshCount() {
 		return this.refreshCount;
 	}
 
+	@Override
 	public synchronized long getLastRefreshTime() {
 		return this.lastRefreshTime;
 	}
@@ -131,7 +141,7 @@ public abstract class AbstractRefreshableTargetSource implements TargetSource, R
 	/**
 	 * Determine whether a refresh is required.
 	 * Invoked for each refresh check, after the refresh check delay has elapsed.
-	 * <p>The default implementation always returns <code>true</code>, triggering
+	 * <p>The default implementation always returns {@code true}, triggering
 	 * a refresh every time the delay has elapsed. To be overridden by subclasses
 	 * with an appropriate check of the underlying target resource.
 	 * @return whether a refresh is required
@@ -143,7 +153,7 @@ public abstract class AbstractRefreshableTargetSource implements TargetSource, R
 	/**
 	 * Obtain a fresh target object.
 	 * <p>Only invoked if a refresh check has found that a refresh is required
-	 * (that is, {@link #requiresRefresh()} has returned <code>true</code>).
+	 * (that is, {@link #requiresRefresh()} has returned {@code true}).
 	 * @return the fresh target object
 	 */
 	protected abstract Object freshTarget();

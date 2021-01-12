@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2005 the original author or authors.
- * 
+ * Copyright 2002-2012 the original author or authors.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,12 +23,13 @@ import java.util.Locale;
  *
  * @author Rod Johnson
  */
+@SuppressWarnings("serial")
 public class NoSuchMessageException extends RuntimeException {
 
 	/**
 	 * Create a new exception.
-	 * @param code code that could not be resolved for given locale
-	 * @param locale locale that was used to search for the code within
+	 * @param code the code that could not be resolved for given locale
+	 * @param locale the locale that was used to search for the code within
 	 */
 	public NoSuchMessageException(String code, Locale locale) {
 		super("No message found under code '" + code + "' for locale '" + locale + "'.");
@@ -36,7 +37,7 @@ public class NoSuchMessageException extends RuntimeException {
 
 	/**
 	 * Create a new exception.
-	 * @param code code that could not be resolved for given locale
+	 * @param code the code that could not be resolved for given locale
 	 */
 	public NoSuchMessageException(String code) {
 		super("No message found under code '" + code + "' for locale '" + Locale.getDefault() + "'.");

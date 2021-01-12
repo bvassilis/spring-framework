@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,288 +15,361 @@
  */
 
 package org.springframework.web.servlet.mvc.method.annotation;
-import static org.easymock.EasyMock.capture;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.isA;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
-import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.springframework.web.servlet.HandlerMapping.PRODUCIBLE_MEDIA_TYPES_ATTRIBUTE;
 
+import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
-import org.easymock.Capture;
-import org.junit.Before;
-import org.junit.Test;
+import javax.servlet.FilterChain;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpInputMessage;
-import org.springframework.http.HttpOutputMessage;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.web.HttpMediaTypeNotAcceptableException;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.lang.Nullable;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.filter.ShallowEtagHeaderFilter;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.method.support.ModelAndViewContainer;
-import org.springframework.web.servlet.mvc.method.annotation.HttpEntityMethodProcessor;
+import org.springframework.web.testfixture.servlet.MockHttpServletRequest;
+import org.springframework.web.testfixture.servlet.MockHttpServletResponse;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Test fixture with {@link HttpEntityMethodProcessor} and mock {@link HttpMessageConverter}.
+ * Test fixture with {@link HttpEntityMethodProcessor} delegating to
+ * actual {@link HttpMessageConverter} instances.
  *
- * @author Arjen Poutsma
+ * <p>Also see {@link HttpEntityMethodProcessorMockTests}.
+ *
  * @author Rossen Stoyanchev
  */
+@SuppressWarnings("unused")
 public class HttpEntityMethodProcessorTests {
 
-	private HttpEntityMethodProcessor processor;
+	private MethodParameter paramList;
 
-	private HttpMessageConverter<String> messageConverter;
-
-	private MethodParameter paramHttpEntity;
-	private MethodParameter paramResponseEntity;
-	private MethodParameter paramInt;
-	private MethodParameter returnTypeResponseEntity;
-	private MethodParameter returnTypeHttpEntity;
-	private MethodParameter returnTypeInt;
-	private MethodParameter returnTypeResponseEntityProduces;
+	private MethodParameter paramSimpleBean;
 
 	private ModelAndViewContainer mavContainer;
+
+	private WebDataBinderFactory binderFactory;
+
+	private MockHttpServletRequest servletRequest;
 
 	private ServletWebRequest webRequest;
 
 	private MockHttpServletResponse servletResponse;
 
-	private MockHttpServletRequest servletRequest;
 
-	@SuppressWarnings("unchecked")
-	@Before
-	public void setUp() throws Exception {
-		messageConverter = createMock(HttpMessageConverter.class);
-		expect(messageConverter.getSupportedMediaTypes()).andReturn(Collections.singletonList(MediaType.TEXT_PLAIN));
-		replay(messageConverter);
-
-		processor = new HttpEntityMethodProcessor(Collections.<HttpMessageConverter<?>>singletonList(messageConverter));
-		reset(messageConverter);
-
-
-		Method handle1 = getClass().getMethod("handle1", HttpEntity.class, ResponseEntity.class, Integer.TYPE);
-		paramHttpEntity = new MethodParameter(handle1, 0);
-		paramResponseEntity = new MethodParameter(handle1, 1);
-		paramInt = new MethodParameter(handle1, 2);
-		returnTypeResponseEntity = new MethodParameter(handle1, -1);
-
-		returnTypeHttpEntity = new MethodParameter(getClass().getMethod("handle2", HttpEntity.class), -1);
-
-		returnTypeInt = new MethodParameter(getClass().getMethod("handle3"), -1);
-
-		returnTypeResponseEntityProduces = new MethodParameter(getClass().getMethod("handle4"), -1);
+	@BeforeEach
+	public void setup() throws Exception {
+		Method method = getClass().getDeclaredMethod("handle", HttpEntity.class, HttpEntity.class);
+		paramList = new MethodParameter(method, 0);
+		paramSimpleBean = new MethodParameter(method, 1);
 
 		mavContainer = new ModelAndViewContainer();
-
+		binderFactory = new ValidatingBinderFactory();
 		servletRequest = new MockHttpServletRequest();
 		servletResponse = new MockHttpServletResponse();
+		servletRequest.setMethod("POST");
 		webRequest = new ServletWebRequest(servletRequest, servletResponse);
 	}
 
-	@Test
-	public void supportsParameter() {
-		assertTrue("HttpEntity parameter not supported", processor.supportsParameter(paramHttpEntity));
-		assertFalse("ResponseEntity parameter supported", processor.supportsParameter(paramResponseEntity));
-		assertFalse("non-entity parameter supported", processor.supportsParameter(paramInt));
-	}
-
-	@Test
-	public void supportsReturnType() {
-		assertTrue("ResponseEntity return type not supported", processor.supportsReturnType(returnTypeResponseEntity));
-		assertTrue("HttpEntity return type not supported", processor.supportsReturnType(returnTypeHttpEntity));
-		assertFalse("non-ResponseBody return type supported", processor.supportsReturnType(returnTypeInt));
-	}
 
 	@Test
 	public void resolveArgument() throws Exception {
-		MediaType contentType = MediaType.TEXT_PLAIN;
-		servletRequest.addHeader("Content-Type", contentType.toString());
+		String content = "{\"name\" : \"Jad\"}";
+		this.servletRequest.setContent(content.getBytes("UTF-8"));
+		this.servletRequest.setContentType("application/json");
 
-		String body = "Foo";
-		expect(messageConverter.canRead(String.class, contentType)).andReturn(true);
-		expect(messageConverter.read(eq(String.class), isA(HttpInputMessage.class))).andReturn(body);
-		replay(messageConverter);
+		List<HttpMessageConverter<?>> converters = new ArrayList<>();
+		converters.add(new MappingJackson2HttpMessageConverter());
+		HttpEntityMethodProcessor processor = new HttpEntityMethodProcessor(converters);
 
-		Object result = processor.resolveArgument(paramHttpEntity, mavContainer, webRequest, null);
+		@SuppressWarnings("unchecked")
+		HttpEntity<SimpleBean> result = (HttpEntity<SimpleBean>) processor.resolveArgument(
+				paramSimpleBean, mavContainer, webRequest, binderFactory);
 
-		assertTrue(result instanceof HttpEntity);
-		assertFalse("The requestHandled flag shouldn't change", mavContainer.isRequestHandled());
-		assertEquals("Invalid argument", body, ((HttpEntity<?>) result).getBody());
-		verify(messageConverter);
+		assertThat(result).isNotNull();
+		assertThat(result.getBody().getName()).isEqualTo("Jad");
 	}
 
-	@Test(expected = HttpMediaTypeNotSupportedException.class)
-	public void resolveArgumentNotReadable() throws Exception {
-		MediaType contentType = MediaType.TEXT_PLAIN;
-		servletRequest.addHeader("Content-Type", contentType.toString());
+	@Test  // SPR-12861
+	public void resolveArgumentWithEmptyBody() throws Exception {
+		this.servletRequest.setContent(new byte[0]);
+		this.servletRequest.setContentType("application/json");
 
-		expect(messageConverter.getSupportedMediaTypes()).andReturn(Arrays.asList(contentType));
-		expect(messageConverter.canRead(String.class, contentType)).andReturn(false);
-		replay(messageConverter);
+		List<HttpMessageConverter<?>> converters = new ArrayList<>();
+		converters.add(new MappingJackson2HttpMessageConverter());
+		HttpEntityMethodProcessor processor = new HttpEntityMethodProcessor(converters);
 
-		processor.resolveArgument(paramHttpEntity, mavContainer, webRequest, null);
+		HttpEntity<?> result = (HttpEntity<?>) processor.resolveArgument(this.paramSimpleBean,
+				this.mavContainer, this.webRequest, this.binderFactory);
 
-		fail("Expected exception");
-	}
-
-	@Test(expected = HttpMediaTypeNotSupportedException.class)
-	public void resolveArgumentNoContentType() throws Exception {
-		processor.resolveArgument(paramHttpEntity, mavContainer, webRequest, null);
-		fail("Expected exception");
+		assertThat(result).isNotNull();
+		assertThat(result.getBody()).isNull();
 	}
 
 	@Test
-	public void handleReturnValue() throws Exception {
-		String body = "Foo";
-		ResponseEntity<String> returnValue = new ResponseEntity<String>(body, HttpStatus.OK);
+	public void resolveGenericArgument() throws Exception {
+		String content = "[{\"name\" : \"Jad\"}, {\"name\" : \"Robert\"}]";
+		this.servletRequest.setContent(content.getBytes("UTF-8"));
+		this.servletRequest.setContentType("application/json");
 
-		MediaType accepted = MediaType.TEXT_PLAIN;
-		servletRequest.addHeader("Accept", accepted.toString());
+		List<HttpMessageConverter<?>> converters = new ArrayList<>();
+		converters.add(new MappingJackson2HttpMessageConverter());
+		HttpEntityMethodProcessor processor = new HttpEntityMethodProcessor(converters);
 
-		expect(messageConverter.canWrite(String.class, null)).andReturn(true);
-		expect(messageConverter.getSupportedMediaTypes()).andReturn(Collections.singletonList(MediaType.TEXT_PLAIN));
-		expect(messageConverter.canWrite(String.class, accepted)).andReturn(true);
-		messageConverter.write(eq(body), eq(accepted), isA(HttpOutputMessage.class));
-		replay(messageConverter);
+		@SuppressWarnings("unchecked")
+		HttpEntity<List<SimpleBean>> result = (HttpEntity<List<SimpleBean>>) processor.resolveArgument(
+				paramList, mavContainer, webRequest, binderFactory);
 
-		processor.handleReturnValue(returnValue, returnTypeResponseEntity, mavContainer, webRequest);
-
-		assertTrue(mavContainer.isRequestHandled());
-		verify(messageConverter);
+		assertThat(result).isNotNull();
+		assertThat(result.getBody().get(0).getName()).isEqualTo("Jad");
+		assertThat(result.getBody().get(1).getName()).isEqualTo("Robert");
 	}
 
 	@Test
-	public void handleReturnValueProduces() throws Exception {
-		String body = "Foo";
-		ResponseEntity<String> returnValue = new ResponseEntity<String>(body, HttpStatus.OK);
+	public void resolveArgumentTypeVariable() throws Exception {
+		Method method = MySimpleParameterizedController.class.getMethod("handleDto", HttpEntity.class);
+		HandlerMethod handlerMethod = new HandlerMethod(new MySimpleParameterizedController(), method);
+		MethodParameter methodParam = handlerMethod.getMethodParameters()[0];
 
-		servletRequest.addHeader("Accept", "text/*");
-		servletRequest.setAttribute(PRODUCIBLE_MEDIA_TYPES_ATTRIBUTE, Collections.singleton(MediaType.TEXT_HTML));
+		String content = "{\"name\" : \"Jad\"}";
+		this.servletRequest.setContent(content.getBytes("UTF-8"));
+		this.servletRequest.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-		expect(messageConverter.canWrite(String.class, MediaType.TEXT_HTML)).andReturn(true);
-		messageConverter.write(eq(body), eq(MediaType.TEXT_HTML), isA(HttpOutputMessage.class));
-		replay(messageConverter);
+		List<HttpMessageConverter<?>> converters = new ArrayList<>();
+		converters.add(new MappingJackson2HttpMessageConverter());
+		HttpEntityMethodProcessor processor = new HttpEntityMethodProcessor(converters);
 
-		processor.handleReturnValue(returnValue, returnTypeResponseEntityProduces, mavContainer, webRequest);
+		@SuppressWarnings("unchecked")
+		HttpEntity<SimpleBean> result = (HttpEntity<SimpleBean>)
+				processor.resolveArgument(methodParam, mavContainer, webRequest, binderFactory);
 
-		assertTrue(mavContainer.isRequestHandled());
-		verify(messageConverter);
+		assertThat(result).isNotNull();
+		assertThat(result.getBody().getName()).isEqualTo("Jad");
 	}
 
-	@Test(expected = HttpMediaTypeNotAcceptableException.class)
-	public void handleReturnValueNotAcceptable() throws Exception {
-		String body = "Foo";
-		ResponseEntity<String> returnValue = new ResponseEntity<String>(body, HttpStatus.OK);
+	@Test  // SPR-12811
+	public void jacksonTypeInfoList() throws Exception {
+		Method method = JacksonController.class.getMethod("handleList");
+		HandlerMethod handlerMethod = new HandlerMethod(new JacksonController(), method);
+		MethodParameter methodReturnType = handlerMethod.getReturnType();
 
-		MediaType accepted = MediaType.APPLICATION_ATOM_XML;
-		servletRequest.addHeader("Accept", accepted.toString());
+		List<HttpMessageConverter<?>> converters = new ArrayList<>();
+		converters.add(new MappingJackson2HttpMessageConverter());
+		HttpEntityMethodProcessor processor = new HttpEntityMethodProcessor(converters);
 
-		expect(messageConverter.canWrite(String.class, null)).andReturn(true);
-		expect(messageConverter.getSupportedMediaTypes()).andReturn(Arrays.asList(MediaType.TEXT_PLAIN));
-		expect(messageConverter.canWrite(String.class, accepted)).andReturn(false);
-		replay(messageConverter);
+		Object returnValue = new JacksonController().handleList();
+		processor.handleReturnValue(returnValue, methodReturnType, this.mavContainer, this.webRequest);
 
-		processor.handleReturnValue(returnValue, returnTypeResponseEntity, mavContainer, webRequest);
-
-		fail("Expected exception");
+		String content = this.servletResponse.getContentAsString();
+		assertThat(content.contains("\"type\":\"foo\"")).isTrue();
+		assertThat(content.contains("\"type\":\"bar\"")).isTrue();
 	}
 
-	@Test(expected = HttpMediaTypeNotAcceptableException.class)
-	public void handleReturnValueNotAcceptableProduces() throws Exception {
-		String body = "Foo";
-		ResponseEntity<String> returnValue = new ResponseEntity<String>(body, HttpStatus.OK);
+	@Test  // SPR-13423
+	public void handleReturnValueCharSequence() throws Exception {
+		List<HttpMessageConverter<?>>converters = new ArrayList<>();
+		converters.add(new ByteArrayHttpMessageConverter());
+		converters.add(new StringHttpMessageConverter());
 
-		MediaType accepted = MediaType.TEXT_PLAIN;
-		servletRequest.addHeader("Accept", accepted.toString());
+		Method method = getClass().getDeclaredMethod("handle");
+		MethodParameter returnType = new MethodParameter(method, -1);
+		ResponseEntity<StringBuilder> returnValue = ResponseEntity.ok(new StringBuilder("Foo"));
 
-		expect(messageConverter.canWrite(String.class, null)).andReturn(true);
-		expect(messageConverter.getSupportedMediaTypes()).andReturn(Collections.singletonList(MediaType.TEXT_PLAIN));
-		expect(messageConverter.canWrite(String.class, accepted)).andReturn(false);
-		replay(messageConverter);
+		HttpEntityMethodProcessor processor = new HttpEntityMethodProcessor(converters);
+		processor.handleReturnValue(returnValue, returnType, mavContainer, webRequest);
 
-		processor.handleReturnValue(returnValue, returnTypeResponseEntityProduces, mavContainer, webRequest);
-
-		fail("Expected exception");
+		assertThat(servletResponse.getHeader("Content-Type")).isEqualTo("text/plain;charset=ISO-8859-1");
+		assertThat(servletResponse.getContentAsString()).isEqualTo("Foo");
 	}
 
-	// SPR-9142
+	@Test  // SPR-13423
+	public void handleReturnValueWithETagAndETagFilter() throws Exception {
 
-	@Test(expected=HttpMediaTypeNotAcceptableException.class)
-	public void handleReturnValueNotAcceptableParseError() throws Exception {
-		ResponseEntity<String> returnValue = new ResponseEntity<String>("Body", HttpStatus.ACCEPTED);
-		servletRequest.addHeader("Accept", "01");
+		String eTagValue = "\"deadb33f8badf00d\"";
+		String content = "body";
 
-		processor.handleReturnValue(returnValue, returnTypeResponseEntity, mavContainer, webRequest);
-		fail("Expected exception");
+		Method method = getClass().getDeclaredMethod("handle");
+		MethodParameter returnType = new MethodParameter(method, -1);
+
+		FilterChain chain = (req, res) -> {
+			ResponseEntity<String> returnValue = ResponseEntity.ok().eTag(eTagValue).body(content);
+			try {
+				ServletWebRequest requestToUse =
+						new ServletWebRequest((HttpServletRequest) req, (HttpServletResponse) res);
+
+				new HttpEntityMethodProcessor(Collections.singletonList(new StringHttpMessageConverter()))
+						.handleReturnValue(returnValue, returnType, mavContainer, requestToUse);
+
+				assertThat(this.servletResponse.getContentAsString())
+						.as("Response body was cached? It should be written directly to the raw response")
+						.isEqualTo(content);
+			}
+			catch (Exception ex) {
+				throw new IllegalStateException(ex);
+			}
+		};
+
+		this.servletRequest.setMethod("GET");
+		new ShallowEtagHeaderFilter().doFilter(this.servletRequest, this.servletResponse, chain);
+
+		assertThat(this.servletResponse.getStatus()).isEqualTo(200);
+		assertThat(this.servletResponse.getHeader(HttpHeaders.ETAG)).isEqualTo(eTagValue);
+		assertThat(this.servletResponse.getContentAsString()).isEqualTo(content);
 	}
 
-	@Test
-	public void responseHeaderNoBody() throws Exception {
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("headerName", "headerValue");
-		ResponseEntity<String> returnValue = new ResponseEntity<String>(headers, HttpStatus.ACCEPTED);
 
-		processor.handleReturnValue(returnValue, returnTypeResponseEntity, mavContainer, webRequest);
-
-		assertTrue(mavContainer.isRequestHandled());
-		assertEquals("headerValue", servletResponse.getHeader("headerName"));
+	@SuppressWarnings("unused")
+	private void handle(HttpEntity<List<SimpleBean>> arg1, HttpEntity<SimpleBean> arg2) {
 	}
 
-	@Test
-	public void responseHeaderAndBody() throws Exception {
-		HttpHeaders responseHeaders = new HttpHeaders();
-		responseHeaders.set("header", "headerValue");
-		ResponseEntity<String> returnValue = new ResponseEntity<String>("body", responseHeaders, HttpStatus.ACCEPTED);
-
-		Capture<HttpOutputMessage> outputMessage = new Capture<HttpOutputMessage>();
-		expect(messageConverter.canWrite(String.class, null)).andReturn(true);
-		expect(messageConverter.getSupportedMediaTypes()).andReturn(Collections.singletonList(MediaType.TEXT_PLAIN));
-		expect(messageConverter.canWrite(String.class, MediaType.TEXT_PLAIN)).andReturn(true);
-		messageConverter.write(eq("body"), eq(MediaType.TEXT_PLAIN),  capture(outputMessage));
-		replay(messageConverter);
-
-		processor.handleReturnValue(returnValue, returnTypeResponseEntity, mavContainer, webRequest);
-
-		assertTrue(mavContainer.isRequestHandled());
-		assertEquals("headerValue", outputMessage.getValue().getHeaders().get("header").get(0));
-		verify(messageConverter);
-	}
-
-	public ResponseEntity<String> handle1(HttpEntity<String> httpEntity, ResponseEntity<String> responseEntity, int i) {
-		return responseEntity;
-	}
-
-	public HttpEntity<?> handle2(HttpEntity<?> entity) {
-		return entity;
-	}
-
-	public int handle3() {
-		return 42;
-	}
-
-	@RequestMapping(produces = {"text/html", "application/xhtml+xml"})
-	public ResponseEntity<String> handle4() {
+	private ResponseEntity<CharSequence> handle() {
 		return null;
 	}
 
+
+	@SuppressWarnings("unused")
+	private static abstract class MyParameterizedController<DTO extends Identifiable> {
+
+		public void handleDto(HttpEntity<DTO> dto) {
+		}
+	}
+
+
+	@SuppressWarnings("unused")
+	private static class MySimpleParameterizedController extends MyParameterizedController<SimpleBean> {
+	}
+
+
+	private interface Identifiable extends Serializable {
+
+		Long getId();
+
+		void setId(Long id);
+	}
+
+
+	@SuppressWarnings({ "serial" })
+	private static class SimpleBean implements Identifiable {
+
+		private Long id;
+
+		private String name;
+
+		@Override
+		public Long getId() {
+			return id;
+		}
+
+		@Override
+		public void setId(Long id) {
+			this.id = id;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		@SuppressWarnings("unused")
+		public void setName(String name) {
+			this.name = name;
+		}
+	}
+
+
+	private final class ValidatingBinderFactory implements WebDataBinderFactory {
+
+		@Override
+		public WebDataBinder createBinder(NativeWebRequest webRequest, @Nullable Object target, String objectName) {
+			LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
+			validator.afterPropertiesSet();
+			WebDataBinder dataBinder = new WebDataBinder(target, objectName);
+			dataBinder.setValidator(validator);
+			return dataBinder;
+		}
+	}
+
+
+	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+	private static class ParentClass {
+
+		private String parentProperty;
+
+		public ParentClass() {
+		}
+
+		public ParentClass(String parentProperty) {
+			this.parentProperty = parentProperty;
+		}
+
+		public String getParentProperty() {
+			return parentProperty;
+		}
+
+		public void setParentProperty(String parentProperty) {
+			this.parentProperty = parentProperty;
+		}
+	}
+
+
+	@JsonTypeName("foo")
+	private static class Foo extends ParentClass {
+
+		public Foo() {
+		}
+
+		public Foo(String parentProperty) {
+			super(parentProperty);
+		}
+	}
+
+
+	@JsonTypeName("bar")
+	private static class Bar extends ParentClass {
+
+		public Bar() {
+		}
+
+		public Bar(String parentProperty) {
+			super(parentProperty);
+		}
+	}
+
+
+	private static class JacksonController {
+
+		@RequestMapping
+		@ResponseBody
+		public HttpEntity<List<ParentClass>> handleList() {
+			List<ParentClass> list = new ArrayList<>();
+			list.add(new Foo("foo"));
+			list.add(new Bar("bar"));
+			return new HttpEntity<>(list);
+		}
+	}
 
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,7 @@ import org.springframework.util.Assert;
 
 /**
  * Base implementation of {@link DataFieldMaxValueIncrementer} that delegates
- * to a single {@link #getNextKey} template method that returns a <code>long</code>.
+ * to a single {@link #getNextKey} template method that returns a {@code long}.
  * Uses longs for String values, padding with zeroes if required.
  *
  * @author Dmitriy Kopylenko
@@ -36,10 +36,10 @@ public abstract class AbstractDataFieldMaxValueIncrementer implements DataFieldM
 
 	private DataSource dataSource;
 
-	/** The name of the sequence/table containing the sequence */
+	/** The name of the sequence/table containing the sequence. */
 	private String incrementerName;
 
-	/** The length to which a string result should be pre-pended with zeroes */
+	/** The length to which a string result should be pre-pended with zeroes. */
 	protected int paddingLength = 0;
 
 
@@ -107,6 +107,7 @@ public abstract class AbstractDataFieldMaxValueIncrementer implements DataFieldM
 		return this.paddingLength;
 	}
 
+	@Override
 	public void afterPropertiesSet() {
 		if (this.dataSource == null) {
 			throw new IllegalArgumentException("Property 'dataSource' is required");
@@ -117,14 +118,17 @@ public abstract class AbstractDataFieldMaxValueIncrementer implements DataFieldM
 	}
 
 
+	@Override
 	public int nextIntValue() throws DataAccessException {
 		return (int) getNextKey();
 	}
 
+	@Override
 	public long nextLongValue() throws DataAccessException {
 		return getNextKey();
 	}
 
+	@Override
 	public String nextStringValue() throws DataAccessException {
 		String s = Long.toString(getNextKey());
 		int len = s.length();

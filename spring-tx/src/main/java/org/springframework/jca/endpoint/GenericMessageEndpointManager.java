@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,9 +24,11 @@ import javax.resource.spi.endpoint.MessageEndpointFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.SmartLifecycle;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
- * Generic bean that manages JCA 1.5 message endpoints within a Spring
+ * Generic bean that manages JCA 1.7 message endpoints within a Spring
  * application context, activating and deactivating the endpoint as part
  * of the application context's lifecycle.
  *
@@ -146,17 +148,20 @@ import org.springframework.context.SmartLifecycle;
  */
 public class GenericMessageEndpointManager implements SmartLifecycle, InitializingBean, DisposableBean {
 
+	@Nullable
 	private ResourceAdapter resourceAdapter;
 
+	@Nullable
 	private MessageEndpointFactory messageEndpointFactory;
 
+	@Nullable
 	private ActivationSpec activationSpec;
 
 	private boolean autoStartup = true;
 
-	private int phase = Integer.MAX_VALUE;
+	private int phase = DEFAULT_PHASE;
 
-	private boolean running = false;
+	private volatile boolean running;
 
 	private final Object lifecycleMonitor = new Object();
 
@@ -164,13 +169,14 @@ public class GenericMessageEndpointManager implements SmartLifecycle, Initializi
 	/**
 	 * Set the JCA ResourceAdapter to manage endpoints for.
 	 */
-	public void setResourceAdapter(ResourceAdapter resourceAdapter) {
+	public void setResourceAdapter(@Nullable ResourceAdapter resourceAdapter) {
 		this.resourceAdapter = resourceAdapter;
 	}
 
 	/**
 	 * Return the JCA ResourceAdapter to manage endpoints for.
 	 */
+	@Nullable
 	public ResourceAdapter getResourceAdapter() {
 		return this.resourceAdapter;
 	}
@@ -183,13 +189,14 @@ public class GenericMessageEndpointManager implements SmartLifecycle, Initializi
 	 * with different {@link #setActivationSpec ActivationSpec} objects applied.
 	 * @see GenericMessageEndpointFactory#setMessageListener
 	 */
-	public void setMessageEndpointFactory(MessageEndpointFactory messageEndpointFactory) {
+	public void setMessageEndpointFactory(@Nullable MessageEndpointFactory messageEndpointFactory) {
 		this.messageEndpointFactory = messageEndpointFactory;
 	}
 
 	/**
 	 * Return the JCA MessageEndpointFactory to activate.
 	 */
+	@Nullable
 	public MessageEndpointFactory getMessageEndpointFactory() {
 		return this.messageEndpointFactory;
 	}
@@ -199,13 +206,14 @@ public class GenericMessageEndpointManager implements SmartLifecycle, Initializi
 	 * <p>Note that this ActivationSpec instance should not be shared
 	 * across multiple ResourceAdapter instances.
 	 */
-	public void setActivationSpec(ActivationSpec activationSpec) {
+	public void setActivationSpec(@Nullable ActivationSpec activationSpec) {
 		this.activationSpec = activationSpec;
 	}
 
 	/**
 	 * Return the JCA ActivationSpec to use for activating the endpoint.
 	 */
+	@Nullable
 	public ActivationSpec getActivationSpec() {
 		return this.activationSpec;
 	}
@@ -214,7 +222,7 @@ public class GenericMessageEndpointManager implements SmartLifecycle, Initializi
 	 * Set whether to auto-start the endpoint activation after this endpoint
 	 * manager has been initialized and the context has been refreshed.
 	 * <p>Default is "true". Turn this flag off to defer the endpoint
-	 * activation until an explicit {#start()} call.
+	 * activation until an explicit {@link #start()} call.
 	 */
 	public void setAutoStartup(boolean autoStartup) {
 		this.autoStartup = autoStartup;
@@ -224,6 +232,7 @@ public class GenericMessageEndpointManager implements SmartLifecycle, Initializi
 	 * Return the value for the 'autoStartup' property.	If "true", this
 	 * endpoint manager will start upon a ContextRefreshedEvent.
 	 */
+	@Override
 	public boolean isAutoStartup() {
 		return this.autoStartup;
 	}
@@ -242,6 +251,7 @@ public class GenericMessageEndpointManager implements SmartLifecycle, Initializi
 	/**
 	 * Return the phase in which this endpoint manager will be started and stopped.
 	 */
+	@Override
 	public int getPhase() {
 		return this.phase;
 	}
@@ -250,6 +260,7 @@ public class GenericMessageEndpointManager implements SmartLifecycle, Initializi
 	 * Prepares the message endpoint, and automatically activates it
 	 * if the "autoStartup" flag is set to "true".
 	 */
+	@Override
 	public void afterPropertiesSet() throws ResourceException {
 		if (getResourceAdapter() == null) {
 			throw new IllegalArgumentException("Property 'resourceAdapter' is required");
@@ -274,11 +285,14 @@ public class GenericMessageEndpointManager implements SmartLifecycle, Initializi
 	/**
 	 * Activates the configured message endpoint.
 	 */
+	@Override
 	public void start() {
 		synchronized (this.lifecycleMonitor) {
 			if (!this.running) {
+				ResourceAdapter resourceAdapter = getResourceAdapter();
+				Assert.state(resourceAdapter != null, "No ResourceAdapter set");
 				try {
-					getResourceAdapter().endpointActivation(getMessageEndpointFactory(), getActivationSpec());
+					resourceAdapter.endpointActivation(getMessageEndpointFactory(), getActivationSpec());
 				}
 				catch (ResourceException ex) {
 					throw new IllegalStateException("Could not activate message endpoint", ex);
@@ -291,18 +305,22 @@ public class GenericMessageEndpointManager implements SmartLifecycle, Initializi
 	/**
 	 * Deactivates the configured message endpoint.
 	 */
+	@Override
 	public void stop() {
 		synchronized (this.lifecycleMonitor) {
 			if (this.running) {
-				getResourceAdapter().endpointDeactivation(getMessageEndpointFactory(), getActivationSpec());
+				ResourceAdapter resourceAdapter = getResourceAdapter();
+				Assert.state(resourceAdapter != null, "No ResourceAdapter set");
+				resourceAdapter.endpointDeactivation(getMessageEndpointFactory(), getActivationSpec());
 				this.running = false;
 			}
 		}
 	}
 
+	@Override
 	public void stop(Runnable callback) {
 		synchronized (this.lifecycleMonitor) {
-			this.stop();
+			stop();
 			callback.run();
 		}
 	}
@@ -310,15 +328,15 @@ public class GenericMessageEndpointManager implements SmartLifecycle, Initializi
 	/**
 	 * Return whether the configured message endpoint is currently active.
 	 */
+	@Override
 	public boolean isRunning() {
-		synchronized (this.lifecycleMonitor) {
-			return this.running;
-		}
+		return this.running;
 	}
 
 	/**
 	 * Deactivates the message endpoint, preparing it for shutdown.
 	 */
+	@Override
 	public void destroy() {
 		stop();
 	}

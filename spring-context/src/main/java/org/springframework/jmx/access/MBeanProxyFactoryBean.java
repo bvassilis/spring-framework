@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +21,7 @@ import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.jmx.MBeanServerNotFoundException;
+import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 
 /**
@@ -37,7 +38,7 @@ import org.springframework.util.ClassUtils;
  *
  * <p>Attempting to invoke or access any method or property on the proxy
  * interface that does not correspond to the management interface will lead
- * to an <code>InvalidInvocationException</code>.
+ * to an {@code InvalidInvocationException}.
  *
  * @author Rob Harrop
  * @author Juergen Hoeller
@@ -48,10 +49,13 @@ import org.springframework.util.ClassUtils;
 public class MBeanProxyFactoryBean extends MBeanClientInterceptor
 		implements FactoryBean<Object>, BeanClassLoaderAware, InitializingBean {
 
-	private Class proxyInterface;
+	@Nullable
+	private Class<?> proxyInterface;
 
+	@Nullable
 	private ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader();
 
+	@Nullable
 	private Object mbeanProxy;
 
 
@@ -62,7 +66,7 @@ public class MBeanProxyFactoryBean extends MBeanClientInterceptor
 	 * conventional Java methods for MBean operations.
 	 * @see #setObjectName
 	 */
-	public void setProxyInterface(Class proxyInterface) {
+	public void setProxyInterface(Class<?> proxyInterface) {
 		this.proxyInterface = proxyInterface;
 	}
 
@@ -72,7 +76,7 @@ public class MBeanProxyFactoryBean extends MBeanClientInterceptor
 	}
 
 	/**
-	 * Checks that the <code>proxyInterface</code> has been specified and then
+	 * Checks that the {@code proxyInterface} has been specified and then
 	 * generates the proxy for the target MBean.
 	 */
 	@Override
@@ -94,14 +98,18 @@ public class MBeanProxyFactoryBean extends MBeanClientInterceptor
 	}
 
 
+	@Override
+	@Nullable
 	public Object getObject() {
 		return this.mbeanProxy;
 	}
 
+	@Override
 	public Class<?> getObjectType() {
 		return this.proxyInterface;
 	}
 
+	@Override
 	public boolean isSingleton() {
 		return true;
 	}

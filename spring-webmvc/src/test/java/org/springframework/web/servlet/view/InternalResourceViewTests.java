@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,230 +16,127 @@
 
 package org.springframework.web.servlet.view;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Test;
 
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockRequestDispatcher;
-import org.springframework.mock.web.MockServletContext;
 import org.springframework.web.servlet.View;
+import org.springframework.web.testfixture.servlet.MockHttpServletRequest;
+import org.springframework.web.testfixture.servlet.MockHttpServletResponse;
+import org.springframework.web.testfixture.servlet.MockRequestDispatcher;
+import org.springframework.web.testfixture.servlet.MockServletContext;
 import org.springframework.web.util.WebUtils;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
 /**
+ * Unit tests for {@link InternalResourceView}.
+ *
  * @author Rod Johnson
  * @author Juergen Hoeller
+ * @author Sam Brannen
  */
-public class InternalResourceViewTests extends TestCase {
+public class InternalResourceViewTests {
+
+	@SuppressWarnings("serial")
+	private static final Map<String, Object> model = Collections.unmodifiableMap(new HashMap<String, Object>() {{
+		put("foo", "bar");
+		put("I", 1L);
+	}});
+
+	private static final String url = "forward-to";
+
+	private final HttpServletRequest request = mock(HttpServletRequest.class);
+
+	private final MockHttpServletResponse response = new MockHttpServletResponse();
+
+	private final InternalResourceView view = new InternalResourceView();
+
 
 	/**
-	 * Test that if the url property isn't supplied, view initialization fails.
+	 * If the url property isn't supplied, view initialization should fail.
 	 */
-	public void testRejectsNullUrl() throws Exception {
-		InternalResourceView view = new InternalResourceView();
-		try {
-			view.afterPropertiesSet();
-			fail("Should be forced to set URL");
-		}
-		catch (IllegalArgumentException ex) {
-			// expected
-		}
+	@Test
+	public void rejectsNullUrl() throws Exception {
+		assertThatIllegalArgumentException().isThrownBy(
+				view::afterPropertiesSet);
 	}
 
-	public void testForward() throws Exception {
-		HashMap<String, Object> model = new HashMap<String, Object>();
-		Object obj = new Integer(1);
-		model.put("foo", "bar");
-		model.put("I", obj);
-
-		String url = "forward-to";
-		
+	@Test
+	public void forward() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/myservlet/handler.do");
 		request.setContextPath("/mycontext");
 		request.setServletPath("/myservlet");
 		request.setPathInfo(";mypathinfo");
 		request.setQueryString("?param1=value1");
 
-		InternalResourceView view = new InternalResourceView();
 		view.setUrl(url);
 		view.setServletContext(new MockServletContext() {
+			@Override
 			public int getMinorVersion() {
 				return 4;
 			}
 		});
 
-		MockHttpServletResponse response = new MockHttpServletResponse();
 		view.render(model, request, response);
-		assertEquals(url, response.getForwardedUrl());
+		assertThat(response.getForwardedUrl()).isEqualTo(url);
 
-		Set<String> keys = model.keySet();
-		for (Iterator<String> it = keys.iterator(); it.hasNext();) {
-			String key = (String) it.next();
-			assertEquals(model.get(key), request.getAttribute(key));
-		}
-
-		assertEquals("/myservlet/handler.do", request.getAttribute(WebUtils.FORWARD_REQUEST_URI_ATTRIBUTE));
-		assertEquals("/mycontext", request.getAttribute(WebUtils.FORWARD_CONTEXT_PATH_ATTRIBUTE));
-		assertEquals("/myservlet", request.getAttribute(WebUtils.FORWARD_SERVLET_PATH_ATTRIBUTE));
-		assertEquals(";mypathinfo", request.getAttribute(WebUtils.FORWARD_PATH_INFO_ATTRIBUTE));
-		assertEquals("?param1=value1", request.getAttribute(WebUtils.FORWARD_QUERY_STRING_ATTRIBUTE));
+		model.forEach((key, value) -> assertThat(request.getAttribute(key)).as("Values for model key '" + key
+						+ "' must match").isEqualTo(value));
 	}
 
-	public void testForwardWithForwardAttributesPresent() throws Exception {
-		HashMap<String, Object> model = new HashMap<String, Object>();
-		Object obj = new Integer(1);
-		model.put("foo", "bar");
-		model.put("I", obj);
+	@Test
+	public void alwaysInclude() throws Exception {
+		given(request.getAttribute(View.PATH_VARIABLES)).willReturn(null);
+		given(request.getRequestDispatcher(url)).willReturn(new MockRequestDispatcher(url));
 
-		String url = "forward-to";
-
-		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/myservlet/handler.do");
-		request.setContextPath("/mycontext");
-		request.setServletPath("/myservlet");
-		request.setPathInfo(";mypathinfo");
-		request.setQueryString("?param1=value1");
-
-		request.setAttribute(WebUtils.FORWARD_REQUEST_URI_ATTRIBUTE, "/MYservlet/handler.do");
-		request.setAttribute(WebUtils.FORWARD_CONTEXT_PATH_ATTRIBUTE, "/MYcontext");
-		request.setAttribute(WebUtils.FORWARD_SERVLET_PATH_ATTRIBUTE, "/MYservlet");
-		request.setAttribute(WebUtils.FORWARD_PATH_INFO_ATTRIBUTE, ";MYpathinfo");
-		request.setAttribute(WebUtils.FORWARD_QUERY_STRING_ATTRIBUTE, "?Param1=value1");
-
-		InternalResourceView view = new InternalResourceView();
 		view.setUrl(url);
-		view.setServletContext(new MockServletContext() {
-			public int getMinorVersion() {
-				return 4;
-			}
-		});
+		view.setAlwaysInclude(true);
 
-		MockHttpServletResponse response = new MockHttpServletResponse();
+		// Can now try multiple tests
 		view.render(model, request, response);
-		assertEquals(url, response.getForwardedUrl());
+		assertThat(response.getIncludedUrl()).isEqualTo(url);
 
-		Set<String> keys = model.keySet();
-		for (Iterator<String> it = keys.iterator(); it.hasNext();) {
-			String key = (String) it.next();
-			assertEquals(model.get(key), request.getAttribute(key));
-		}
-
-		assertEquals("/MYservlet/handler.do", request.getAttribute(WebUtils.FORWARD_REQUEST_URI_ATTRIBUTE));
-		assertEquals("/MYcontext", request.getAttribute(WebUtils.FORWARD_CONTEXT_PATH_ATTRIBUTE));
-		assertEquals("/MYservlet", request.getAttribute(WebUtils.FORWARD_SERVLET_PATH_ATTRIBUTE));
-		assertEquals(";MYpathinfo", request.getAttribute(WebUtils.FORWARD_PATH_INFO_ATTRIBUTE));
-		assertEquals("?Param1=value1", request.getAttribute(WebUtils.FORWARD_QUERY_STRING_ATTRIBUTE));
+		model.forEach((key, value) -> verify(request).setAttribute(key, value));
 	}
 
-	public void testAlwaysInclude() throws Exception {
-		HashMap<String, Object> model = new HashMap<String, Object>();
-		Object obj = new Integer(1);
-		model.put("foo", "bar");
-		model.put("I", obj);
+	@Test
+	public void includeOnAttribute() throws Exception {
+		given(request.getAttribute(View.PATH_VARIABLES)).willReturn(null);
+		given(request.getAttribute(WebUtils.INCLUDE_REQUEST_URI_ATTRIBUTE)).willReturn("somepath");
+		given(request.getRequestDispatcher(url)).willReturn(new MockRequestDispatcher(url));
 
-		String url = "forward-to";
-
-		HttpServletRequest request = createMock(HttpServletRequest.class);
-		request.getAttribute(View.PATH_VARIABLES);
-		expectLastCall().andReturn(null);
-		Set<String> keys = model.keySet();
-		for (Iterator<String> iter = keys.iterator(); iter.hasNext();) {
-			String key = (String) iter.next();
-			request.setAttribute(key, model.get(key));
-			expectLastCall().times(1);
-		}
-
-		request.getRequestDispatcher(url);
-		expectLastCall().andReturn(new MockRequestDispatcher(url));
-		replay(request);
-
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		InternalResourceView v = new InternalResourceView();
-		v.setUrl(url);
-		v.setAlwaysInclude(true);
+		view.setUrl(url);
 
 		// Can now try multiple tests
-		v.render(model, request, response);
-		assertEquals(url, response.getIncludedUrl());
-		verify(request);
+		view.render(model, request, response);
+		assertThat(response.getIncludedUrl()).isEqualTo(url);
+
+		model.forEach((key, value) -> verify(request).setAttribute(key, value));
 	}
 
-	public void testIncludeOnAttribute() throws Exception {
-		HashMap<String, Object> model = new HashMap<String, Object>();
-		Object obj = new Integer(1);
-		model.put("foo", "bar");
-		model.put("I", obj);
+	@Test
+	public void includeOnCommitted() throws Exception {
+		given(request.getAttribute(View.PATH_VARIABLES)).willReturn(null);
+		given(request.getAttribute(WebUtils.INCLUDE_REQUEST_URI_ATTRIBUTE)).willReturn(null);
+		given(request.getRequestDispatcher(url)).willReturn(new MockRequestDispatcher(url));
 
-		String url = "forward-to";
-
-		HttpServletRequest request = createMock(HttpServletRequest.class);
-		request.getAttribute(View.PATH_VARIABLES);
-		expectLastCall().andReturn(null);
-		Set<String> keys = model.keySet();
-		for (Iterator<String> iter = keys.iterator(); iter.hasNext();) {
-			String key = (String) iter.next();
-			request.setAttribute(key, model.get(key));
-			expectLastCall().times(1);
-		}
-
-		request.getAttribute(WebUtils.INCLUDE_REQUEST_URI_ATTRIBUTE);
-		expectLastCall().andReturn("somepath");
-		request.getRequestDispatcher(url);
-		expectLastCall().andReturn(new MockRequestDispatcher(url));
-		replay(request);
-
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		InternalResourceView v = new InternalResourceView();
-		v.setUrl(url);
-
-		// Can now try multiple tests
-		v.render(model, request, response);
-		assertEquals(url, response.getIncludedUrl());
-		verify(request);
-	}
-
-	public void testIncludeOnCommitted() throws Exception {
-		HashMap<String, Object> model = new HashMap<String, Object>();
-		Object obj = new Integer(1);
-		model.put("foo", "bar");
-		model.put("I", obj);
-
-		String url = "forward-to";
-
-		HttpServletRequest request = createMock(HttpServletRequest.class);
-		request.getAttribute(View.PATH_VARIABLES);
-		expectLastCall().andReturn(null);
-		Set<String> keys = model.keySet();
-		for (Iterator<String> iter = keys.iterator(); iter.hasNext();) {
-			String key = (String) iter.next();
-			request.setAttribute(key, model.get(key));
-			expectLastCall().times(1);
-		}
-
-		request.getAttribute(WebUtils.INCLUDE_REQUEST_URI_ATTRIBUTE);
-		expectLastCall().andReturn(null);
-		request.getRequestDispatcher(url);
-		expectLastCall().andReturn(new MockRequestDispatcher(url));
-		replay(request);
-
-		MockHttpServletResponse response = new MockHttpServletResponse();
 		response.setCommitted(true);
-		InternalResourceView v = new InternalResourceView();
-		v.setUrl(url);
+		view.setUrl(url);
 
 		// Can now try multiple tests
-		v.render(model, request, response);
-		assertEquals(url, response.getIncludedUrl());
-		verify(request);
+		view.render(model, request, response);
+		assertThat(response.getIncludedUrl()).isEqualTo(url);
+
+		model.forEach((k, v) -> verify(request).setAttribute(k, v));
 	}
 
 }

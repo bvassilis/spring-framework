@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,7 +38,7 @@ public interface AdvisorAdapter {
 
 	/**
 	 * Does this adapter understand this advice object? Is it valid to
-	 * invoke the <code>getInterceptors</code> method with an Advisor that
+	 * invoke the {@code getInterceptors} method with an Advisor that
 	 * contains this advice as an argument?
 	 * @param advice an Advice such as a BeforeAdvice
 	 * @return whether this adapter understands the given advice object

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,18 +16,15 @@
 
 package org.springframework.web.context.request.async;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
-import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import java.util.function.Consumer;
 
-import org.junit.Test;
-import org.springframework.web.context.request.async.DeferredResult;
-import org.springframework.web.context.request.async.StaleAsyncWebRequestException;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.web.context.request.async.DeferredResult.DeferredResultHandler;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * DeferredResult tests.
@@ -37,79 +34,111 @@ import org.springframework.web.context.request.async.DeferredResult.DeferredResu
 public class DeferredResultTests {
 
 	@Test
-	public void set() {
-		DeferredResultHandler resultHandler = createMock(DeferredResultHandler.class);
-		DeferredResult<String> deferredResult = new DeferredResult<String>();
-		deferredResult.init(resultHandler);
+	public void setResult() {
+		DeferredResultHandler handler = mock(DeferredResultHandler.class);
 
-		resultHandler.handle("foo");
-		replay(resultHandler);
+		DeferredResult<String> result = new DeferredResult<>();
+		result.setResultHandler(handler);
 
-		deferredResult.set("foo");
-
-		verify(resultHandler);
+		assertThat(result.setResult("hello")).isTrue();
+		verify(handler).handleResult("hello");
 	}
 
 	@Test
-	public void getTimeoutHandler() {
-		assertNull(new DeferredResult<String>().getTimeoutHandler());
-		assertNotNull(new DeferredResult<String>("foo").getTimeoutHandler());
+	public void setResultTwice() {
+		DeferredResultHandler handler = mock(DeferredResultHandler.class);
+
+		DeferredResult<String> result = new DeferredResult<>();
+		result.setResultHandler(handler);
+
+		assertThat(result.setResult("hello")).isTrue();
+		assertThat(result.setResult("hi")).isFalse();
+
+		verify(handler).handleResult("hello");
 	}
 
 	@Test
-	public void handleTimeout() {
-		DeferredResultHandler resultHandler = createMock(DeferredResultHandler.class);
-		resultHandler.handle("foo");
-		replay(resultHandler);
+	public void isSetOrExpired() {
+		DeferredResultHandler handler = mock(DeferredResultHandler.class);
 
-		DeferredResult<String> deferredResult = new DeferredResult<String>("foo");
-		deferredResult.init(resultHandler);
+		DeferredResult<String> result = new DeferredResult<>();
+		result.setResultHandler(handler);
 
-		deferredResult.getTimeoutHandler().run();
+		assertThat(result.isSetOrExpired()).isFalse();
 
-		verify(resultHandler);
+		result.setResult("hello");
+
+		assertThat(result.isSetOrExpired()).isTrue();
+
+		verify(handler).handleResult("hello");
 	}
 
 	@Test
-	public void setAfterTimeoutValueUsed() {
-		DeferredResultHandler resultHandler = createMock(DeferredResultHandler.class);
-		resultHandler.handle("foo");
-		replay(resultHandler);
+	public void hasResult() {
+		DeferredResultHandler handler = mock(DeferredResultHandler.class);
 
-		DeferredResult<String> deferredResult = new DeferredResult<String>("foo");
-		deferredResult.init(resultHandler);
+		DeferredResult<String> result = new DeferredResult<>();
+		result.setResultHandler(handler);
 
-		deferredResult.getTimeoutHandler().run();
+		assertThat(result.hasResult()).isFalse();
+		assertThat(result.getResult()).isNull();
 
-		verify(resultHandler);
+		result.setResult("hello");
 
-		try {
-			deferredResult.set("foo");
-			fail("Expected exception");
-		}
-		catch (StaleAsyncWebRequestException ex) {
-			// expected
-		}
+		assertThat(result.getResult()).isEqualTo("hello");
 	}
 
 	@Test
-	public void setBeforeTimeoutValueUsed() {
-		DeferredResultHandler resultHandler = createMock(DeferredResultHandler.class);
-		resultHandler.handle("foo");
-		replay(resultHandler);
+	public void onCompletion() throws Exception {
+		final StringBuilder sb = new StringBuilder();
 
-		DeferredResult<String> deferredResult = new DeferredResult<String>("foo");
-		deferredResult.init(resultHandler);
-		deferredResult.set("foo");
+		DeferredResult<String> result = new DeferredResult<>();
+		result.onCompletion(() -> sb.append("completion event"));
 
-		verify(resultHandler);
+		result.getInterceptor().afterCompletion(null, null);
 
-		reset(resultHandler);
-		replay(resultHandler);
+		assertThat(result.isSetOrExpired()).isTrue();
+		assertThat(sb.toString()).isEqualTo("completion event");
+	}
 
-		deferredResult.getTimeoutHandler().run();
+	@Test
+	public void onTimeout() throws Exception {
+		final StringBuilder sb = new StringBuilder();
 
-		verify(resultHandler);
+		DeferredResultHandler handler = mock(DeferredResultHandler.class);
+
+		DeferredResult<String> result = new DeferredResult<>(null, "timeout result");
+		result.setResultHandler(handler);
+		result.onTimeout(() -> sb.append("timeout event"));
+
+		result.getInterceptor().handleTimeout(null, null);
+
+		assertThat(sb.toString()).isEqualTo("timeout event");
+		assertThat(result.setResult("hello")).as("Should not be able to set result a second time").isFalse();
+		verify(handler).handleResult("timeout result");
+	}
+
+	@Test
+	public void onError() throws Exception {
+		final StringBuilder sb = new StringBuilder();
+
+		DeferredResultHandler handler = mock(DeferredResultHandler.class);
+
+		DeferredResult<String> result = new DeferredResult<>(null, "error result");
+		result.setResultHandler(handler);
+		Exception e = new Exception();
+		result.onError(new Consumer<Throwable>() {
+			@Override
+			public void accept(Throwable t) {
+				sb.append("error event");
+			}
+		});
+
+		result.getInterceptor().handleError(null, null, e);
+
+		assertThat(sb.toString()).isEqualTo("error event");
+		assertThat(result.setResult("hello")).as("Should not be able to set result a second time").isFalse();
+		verify(handler).handleResult(e);
 	}
 
 }

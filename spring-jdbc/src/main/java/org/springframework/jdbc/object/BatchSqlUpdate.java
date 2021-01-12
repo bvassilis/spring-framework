@@ -1,27 +1,28 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.springframework.jdbc.object;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.Deque;
 import java.util.List;
+
 import javax.sql.DataSource;
 
 import org.springframework.dao.DataAccessException;
@@ -30,11 +31,11 @@ import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 /**
  * SqlUpdate subclass that performs batch update operations. Encapsulates
  * queuing up records to be updated, and adds them as a single batch once
- * <code>flush</code> is called or the given batch size has been met.
+ * {@code flush} is called or the given batch size has been met.
  *
  * <p>Note that this class is a <b>non-thread-safe object</b>, in contrast
  * to all other JDBC operations objects in this package. You need to create
- * a new instance of it for each use, or call <code>reset</code> before
+ * a new instance of it for each use, or call {@code reset} before
  * reuse within the same thread.
  *
  * @author Keith Donald
@@ -46,18 +47,18 @@ import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 public class BatchSqlUpdate extends SqlUpdate {
 
 	/**
-	 * Default number of inserts to accumulate before commiting a batch (5000).
+	 * Default number of inserts to accumulate before committing a batch (5000).
 	 */
-	public static int DEFAULT_BATCH_SIZE = 5000;
+	public static final int DEFAULT_BATCH_SIZE = 5000;
 
 
 	private int batchSize = DEFAULT_BATCH_SIZE;
 
 	private boolean trackRowsAffected = true;
 
-	private final LinkedList<Object[]> parameterQueue = new LinkedList<Object[]>();
+	private final Deque<Object[]> parameterQueue = new ArrayDeque<>();
 
-	private final List<Integer> rowsAffected = new ArrayList<Integer>();
+	private final List<Integer> rowsAffected = new ArrayList<>();
 
 
 	/**
@@ -72,8 +73,8 @@ public class BatchSqlUpdate extends SqlUpdate {
 
 	/**
 	 * Construct an update object with a given DataSource and SQL.
-	 * @param ds DataSource to use to obtain connections
-	 * @param sql SQL statement to execute
+	 * @param ds the DataSource to use to obtain connections
+	 * @param sql the SQL statement to execute
 	 */
 	public BatchSqlUpdate(DataSource ds, String sql) {
 		super(ds, sql);
@@ -82,10 +83,10 @@ public class BatchSqlUpdate extends SqlUpdate {
 	/**
 	 * Construct an update object with a given DataSource, SQL
 	 * and anonymous parameters.
-	 * @param ds DataSource to use to obtain connections
-	 * @param sql SQL statement to execute
-	 * @param types SQL types of the parameters, as defined in the
-	 * <code>java.sql.Types</code> class
+	 * @param ds the DataSource to use to obtain connections
+	 * @param sql the SQL statement to execute
+	 * @param types the SQL types of the parameters, as defined in the
+	 * {@code java.sql.Types} class
 	 * @see java.sql.Types
 	 */
 	public BatchSqlUpdate(DataSource ds, String sql, int[] types) {
@@ -96,10 +97,10 @@ public class BatchSqlUpdate extends SqlUpdate {
 	 * Construct an update object with a given DataSource, SQL,
 	 * anonymous parameters and specifying the maximum number of rows
 	 * that may be affected.
-	 * @param ds DataSource to use to obtain connections
-	 * @param sql SQL statement to execute
-	 * @param types SQL types of the parameters, as defined in the
-	 * <code>java.sql.Types</code> class
+	 * @param ds the DataSource to use to obtain connections
+	 * @param sql the SQL statement to execute
+	 * @param types the SQL types of the parameters, as defined in the
+	 * {@code java.sql.Types} class
 	 * @param batchSize the number of statements that will trigger
 	 * an automatic intermediate flush
 	 * @see java.sql.Types
@@ -112,11 +113,11 @@ public class BatchSqlUpdate extends SqlUpdate {
 
 	/**
 	 * Set the number of statements that will trigger an automatic intermediate
-	 * flush. <code>update</code> calls or the given statement parameters will
+	 * flush. {@code update} calls or the given statement parameters will
 	 * be queued until the batch size is met, at which point it will empty the
 	 * queue and execute the batch.
 	 * <p>You can also flush already queued statements with an explicit
-	 * <code>flush</code> call. Note that you need to this after queueing
+	 * {@code flush} call. Note that you need to this after queueing
 	 * all parameters to guarantee that all statements have been flushed.
 	 */
 	public void setBatchSize(int batchSize) {
@@ -144,13 +145,13 @@ public class BatchSqlUpdate extends SqlUpdate {
 
 
 	/**
-	 * Overridden version of <code>update</code> that adds the given statement
+	 * Overridden version of {@code update} that adds the given statement
 	 * parameters to the queue rather than executing them immediately.
-	 * All other <code>update</code> methods of the SqlUpdate base class go
+	 * All other {@code update} methods of the SqlUpdate base class go
 	 * through this method and will thus behave similarly.
-	 * <p>You need to call <code>flush</code> to actually execute the batch.
+	 * <p>You need to call {@code flush} to actually execute the batch.
 	 * If the specified batch size is reached, an implicit flush will happen;
-	 * you still need to finally call <code>flush</code> to flush all statements.
+	 * you still need to finally call {@code flush} to flush all statements.
 	 * @param params array of parameter objects
 	 * @return the number of rows affected by the update (always -1,
 	 * meaning "not applicable", as the statement is not actually
@@ -180,13 +181,15 @@ public class BatchSqlUpdate extends SqlUpdate {
 		if (this.parameterQueue.isEmpty()) {
 			return new int[0];
 		}
-		
+
 		int[] rowsAffected = getJdbcTemplate().batchUpdate(
-				getSql(),
+				resolveSql(),
 				new BatchPreparedStatementSetter() {
+					@Override
 					public int getBatchSize() {
 						return parameterQueue.size();
 					}
+					@Override
 					public void setValues(PreparedStatement ps, int index) throws SQLException {
 						Object[] params = parameterQueue.removeFirst();
 						newPreparedStatementSetter(params).setValues(ps);
@@ -220,16 +223,15 @@ public class BatchSqlUpdate extends SqlUpdate {
 
 	/**
 	 * Return the number of affected rows for all already executed statements.
-	 * Accumulates all of <code>flush</code>'s return values until
-	 * <code>reset</code> is invoked.
+	 * Accumulates all of {@code flush}'s return values until
+	 * {@code reset} is invoked.
 	 * @return an array of the number of rows affected by each statement
 	 * @see #reset
 	 */
 	public int[] getRowsAffected() {
 		int[] result = new int[this.rowsAffected.size()];
-		int i = 0;
-		for (Iterator<Integer> it = this.rowsAffected.iterator(); it.hasNext(); i++) {
-			result[i] = it.next();
+		for (int i = 0; i < this.rowsAffected.size(); i++) {
+			result[i] = this.rowsAffected.get(i);
 		}
 		return result;
 	}

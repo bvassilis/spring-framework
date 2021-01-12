@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,20 +18,21 @@ package org.springframework.beans.propertyeditors;
 
 import java.beans.PropertyEditorSupport;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 /**
  * Property editor that trims Strings.
  *
- * <p>Optionally allows transforming an empty string into a <code>null</code> value.
+ * <p>Optionally allows transforming an empty string into a {@code null} value.
  * Needs to be explicitly registered, e.g. for command binding.
  *
  * @author Juergen Hoeller
  * @see org.springframework.validation.DataBinder#registerCustomEditor
- * @see org.springframework.web.servlet.mvc.BaseCommandController#initBinder
  */
 public class StringTrimmerEditor extends PropertyEditorSupport {
 
+	@Nullable
 	private final String charsToDelete;
 
 	private final boolean emptyAsNull;
@@ -39,8 +40,8 @@ public class StringTrimmerEditor extends PropertyEditorSupport {
 
 	/**
 	 * Create a new StringTrimmerEditor.
-	 * @param emptyAsNull <code>true</code> if an empty String is to be
-	 * transformed into <code>null</code>
+	 * @param emptyAsNull {@code true} if an empty String is to be
+	 * transformed into {@code null}
 	 */
 	public StringTrimmerEditor(boolean emptyAsNull) {
 		this.charsToDelete = null;
@@ -52,8 +53,8 @@ public class StringTrimmerEditor extends PropertyEditorSupport {
 	 * @param charsToDelete a set of characters to delete, in addition to
 	 * trimming an input String. Useful for deleting unwanted line breaks:
 	 * e.g. "\r\n\f" will delete all new lines and line feeds in a String.
-	 * @param emptyAsNull <code>true</code> if an empty String is to be
-	 * transformed into <code>null</code>
+	 * @param emptyAsNull {@code true} if an empty String is to be
+	 * transformed into {@code null}
 	 */
 	public StringTrimmerEditor(String charsToDelete, boolean emptyAsNull) {
 		this.charsToDelete = charsToDelete;
@@ -62,7 +63,7 @@ public class StringTrimmerEditor extends PropertyEditorSupport {
 
 
 	@Override
-	public void setAsText(String text) {
+	public void setAsText(@Nullable String text) {
 		if (text == null) {
 			setValue(null);
 		}
@@ -71,7 +72,7 @@ public class StringTrimmerEditor extends PropertyEditorSupport {
 			if (this.charsToDelete != null) {
 				value = StringUtils.deleteAny(value, this.charsToDelete);
 			}
-			if (this.emptyAsNull && "".equals(value)) {
+			if (this.emptyAsNull && value.isEmpty()) {
 				setValue(null);
 			}
 			else {

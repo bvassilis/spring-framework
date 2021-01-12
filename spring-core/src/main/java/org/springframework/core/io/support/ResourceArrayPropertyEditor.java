@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,28 +18,32 @@ package org.springframework.core.io.support;
 
 import java.beans.PropertyEditorSupport;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.core.env.StandardEnvironment;
+
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertyResolver;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.Resource;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
  * Editor for {@link org.springframework.core.io.Resource} arrays, to
- * automatically convert <code>String</code> location patterns
- * (e.g. <code>"file:C:/my*.txt"</code> or <code>"classpath*:myfile.txt"</code>)
- * to <code>Resource</code> array properties. Can also translate a collection
+ * automatically convert {@code String} location patterns
+ * (e.g. {@code "file:C:/my*.txt"} or {@code "classpath*:myfile.txt"})
+ * to {@code Resource} array properties. Can also translate a collection
  * or array of location patterns into a merged Resource array.
  *
- * <p>A path may contain <code>${...}</code> placeholders, to be
+ * <p>A path may contain {@code ${...}} placeholders, to be
  * resolved as {@link org.springframework.core.env.Environment} properties:
- * e.g. <code>${user.dir}</code>. Unresolvable placeholders are ignored by default.
+ * e.g. {@code ${user.dir}}. Unresolvable placeholders are ignored by default.
  *
  * <p>Delegates to a {@link ResourcePatternResolver},
  * by default using a {@link PathMatchingResourcePatternResolver}.
@@ -55,9 +59,10 @@ public class ResourceArrayPropertyEditor extends PropertyEditorSupport {
 
 	private static final Log logger = LogFactory.getLog(ResourceArrayPropertyEditor.class);
 
-	private final PropertyResolver propertyResolver;
-
 	private final ResourcePatternResolver resourcePatternResolver;
+
+	@Nullable
+	private PropertyResolver propertyResolver;
 
 	private final boolean ignoreUnresolvablePlaceholders;
 
@@ -69,18 +74,7 @@ public class ResourceArrayPropertyEditor extends PropertyEditorSupport {
 	 * @see Environment
 	 */
 	public ResourceArrayPropertyEditor() {
-		this(new PathMatchingResourcePatternResolver(), new StandardEnvironment(), true);
-	}
-
-	/**
-	 * Create a new ResourceArrayPropertyEditor with the given {@link ResourcePatternResolver}
-	 * and a {@link StandardEnvironment}.
-	 * @param resourcePatternResolver the ResourcePatternResolver to use
-	 * @deprecated as of 3.1 in favor of {@link #ResourceArrayPropertyEditor(ResourcePatternResolver, PropertyResolver)}
-	 */
-	@Deprecated
-	public ResourceArrayPropertyEditor(ResourcePatternResolver resourcePatternResolver) {
-		this(resourcePatternResolver, new StandardEnvironment(), true);
+		this(new PathMatchingResourcePatternResolver(), null, true);
 	}
 
 	/**
@@ -89,21 +83,10 @@ public class ResourceArrayPropertyEditor extends PropertyEditorSupport {
 	 * @param resourcePatternResolver the ResourcePatternResolver to use
 	 * @param propertyResolver the PropertyResolver to use
 	 */
-	public ResourceArrayPropertyEditor(ResourcePatternResolver resourcePatternResolver, PropertyResolver propertyResolver) {
-		this(resourcePatternResolver, propertyResolver, true);
-	}
+	public ResourceArrayPropertyEditor(
+			ResourcePatternResolver resourcePatternResolver, @Nullable PropertyResolver propertyResolver) {
 
-	/**
-	 * Create a new ResourceArrayPropertyEditor with the given {@link ResourcePatternResolver}
-	 * and a {@link StandardEnvironment}.
-	 * @param resourcePatternResolver the ResourcePatternResolver to use
-	 * @param ignoreUnresolvablePlaceholders whether to ignore unresolvable placeholders
-	 * if no corresponding system property could be found
-	 * @deprecated as of 3.1 in favor of {@link #ResourceArrayPropertyEditor(ResourcePatternResolver, PropertyResolver, boolean)}
-	 */
-	@Deprecated
-	public ResourceArrayPropertyEditor(ResourcePatternResolver resourcePatternResolver, boolean ignoreUnresolvablePlaceholders) {
-		this(resourcePatternResolver, new StandardEnvironment(), ignoreUnresolvablePlaceholders);
+		this(resourcePatternResolver, propertyResolver, true);
 	}
 
 	/**
@@ -115,7 +98,9 @@ public class ResourceArrayPropertyEditor extends PropertyEditorSupport {
 	 * if no corresponding system property could be found
 	 */
 	public ResourceArrayPropertyEditor(ResourcePatternResolver resourcePatternResolver,
-			PropertyResolver propertyResolver, boolean ignoreUnresolvablePlaceholders) {
+			@Nullable PropertyResolver propertyResolver, boolean ignoreUnresolvablePlaceholders) {
+
+		Assert.notNull(resourcePatternResolver, "ResourcePatternResolver must not be null");
 		this.resourcePatternResolver = resourcePatternResolver;
 		this.propertyResolver = propertyResolver;
 		this.ignoreUnresolvablePlaceholders = ignoreUnresolvablePlaceholders;
@@ -145,7 +130,7 @@ public class ResourceArrayPropertyEditor extends PropertyEditorSupport {
 	public void setValue(Object value) throws IllegalArgumentException {
 		if (value instanceof Collection || (value instanceof Object[] && !(value instanceof Resource[]))) {
 			Collection<?> input = (value instanceof Collection ? (Collection<?>) value : Arrays.asList((Object[]) value));
-			List<Resource> merged = new ArrayList<Resource>();
+			Set<Resource> merged = new LinkedHashSet<>();
 			for (Object element : input) {
 				if (element instanceof String) {
 					// A location pattern: resolve it into a Resource array.
@@ -153,11 +138,7 @@ public class ResourceArrayPropertyEditor extends PropertyEditorSupport {
 					String pattern = resolvePath((String) element).trim();
 					try {
 						Resource[] resources = this.resourcePatternResolver.getResources(pattern);
-						for (Resource resource : resources) {
-							if (!merged.contains(resource)) {
-								merged.add(resource);
-							}
-						}
+						Collections.addAll(merged, resources);
 					}
 					catch (IOException ex) {
 						// ignore - might be an unresolved placeholder or non-existing base directory
@@ -168,17 +149,14 @@ public class ResourceArrayPropertyEditor extends PropertyEditorSupport {
 				}
 				else if (element instanceof Resource) {
 					// A Resource object: add it to the result.
-					Resource resource = (Resource) element;
-					if (!merged.contains(resource)) {
-						merged.add(resource);
-					}
+					merged.add((Resource) element);
 				}
 				else {
 					throw new IllegalArgumentException("Cannot convert element [" + element + "] to [" +
 							Resource.class.getName() + "]: only location String and Resource object supported");
 				}
 			}
-			super.setValue(merged.toArray(new Resource[merged.size()]));
+			super.setValue(merged.toArray(new Resource[0]));
 		}
 
 		else {
@@ -197,9 +175,11 @@ public class ResourceArrayPropertyEditor extends PropertyEditorSupport {
 	 * @see PropertyResolver#resolveRequiredPlaceholders(String)
 	 */
 	protected String resolvePath(String path) {
-		return this.ignoreUnresolvablePlaceholders ?
-				this.propertyResolver.resolvePlaceholders(path) :
-				this.propertyResolver.resolveRequiredPlaceholders(path);
+		if (this.propertyResolver == null) {
+			this.propertyResolver = new StandardEnvironment();
+		}
+		return (this.ignoreUnresolvablePlaceholders ? this.propertyResolver.resolvePlaceholders(path) :
+				this.propertyResolver.resolveRequiredPlaceholders(path));
 	}
 
 }

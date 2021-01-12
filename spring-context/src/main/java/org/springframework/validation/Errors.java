@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +19,7 @@ package org.springframework.validation;
 import java.util.List;
 
 import org.springframework.beans.PropertyAccessor;
+import org.springframework.lang.Nullable;
 
 /**
  * Stores and exposes information about data-binding and validation
@@ -28,10 +29,10 @@ import org.springframework.beans.PropertyAccessor;
  * when binding to a customer object), or nested fields in case of
  * subobjects (e.g. "address.street"). Supports subtree navigation
  * via {@link #setNestedPath(String)}: for example, an
- * <code>AddressValidator</code> validates "address", not being aware
+ * {@code AddressValidator} validates "address", not being aware
  * that this is a subobject of customer.
  *
- * <p>Note: <code>Errors</code> objects are single-threaded.
+ * <p>Note: {@code Errors} objects are single-threaded.
  *
  * @author Rod Johnson
  * @author Juergen Hoeller
@@ -63,7 +64,7 @@ public interface Errors {
 	 * <p>For example, an address validator could validate the subobject
 	 * "address" of a customer object.
 	 * @param nestedPath nested path within this object,
-	 * e.g. "address" (defaults to "", <code>null</code> is also acceptable).
+	 * e.g. "address" (defaults to "", {@code null} is also acceptable).
 	 * Can end with a dot: both "address" and "address." are valid.
 	 */
 	void setNestedPath(String nestedPath);
@@ -79,7 +80,7 @@ public interface Errors {
 	 * Push the given sub path onto the nested path stack.
 	 * <p>A {@link #popNestedPath()} call will reset the original
 	 * nested path before the corresponding
-	 * <code>pushNestedPath(String)</code> call.
+	 * {@code pushNestedPath(String)} call.
 	 * <p>Using the nested path stack allows to set temporary nested paths
 	 * for subobjects without having to worry about a temporary path holder.
 	 * <p>For example: current path "spouse.", pushNestedPath("child") ->
@@ -116,67 +117,68 @@ public interface Errors {
 	 * using the given error description.
 	 * @param errorCode error code, interpretable as a message key
 	 * @param errorArgs error arguments, for argument binding via MessageFormat
-	 * (can be <code>null</code>)
+	 * (can be {@code null})
 	 * @param defaultMessage fallback default message
 	 */
-	void reject(String errorCode, Object[] errorArgs, String defaultMessage);
+	void reject(String errorCode, @Nullable Object[] errorArgs, @Nullable String defaultMessage);
 
 	/**
 	 * Register a field error for the specified field of the current object
 	 * (respecting the current nested path, if any), using the given error
 	 * description.
-	 * <p>The field name may be <code>null</code> or empty String to indicate
+	 * <p>The field name may be {@code null} or empty String to indicate
 	 * the current object itself rather than a field of it. This may result
 	 * in a corresponding field error within the nested object graph or a
 	 * global error if the current object is the top object.
-	 * @param field the field name (may be <code>null</code> or empty String)
+	 * @param field the field name (may be {@code null} or empty String)
 	 * @param errorCode error code, interpretable as a message key
 	 * @see #getNestedPath()
 	 */
-	void rejectValue(String field, String errorCode);
+	void rejectValue(@Nullable String field, String errorCode);
 
 	/**
 	 * Register a field error for the specified field of the current object
 	 * (respecting the current nested path, if any), using the given error
 	 * description.
-	 * <p>The field name may be <code>null</code> or empty String to indicate
+	 * <p>The field name may be {@code null} or empty String to indicate
 	 * the current object itself rather than a field of it. This may result
 	 * in a corresponding field error within the nested object graph or a
 	 * global error if the current object is the top object.
-	 * @param field the field name (may be <code>null</code> or empty String)
+	 * @param field the field name (may be {@code null} or empty String)
 	 * @param errorCode error code, interpretable as a message key
 	 * @param defaultMessage fallback default message
 	 * @see #getNestedPath()
 	 */
-	void rejectValue(String field, String errorCode, String defaultMessage);
+	void rejectValue(@Nullable String field, String errorCode, String defaultMessage);
 
 	/**
 	 * Register a field error for the specified field of the current object
 	 * (respecting the current nested path, if any), using the given error
 	 * description.
-	 * <p>The field name may be <code>null</code> or empty String to indicate
+	 * <p>The field name may be {@code null} or empty String to indicate
 	 * the current object itself rather than a field of it. This may result
 	 * in a corresponding field error within the nested object graph or a
 	 * global error if the current object is the top object.
-	 * @param field the field name (may be <code>null</code> or empty String)
+	 * @param field the field name (may be {@code null} or empty String)
 	 * @param errorCode error code, interpretable as a message key
 	 * @param errorArgs error arguments, for argument binding via MessageFormat
-	 * (can be <code>null</code>)
+	 * (can be {@code null})
 	 * @param defaultMessage fallback default message
 	 * @see #getNestedPath()
 	 */
-	void rejectValue(String field, String errorCode, Object[] errorArgs, String defaultMessage);
+	void rejectValue(@Nullable String field, String errorCode,
+			@Nullable Object[] errorArgs, @Nullable String defaultMessage);
 
 	/**
-	 * Add all errors from the given <code>Errors</code> instance to this
-	 * <code>Errors</code> instance.
-	 * <p>This is a onvenience method to avoid repeated <code>reject(..)</code>
-	 * calls for merging an <code>Errors</code> instance into another
-	 * <code>Errors</code> instance.
-	 * <p>Note that the passed-in <code>Errors</code> instance is supposed
+	 * Add all errors from the given {@code Errors} instance to this
+	 * {@code Errors} instance.
+	 * <p>This is a convenience method to avoid repeated {@code reject(..)}
+	 * calls for merging an {@code Errors} instance into another
+	 * {@code Errors} instance.
+	 * <p>Note that the passed-in {@code Errors} instance is supposed
 	 * to refer to the same target object, or at least contain compatible errors
-	 * that apply to the target object of this <code>Errors</code> instance.
-	 * @param errors the <code>Errors</code> instance to merge in
+	 * that apply to the target object of this {@code Errors} instance.
+	 * @param errors the {@code Errors} instance to merge in
 	 */
 	void addAllErrors(Errors errors);
 
@@ -192,47 +194,48 @@ public interface Errors {
 
 	/**
 	 * Get all errors, both global and field ones.
-	 * @return List of {@link ObjectError} instances
+	 * @return a list of {@link ObjectError} instances
 	 */
 	List<ObjectError> getAllErrors();
 
 	/**
 	 * Are there any global errors?
-	 * @return <code>true</code> if there are any global errors
-	 * @see #hasFieldErrors() 
+	 * @return {@code true} if there are any global errors
+	 * @see #hasFieldErrors()
 	 */
 	boolean hasGlobalErrors();
 
 	/**
 	 * Return the number of global errors.
 	 * @return the number of global errors
-	 * @see #getFieldErrorCount() 
+	 * @see #getFieldErrorCount()
 	 */
 	int getGlobalErrorCount();
 
 	/**
 	 * Get all global errors.
-	 * @return List of ObjectError instances
+	 * @return a list of {@link ObjectError} instances
 	 */
 	List<ObjectError> getGlobalErrors();
 
 	/**
 	 * Get the <i>first</i> global error, if any.
-	 * @return the global error, or <code>null</code>
+	 * @return the global error, or {@code null}
 	 */
+	@Nullable
 	ObjectError getGlobalError();
 
 	/**
 	 * Are there any field errors?
-	 * @return <code>true</code> if there are any errors associated with a field
-	 * @see #hasGlobalErrors() 
+	 * @return {@code true} if there are any errors associated with a field
+	 * @see #hasGlobalErrors()
 	 */
 	boolean hasFieldErrors();
 
 	/**
 	 * Return the number of errors associated with a field.
 	 * @return the number of errors associated with a field
-	 * @see #getGlobalErrorCount() 
+	 * @see #getGlobalErrorCount()
 	 */
 	int getFieldErrorCount();
 
@@ -244,14 +247,15 @@ public interface Errors {
 
 	/**
 	 * Get the <i>first</i> error associated with a field, if any.
-	 * @return the field-specific error, or <code>null</code>
+	 * @return the field-specific error, or {@code null}
 	 */
+	@Nullable
 	FieldError getFieldError();
 
 	/**
 	 * Are there any errors associated with the given field?
 	 * @param field the field name
-	 * @return <code>true</code> if there were any errors associated with the given field
+	 * @return {@code true} if there were any errors associated with the given field
 	 */
 	boolean hasFieldErrors(String field);
 
@@ -274,8 +278,9 @@ public interface Errors {
 	/**
 	 * Get the first error associated with the given field, if any.
 	 * @param field the field name
-	 * @return the field-specific error, or <code>null</code>
+	 * @return the field-specific error, or {@code null}
 	 */
+	@Nullable
 	FieldError getFieldError(String field);
 
 	/**
@@ -286,16 +291,18 @@ public interface Errors {
 	 * @param field the field name
 	 * @return the current value of the given field
 	 */
+	@Nullable
 	Object getFieldValue(String field);
 
 	/**
 	 * Return the type of a given field.
 	 * <p>Implementations should be able to determine the type even
-	 * when the field value is <code>null</code>, for example from some
+	 * when the field value is {@code null}, for example from some
 	 * associated descriptor.
 	 * @param field the field name
-	 * @return the type of the field, or <code>null</code> if not determinable
+	 * @return the type of the field, or {@code null} if not determinable
 	 */
+	@Nullable
 	Class<?> getFieldType(String field);
 
 }

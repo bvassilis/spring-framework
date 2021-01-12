@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,54 +18,48 @@ package org.springframework.web.client;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.util.StreamUtils;
 
-import static org.easymock.EasyMock.*;
-
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests for {@link DefaultResponseErrorHandler}.
  *
  * @author Arjen Poutsma
+ * @author Juergen Hoeller
+ * @author Denys Ivano
  */
 public class DefaultResponseErrorHandlerTests {
 
-	private DefaultResponseErrorHandler handler;
+	private final DefaultResponseErrorHandler handler = new DefaultResponseErrorHandler();
 
-	private ClientHttpResponse response;
+	private final ClientHttpResponse response = mock(ClientHttpResponse.class);
 
-	@Before
-	public void setUp() throws Exception {
-		handler = new DefaultResponseErrorHandler();
-		response = createMock(ClientHttpResponse.class);
-	}
 
 	@Test
 	public void hasErrorTrue() throws Exception {
-		expect(response.getStatusCode()).andReturn(HttpStatus.NOT_FOUND);
-
-		replay(response);
-		assertTrue(handler.hasError(response));
-
-		verify(response);
+		given(response.getRawStatusCode()).willReturn(HttpStatus.NOT_FOUND.value());
+		assertThat(handler.hasError(response)).isTrue();
 	}
 
 	@Test
 	public void hasErrorFalse() throws Exception {
-		expect(response.getStatusCode()).andReturn(HttpStatus.OK);
-
-		replay(response);
-		assertFalse(handler.hasError(response));
-
-		verify(response);
+		given(response.getRawStatusCode()).willReturn(HttpStatus.OK.value());
+		assertThat(handler.hasError(response)).isFalse();
 	}
 
 	@Test
@@ -73,67 +67,215 @@ public class DefaultResponseErrorHandlerTests {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.TEXT_PLAIN);
 
-		expect(response.getStatusCode()).andReturn(HttpStatus.NOT_FOUND);
-		expect(response.getStatusText()).andReturn("Not Found");
-		expect(response.getHeaders()).andReturn(headers);
-		expect(response.getBody()).andReturn(new ByteArrayInputStream("Hello World".getBytes("UTF-8")));
+		given(response.getRawStatusCode()).willReturn(HttpStatus.NOT_FOUND.value());
+		given(response.getStatusText()).willReturn("Not Found");
+		given(response.getHeaders()).willReturn(headers);
+		given(response.getBody()).willReturn(new ByteArrayInputStream("Hello World".getBytes(StandardCharsets.UTF_8)));
 
-		replay(response);
-
-		try {
-			handler.handleError(response);
-			fail("expected HttpClientErrorException");
-		}
-		catch (HttpClientErrorException e) {
-			assertSame(headers, e.getResponseHeaders());
-		}
-
-		verify(response);
+		assertThatExceptionOfType(HttpClientErrorException.class)
+				.isThrownBy(() -> handler.handleError(response))
+				.withMessage("404 Not Found: [Hello World]")
+				.satisfies(ex -> assertThat(ex.getResponseHeaders()).isSameAs(headers));
 	}
 
-	@Test(expected = HttpClientErrorException.class)
+	@Test
+	public void handleErrorWithLongBody() throws Exception {
+
+		Function<Integer, String> bodyGenerator =
+				size -> Flux.just("a").repeat(size-1).reduce((s, s2) -> s + s2).block();
+
+		given(response.getRawStatusCode()).willReturn(HttpStatus.NOT_FOUND.value());
+		given(response.getStatusText()).willReturn("Not Found");
+		given(response.getHeaders()).willReturn(new HttpHeaders());
+		given(response.getBody()).willReturn(
+				new ByteArrayInputStream(bodyGenerator.apply(500).getBytes(StandardCharsets.UTF_8)));
+
+		assertThatExceptionOfType(HttpClientErrorException.class)
+				.isThrownBy(() -> handler.handleError(response))
+				.withMessage("404 Not Found: [" + bodyGenerator.apply(200) + "... (500 bytes)]");
+	}
+
+	@Test
 	public void handleErrorIOException() throws Exception {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.TEXT_PLAIN);
 
-		expect(response.getStatusCode()).andReturn(HttpStatus.NOT_FOUND);
-		expect(response.getStatusText()).andReturn("Not Found");
-		expect(response.getHeaders()).andReturn(headers);
-		expect(response.getBody()).andThrow(new IOException());
+		given(response.getRawStatusCode()).willReturn(HttpStatus.NOT_FOUND.value());
+		given(response.getStatusText()).willReturn("Not Found");
+		given(response.getHeaders()).willReturn(headers);
+		given(response.getBody()).willThrow(new IOException());
 
-		replay(response);
-
-		handler.handleError(response);
-
-		verify(response);
+		assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() -> handler.handleError(response));
 	}
 
-	@Test(expected = HttpClientErrorException.class)
+	@Test
 	public void handleErrorNullResponse() throws Exception {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.TEXT_PLAIN);
 
-		expect(response.getStatusCode()).andReturn(HttpStatus.NOT_FOUND);
-		expect(response.getStatusText()).andReturn("Not Found");
-		expect(response.getHeaders()).andReturn(headers);
-		expect(response.getBody()).andReturn(null);
+		given(response.getRawStatusCode()).willReturn(HttpStatus.NOT_FOUND.value());
+		given(response.getStatusText()).willReturn("Not Found");
+		given(response.getHeaders()).willReturn(headers);
 
-		replay(response);
-
-		handler.handleError(response);
-
-		verify(response);
+		assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
+				handler.handleError(response));
 	}
 
-	// SPR-9406
+	@Test  // SPR-16108
+	public void hasErrorForUnknownStatusCode() throws Exception {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.TEXT_PLAIN);
 
-	@Test(expected=RestClientException.class)
-	public void unknownStatusCode() throws Exception {
-		expect(response.getStatusCode()).andThrow(new IllegalArgumentException("No matching constant for 999"));
-		expect(response.getRawStatusCode()).andReturn(999);
+		given(response.getRawStatusCode()).willReturn(999);
+		given(response.getStatusText()).willReturn("Custom status code");
+		given(response.getHeaders()).willReturn(headers);
 
-		replay(response);
-
-		handler.handleError(response);
+		assertThat(handler.hasError(response)).isFalse();
 	}
+
+	@Test // SPR-9406
+	public void handleErrorUnknownStatusCode() throws Exception {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.TEXT_PLAIN);
+
+		given(response.getRawStatusCode()).willReturn(999);
+		given(response.getStatusText()).willReturn("Custom status code");
+		given(response.getHeaders()).willReturn(headers);
+
+		assertThatExceptionOfType(UnknownHttpStatusCodeException.class).isThrownBy(() ->
+				handler.handleError(response));
+	}
+
+	@Test  // SPR-17461
+	public void hasErrorForCustomClientError() throws Exception {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.TEXT_PLAIN);
+
+		given(response.getRawStatusCode()).willReturn(499);
+		given(response.getStatusText()).willReturn("Custom status code");
+		given(response.getHeaders()).willReturn(headers);
+
+		assertThat(handler.hasError(response)).isTrue();
+	}
+
+	@Test
+	public void handleErrorForCustomClientError() throws Exception {
+		int statusCode = 499;
+		String statusText = "Custom status code";
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.TEXT_PLAIN);
+
+		String responseBody = "Hello World";
+		TestByteArrayInputStream body = new TestByteArrayInputStream(responseBody.getBytes(StandardCharsets.UTF_8));
+
+		given(response.getRawStatusCode()).willReturn(statusCode);
+		given(response.getStatusText()).willReturn(statusText);
+		given(response.getHeaders()).willReturn(headers);
+		given(response.getBody()).willReturn(body);
+
+		Throwable throwable = catchThrowable(() -> handler.handleError(response));
+
+		// validate exception
+		assertThat(throwable).isInstanceOf(UnknownHttpStatusCodeException.class);
+		UnknownHttpStatusCodeException actualUnknownHttpStatusCodeException = (UnknownHttpStatusCodeException) throwable;
+		assertThat(actualUnknownHttpStatusCodeException.getRawStatusCode()).isEqualTo(statusCode);
+		assertThat(actualUnknownHttpStatusCodeException.getStatusText()).isEqualTo(statusText);
+		assertThat(actualUnknownHttpStatusCodeException.getResponseHeaders()).isEqualTo(headers);
+		assertThat(actualUnknownHttpStatusCodeException.getMessage()).contains(responseBody);
+		assertThat(actualUnknownHttpStatusCodeException.getResponseBodyAsString()).isEqualTo(responseBody);
+	}
+
+	@Test  // SPR-17461
+	public void hasErrorForCustomServerError() throws Exception {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.TEXT_PLAIN);
+
+		given(response.getRawStatusCode()).willReturn(599);
+		given(response.getStatusText()).willReturn("Custom status code");
+		given(response.getHeaders()).willReturn(headers);
+
+		assertThat(handler.hasError(response)).isTrue();
+	}
+
+	@Test
+	public void handleErrorForCustomServerError() throws Exception {
+		int statusCode = 599;
+		String statusText = "Custom status code";
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.TEXT_PLAIN);
+
+		String responseBody = "Hello World";
+		TestByteArrayInputStream body = new TestByteArrayInputStream(responseBody.getBytes(StandardCharsets.UTF_8));
+
+		given(response.getRawStatusCode()).willReturn(statusCode);
+		given(response.getStatusText()).willReturn(statusText);
+		given(response.getHeaders()).willReturn(headers);
+		given(response.getBody()).willReturn(body);
+
+		Throwable throwable = catchThrowable(() -> handler.handleError(response));
+
+		// validate exception
+		assertThat(throwable).isInstanceOf(UnknownHttpStatusCodeException.class);
+		UnknownHttpStatusCodeException actualUnknownHttpStatusCodeException = (UnknownHttpStatusCodeException) throwable;
+		assertThat(actualUnknownHttpStatusCodeException.getRawStatusCode()).isEqualTo(statusCode);
+		assertThat(actualUnknownHttpStatusCodeException.getStatusText()).isEqualTo(statusText);
+		assertThat(actualUnknownHttpStatusCodeException.getResponseHeaders()).isEqualTo(headers);
+		assertThat(actualUnknownHttpStatusCodeException.getMessage()).contains(responseBody);
+		assertThat(actualUnknownHttpStatusCodeException.getResponseBodyAsString()).isEqualTo(responseBody);
+	}
+
+	@Test  // SPR-16604
+	public void bodyAvailableAfterHasErrorForUnknownStatusCode() throws Exception {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.TEXT_PLAIN);
+		TestByteArrayInputStream body = new TestByteArrayInputStream("Hello World".getBytes(StandardCharsets.UTF_8));
+
+		given(response.getRawStatusCode()).willReturn(999);
+		given(response.getStatusText()).willReturn("Custom status code");
+		given(response.getHeaders()).willReturn(headers);
+		given(response.getBody()).willReturn(body);
+
+		assertThat(handler.hasError(response)).isFalse();
+		assertThat(body.isClosed()).isFalse();
+		assertThat(StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8)).isEqualTo("Hello World");
+	}
+
+
+	private static class TestByteArrayInputStream extends ByteArrayInputStream {
+
+		private boolean closed;
+
+		public TestByteArrayInputStream(byte[] buf) {
+			super(buf);
+			this.closed = false;
+		}
+
+		public boolean isClosed() {
+			return closed;
+		}
+
+		@Override
+		public boolean markSupported() {
+			return false;
+		}
+
+		@Override
+		public synchronized void mark(int readlimit) {
+			throw new UnsupportedOperationException("mark/reset not supported");
+		}
+
+		@Override
+		public synchronized void reset() {
+			throw new UnsupportedOperationException("mark/reset not supported");
+		}
+
+		@Override
+		public void close() throws IOException {
+			super.close();
+			this.closed = true;
+		}
+	}
+
 }

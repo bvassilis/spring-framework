@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,6 +20,7 @@ import java.sql.CallableStatement;
 import java.sql.SQLException;
 
 import org.springframework.dao.DataAccessException;
+import org.springframework.lang.Nullable;
 
 /**
  * Generic callback interface for code that operates on a CallableStatement.
@@ -37,13 +38,15 @@ import org.springframework.dao.DataAccessException;
  *
  * @author Juergen Hoeller
  * @since 16.03.2004
+ * @param <T> the result type
  * @see JdbcTemplate#execute(String, CallableStatementCallback)
  * @see JdbcTemplate#execute(CallableStatementCreator, CallableStatementCallback)
  */
+@FunctionalInterface
 public interface CallableStatementCallback<T> {
 
 	/**
-	 * Gets called by <code>JdbcTemplate.execute</code> with an active JDBC
+	 * Gets called by {@code JdbcTemplate.execute} with an active JDBC
 	 * CallableStatement. Does not need to care about closing the Statement
 	 * or the Connection, or about handling transactions: this will all be
 	 * handled by Spring's JdbcTemplate.
@@ -52,7 +55,7 @@ public interface CallableStatementCallback<T> {
 	 * within the callback implementation. Spring will close the Statement
 	 * object after the callback returned, but this does not necessarily imply
 	 * that the ResultSet resources will be closed: the Statement objects might
-	 * get pooled by the connection pool, with <code>close</code> calls only
+	 * get pooled by the connection pool, with {@code close} calls only
 	 * returning the object to the pool but not physically closing the resources.
 	 *
 	 * <p>If called without a thread-bound JDBC transaction (initiated by
@@ -67,11 +70,12 @@ public interface CallableStatementCallback<T> {
 	 * the template.
 	 *
 	 * @param cs active JDBC CallableStatement
-	 * @return a result object, or <code>null</code> if none
+	 * @return a result object, or {@code null} if none
 	 * @throws SQLException if thrown by a JDBC method, to be auto-converted
-	 * into a DataAccessException by a SQLExceptionTranslator
+	 * into a DataAccessException by an SQLExceptionTranslator
 	 * @throws DataAccessException in case of custom exceptions
 	 */
+	@Nullable
 	T doInCallableStatement(CallableStatement cs) throws SQLException, DataAccessException;
 
 }

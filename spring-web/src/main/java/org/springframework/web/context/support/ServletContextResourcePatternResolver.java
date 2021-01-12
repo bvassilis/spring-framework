@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +22,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
 import javax.servlet.ServletContext;
 
 import org.apache.commons.logging.Log;
@@ -37,8 +38,8 @@ import org.springframework.util.StringUtils;
 /**
  * ServletContext-aware subclass of {@link PathMatchingResourcePatternResolver},
  * able to find matching resources below the web application root directory
- * via Servlet 2.3's <code>ServletContext.getResourcePaths</code>.
- * Falls back to the superclass' file system checking for other resources.
+ * via {@link ServletContext#getResourcePaths}. Falls back to the superclass'
+ * file system checking for other resources.
  *
  * @author Juergen Hoeller
  * @since 1.1.2
@@ -69,7 +70,7 @@ public class ServletContextResourcePatternResolver extends PathMatchingResourceP
 
 	/**
 	 * Overridden version which checks for ServletContextResource
-	 * and uses <code>ServletContext.getResourcePaths</code> to find
+	 * and uses {@code ServletContext.getResourcePaths} to find
 	 * matching resources below the web application root directory.
 	 * In case of other resources, delegates to the superclass version.
 	 * @see #doRetrieveMatchingServletContextResources
@@ -84,7 +85,7 @@ public class ServletContextResourcePatternResolver extends PathMatchingResourceP
 			ServletContextResource scResource = (ServletContextResource) rootDirResource;
 			ServletContext sc = scResource.getServletContext();
 			String fullPattern = scResource.getPath() + subPattern;
-			Set<Resource> result = new LinkedHashSet<Resource>(8);
+			Set<Resource> result = new LinkedHashSet<>(8);
 			doRetrieveMatchingServletContextResources(sc, fullPattern, scResource.getPath(), result);
 			return result;
 		}
@@ -109,7 +110,7 @@ public class ServletContextResourcePatternResolver extends PathMatchingResourceP
 			ServletContext servletContext, String fullPattern, String dir, Set<Resource> result)
 			throws IOException {
 
-		Set candidates = servletContext.getResourcePaths(dir);
+		Set<String> candidates = servletContext.getResourcePaths(dir);
 		if (candidates != null) {
 			boolean dirDepthNotFixed = fullPattern.contains("**");
 			int jarFileSep = fullPattern.indexOf(ResourceUtils.JAR_URL_SEPARATOR);
@@ -119,8 +120,7 @@ public class ServletContextResourcePatternResolver extends PathMatchingResourceP
 				jarFilePath = fullPattern.substring(0, jarFileSep);
 				pathInJarFile = fullPattern.substring(jarFileSep + ResourceUtils.JAR_URL_SEPARATOR.length());
 			}
-			for (Object candidate : candidates) {
-				String currPath = (String) candidate;
+			for (String currPath : candidates) {
 				if (!currPath.startsWith(dir)) {
 					// Returned resource path does not start with relative directory:
 					// assuming absolute path returned -> strip absolute path.
@@ -150,26 +150,23 @@ public class ServletContextResourcePatternResolver extends PathMatchingResourceP
 	}
 
 	/**
-	 * Method extracts entries from the given jar by pattern.
+	 * Extract entries from the given jar by pattern.
 	 * @param jarFilePath the path to the jar file
 	 * @param entryPattern the pattern for jar entries to match
 	 * @param result the Set of matching Resources to add to
-	 * @throws IOException if jar contents could not be retrieved
 	 */
-	@SuppressWarnings("unchecked")
 	private void doRetrieveMatchingJarEntries(String jarFilePath, String entryPattern, Set<Resource> result) {
 		if (logger.isDebugEnabled()) {
 			logger.debug("Searching jar file [" + jarFilePath + "] for entries matching [" + entryPattern + "]");
 		}
-		try {
-			JarFile jarFile = new JarFile(jarFilePath);
+		try (JarFile jarFile = new JarFile(jarFilePath)) {
 			for (Enumeration<JarEntry> entries = jarFile.entries(); entries.hasMoreElements();) {
 				JarEntry entry = entries.nextElement();
 				String entryPath = entry.getName();
 				if (getPathMatcher().match(entryPattern, entryPath)) {
-					result.add(new UrlResource(ResourceUtils.URL_PROTOCOL_JAR + ":" +
-							ResourceUtils.URL_PROTOCOL_FILE + ":" + jarFilePath +
-							ResourceUtils.JAR_URL_SEPARATOR + entryPath));
+					result.add(new UrlResource(
+							ResourceUtils.URL_PROTOCOL_JAR,
+							ResourceUtils.FILE_URL_PREFIX + jarFilePath + ResourceUtils.JAR_URL_SEPARATOR + entryPath));
 				}
 			}
 		}

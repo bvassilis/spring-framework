@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,16 +23,18 @@ import org.springframework.core.convert.converter.Converter;
 /**
  * @author Juergen Hoeller
  */
-public class FooServiceDependentConverter implements Converter<String, org.springframework.beans.TestBean> {
+public class FooServiceDependentConverter implements Converter<String, org.springframework.beans.testfixture.beans.TestBean> {
 
+	@SuppressWarnings("unused")
 	private FooService fooService;
 
 	public void setFooService(FooService fooService) {
 		this.fooService = fooService;
 	}
 
-	public org.springframework.beans.TestBean convert(String source) {
-		return new org.springframework.beans.TestBean(source);
+	@Override
+	public org.springframework.beans.testfixture.beans.TestBean convert(String source) {
+		return new org.springframework.beans.testfixture.beans.TestBean(source);
 	}
 
 }

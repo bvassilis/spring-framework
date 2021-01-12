@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,19 +19,18 @@ package org.springframework.jdbc.datasource;
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.logging.Logger;
+
 import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import org.springframework.util.Assert;
 
 /**
  * Abstract base class for Spring's {@link javax.sql.DataSource}
  * implementations, taking care of the padding.
  *
  * <p>'Padding' in the context of this class means default implementations
- * for certain methods from the <code>DataSource</code> interface, such as
+ * for certain methods from the {@code DataSource} interface, such as
  * {@link #getLoginTimeout()}, {@link #setLoginTimeout(int)}, and so forth.
  *
  * @author Juergen Hoeller
@@ -40,13 +39,14 @@ import org.springframework.util.Assert;
  */
 public abstract class AbstractDataSource implements DataSource {
 
-	/** Logger available to subclasses */
+	/** Logger available to subclasses. */
 	protected final Log logger = LogFactory.getLog(getClass());
 
 
 	/**
 	 * Returns 0, indicating the default system timeout is to be used.
 	 */
+	@Override
 	public int getLoginTimeout() throws SQLException {
 		return 0;
 	}
@@ -54,6 +54,7 @@ public abstract class AbstractDataSource implements DataSource {
 	/**
 	 * Setting a login timeout is not supported.
 	 */
+	@Override
 	public void setLoginTimeout(int timeout) throws SQLException {
 		throw new UnsupportedOperationException("setLoginTimeout");
 	}
@@ -61,6 +62,7 @@ public abstract class AbstractDataSource implements DataSource {
 	/**
 	 * LogWriter methods are not supported.
 	 */
+	@Override
 	public PrintWriter getLogWriter() {
 		throw new UnsupportedOperationException("getLogWriter");
 	}
@@ -68,6 +70,7 @@ public abstract class AbstractDataSource implements DataSource {
 	/**
 	 * LogWriter methods are not supported.
 	 */
+	@Override
 	public void setLogWriter(PrintWriter pw) throws SQLException {
 		throw new UnsupportedOperationException("setLogWriter");
 	}
@@ -77,18 +80,19 @@ public abstract class AbstractDataSource implements DataSource {
 	// Implementation of JDBC 4.0's Wrapper interface
 	//---------------------------------------------------------------------
 
+	@Override
 	@SuppressWarnings("unchecked")
-	public <T> T  unwrap(Class<T> iface) throws SQLException {
-		Assert.notNull(iface, "Interface argument must not be null");
-		if (!DataSource.class.equals(iface)) {
-			throw new SQLException("DataSource of type [" + getClass().getName() +
-					"] can only be unwrapped as [javax.sql.DataSource], not as [" + iface.getName());
+	public <T> T unwrap(Class<T> iface) throws SQLException {
+		if (iface.isInstance(this)) {
+			return (T) this;
 		}
-		return (T) this;
+		throw new SQLException("DataSource of type [" + getClass().getName() +
+				"] cannot be unwrapped as [" + iface.getName() + "]");
 	}
 
+	@Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
-		return DataSource.class.equals(iface);
+		return iface.isInstance(this);
 	}
 
 
@@ -96,6 +100,7 @@ public abstract class AbstractDataSource implements DataSource {
 	// Implementation of JDBC 4.1's getParentLogger method
 	//---------------------------------------------------------------------
 
+	@Override
 	public Logger getParentLogger() {
 		return Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 	}

@@ -1,11 +1,11 @@
 /*
- * Copyright 2011 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.lang.Nullable;
 
 /**
  * A basic, no operation {@link CacheManager} implementation suitable
@@ -34,68 +35,43 @@ import org.springframework.cache.CacheManager;
  * <p>Will simply accept any items into the cache not actually storing them.
  *
  * @author Costin Leau
+ * @author Stephane Nicoll
  * @since 3.1
- * @see CompositeCacheManager
+ * @see NoOpCache
  */
 public class NoOpCacheManager implements CacheManager {
 
-	private final ConcurrentMap<String, Cache> caches = new ConcurrentHashMap<String, Cache>();
-	private Set<String> names = new LinkedHashSet<String>();
+	private final ConcurrentMap<String, Cache> caches = new ConcurrentHashMap<>(16);
 
-	private static class NoOpCache implements Cache {
+	private final Set<String> cacheNames = new LinkedHashSet<>(16);
 
-		private final String name;
-
-		public NoOpCache(String name) {
-			this.name = name;
-		}
-
-		public void clear() {
-		}
-
-		public void evict(Object key) {
-		}
-
-		public ValueWrapper get(Object key) {
-			return null;
-		}
-
-		public String getName() {
-			return name;
-		}
-
-		public Object getNativeCache() {
-			return null;
-		}
-
-		public void put(Object key, Object value) {
-		}
-	}
 
 	/**
-	 * {@inheritDoc}
-	 * 
-	 *  This implementation always returns a {@link Cache} implementation that will not
-	 *  store items. Additionally, the request cache will be remembered by the manager for consistency.
+	 * This implementation always returns a {@link Cache} implementation that will not store items.
+	 * Additionally, the request cache will be remembered by the manager for consistency.
 	 */
+	@Override
+	@Nullable
 	public Cache getCache(String name) {
-		Cache cache = caches.get(name);
+		Cache cache = this.caches.get(name);
 		if (cache == null) {
-			caches.putIfAbsent(name, new NoOpCache(name));
-			synchronized (names) {
-				names.add(name);
+			this.caches.computeIfAbsent(name, key -> new NoOpCache(name));
+			synchronized (this.cacheNames) {
+				this.cacheNames.add(name);
 			}
 		}
 
-		return caches.get(name);
+		return this.caches.get(name);
 	}
 
 	/**
-	 * {@inheritDoc}
-	 *
 	 * This implementation returns the name of the caches previously requested.
 	 */
+	@Override
 	public Collection<String> getCacheNames() {
-		return Collections.unmodifiableSet(names);
+		synchronized (this.cacheNames) {
+			return Collections.unmodifiableSet(this.cacheNames);
+		}
 	}
+
 }

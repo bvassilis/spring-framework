@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -42,17 +42,18 @@ import java.sql.SQLException;
  * @see ResultSetExtractor
  * @see RowCountCallbackHandler
  */
+@FunctionalInterface
 public interface RowCallbackHandler {
 
 	/**
 	 * Implementations must implement this method to process each row of data
-	 * in the ResultSet. This method should not call <code>next()</code> on
+	 * in the ResultSet. This method should not call {@code next()} on
 	 * the ResultSet; it is only supposed to extract values of the current row.
 	 * <p>Exactly what the implementation chooses to do is up to it:
 	 * A trivial implementation might simply count rows, while another
 	 * implementation might build an XML document.
 	 * @param rs the ResultSet to process (pre-initialized for the current row)
-	 * @throws SQLException if a SQLException is encountered getting
+	 * @throws SQLException if an SQLException is encountered getting
 	 * column values (that is, there's no need to catch SQLException)
 	 */
 	void processRow(ResultSet rs) throws SQLException;

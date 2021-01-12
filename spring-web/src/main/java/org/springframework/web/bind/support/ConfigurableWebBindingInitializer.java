@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,11 +18,11 @@ package org.springframework.web.bind.support;
 
 import org.springframework.beans.PropertyEditorRegistrar;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.lang.Nullable;
 import org.springframework.validation.BindingErrorProcessor;
 import org.springframework.validation.MessageCodesResolver;
 import org.springframework.validation.Validator;
 import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.context.request.WebRequest;
 
 /**
  * Convenient {@link WebBindingInitializer} for declarative configuration
@@ -44,14 +44,19 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 
 	private boolean directFieldAccess = false;
 
+	@Nullable
 	private MessageCodesResolver messageCodesResolver;
 
+	@Nullable
 	private BindingErrorProcessor bindingErrorProcessor;
 
+	@Nullable
 	private Validator validator;
 
+	@Nullable
 	private ConversionService conversionService;
 
+	@Nullable
 	private PropertyEditorRegistrar[] propertyEditorRegistrars;
 
 
@@ -78,8 +83,8 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 
 	/**
 	 * Set whether to use direct field access instead of bean property access.
-	 * <p>Default is <code>false</code>, using bean property access.
-	 * Switch this to <code>true</code> in order to enforce direct field access.
+	 * <p>Default is {@code false}, using bean property access.
+	 * Switch this to {@code true} in order to enforce direct field access.
 	 * @see org.springframework.validation.DataBinder#initDirectFieldAccess()
 	 * @see org.springframework.validation.DataBinder#initBeanPropertyAccess()
 	 */
@@ -91,41 +96,43 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 	 * Return whether to use direct field access instead of bean property access.
 	 */
 	public boolean isDirectFieldAccess() {
-		return directFieldAccess;
+		return this.directFieldAccess;
 	}
 
 	/**
 	 * Set the strategy to use for resolving errors into message codes.
 	 * Applies the given strategy to all data binders used by this controller.
-	 * <p>Default is <code>null</code>, i.e. using the default strategy of
+	 * <p>Default is {@code null}, i.e. using the default strategy of
 	 * the data binder.
 	 * @see org.springframework.validation.DataBinder#setMessageCodesResolver
 	 */
-	public final void setMessageCodesResolver(MessageCodesResolver messageCodesResolver) {
+	public final void setMessageCodesResolver(@Nullable MessageCodesResolver messageCodesResolver) {
 		this.messageCodesResolver = messageCodesResolver;
 	}
 
 	/**
 	 * Return the strategy to use for resolving errors into message codes.
 	 */
+	@Nullable
 	public final MessageCodesResolver getMessageCodesResolver() {
 		return this.messageCodesResolver;
 	}
 
 	/**
 	 * Set the strategy to use for processing binding errors, that is,
-	 * required field errors and <code>PropertyAccessException</code>s.
-	 * <p>Default is <code>null</code>, that is, using the default strategy
+	 * required field errors and {@code PropertyAccessException}s.
+	 * <p>Default is {@code null}, that is, using the default strategy
 	 * of the data binder.
 	 * @see org.springframework.validation.DataBinder#setBindingErrorProcessor
 	 */
-	public final void setBindingErrorProcessor(BindingErrorProcessor bindingErrorProcessor) {
+	public final void setBindingErrorProcessor(@Nullable BindingErrorProcessor bindingErrorProcessor) {
 		this.bindingErrorProcessor = bindingErrorProcessor;
 	}
 
 	/**
 	 * Return the strategy to use for processing binding errors.
 	 */
+	@Nullable
 	public final BindingErrorProcessor getBindingErrorProcessor() {
 		return this.bindingErrorProcessor;
 	}
@@ -133,13 +140,14 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 	/**
 	 * Set the Validator to apply after each binding step.
 	 */
-	public final void setValidator(Validator validator) {
+	public final void setValidator(@Nullable Validator validator) {
 		this.validator = validator;
 	}
 
 	/**
 	 * Return the Validator to apply after each binding step, if any.
 	 */
+	@Nullable
 	public final Validator getValidator() {
 		return this.validator;
 	}
@@ -148,13 +156,14 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 	 * Specify a ConversionService which will apply to every DataBinder.
 	 * @since 3.0
 	 */
-	public final void setConversionService(ConversionService conversionService) {
+	public final void setConversionService(@Nullable ConversionService conversionService) {
 		this.conversionService = conversionService;
 	}
 
 	/**
 	 * Return the ConversionService which will apply to every DataBinder.
 	 */
+	@Nullable
 	public final ConversionService getConversionService() {
 		return this.conversionService;
 	}
@@ -169,19 +178,21 @@ public class ConfigurableWebBindingInitializer implements WebBindingInitializer 
 	/**
 	 * Specify multiple PropertyEditorRegistrars to be applied to every DataBinder.
 	 */
-	public final void setPropertyEditorRegistrars(PropertyEditorRegistrar[] propertyEditorRegistrars) {
+	public final void setPropertyEditorRegistrars(@Nullable PropertyEditorRegistrar[] propertyEditorRegistrars) {
 		this.propertyEditorRegistrars = propertyEditorRegistrars;
 	}
 
 	/**
 	 * Return the PropertyEditorRegistrars to be applied to every DataBinder.
 	 */
+	@Nullable
 	public final PropertyEditorRegistrar[] getPropertyEditorRegistrars() {
 		return this.propertyEditorRegistrars;
 	}
 
 
-	public void initBinder(WebDataBinder binder, WebRequest request) {
+	@Override
+	public void initBinder(WebDataBinder binder) {
 		binder.setAutoGrowNestedPaths(this.autoGrowNestedPaths);
 		if (this.directFieldAccess) {
 			binder.initDirectFieldAccess();

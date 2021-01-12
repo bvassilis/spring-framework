@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,9 @@ package org.springframework.beans;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.StringJoiner;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -35,10 +37,11 @@ import org.springframework.util.ObjectUtils;
  * @author Juergen Hoeller
  * @since 18 April 2001
  */
+@SuppressWarnings("serial")
 public class PropertyBatchUpdateException extends BeansException {
 
-	/** List of PropertyAccessException objects */
-	private PropertyAccessException[] propertyAccessExceptions;
+	/** List of PropertyAccessException objects. */
+	private final PropertyAccessException[] propertyAccessExceptions;
 
 
 	/**
@@ -46,7 +49,7 @@ public class PropertyBatchUpdateException extends BeansException {
 	 * @param propertyAccessExceptions the List of PropertyAccessExceptions
 	 */
 	public PropertyBatchUpdateException(PropertyAccessException[] propertyAccessExceptions) {
-		super(null);
+		super(null, null);
 		Assert.notEmpty(propertyAccessExceptions, "At least 1 PropertyAccessException required");
 		this.propertyAccessExceptions = propertyAccessExceptions;
 	}
@@ -61,15 +64,16 @@ public class PropertyBatchUpdateException extends BeansException {
 
 	/**
 	 * Return an array of the propertyAccessExceptions stored in this object.
-	 * <p>Will return the empty array (not <code>null</code>) if there were no errors.
+	 * <p>Will return the empty array (not {@code null}) if there were no errors.
 	 */
 	public final PropertyAccessException[] getPropertyAccessExceptions() {
 		return this.propertyAccessExceptions;
 	}
 
 	/**
-	 * Return the exception for this field, or <code>null</code> if there isn't any.
+	 * Return the exception for this field, or {@code null} if there isn't any.
 	 */
+	@Nullable
 	public PropertyAccessException getPropertyAccessException(String propertyName) {
 		for (PropertyAccessException pae : this.propertyAccessExceptions) {
 			if (ObjectUtils.nullSafeEquals(propertyName, pae.getPropertyName())) {
@@ -82,14 +86,11 @@ public class PropertyBatchUpdateException extends BeansException {
 
 	@Override
 	public String getMessage() {
-		StringBuilder sb = new StringBuilder("Failed properties: ");
-		for (int i = 0; i < this.propertyAccessExceptions.length; i++) {
-			sb.append(this.propertyAccessExceptions[i].getMessage());
-			if (i < this.propertyAccessExceptions.length - 1) {
-				sb.append("; ");
-			}
+		StringJoiner stringJoiner = new StringJoiner("; ", "Failed properties: ", "");
+		for (PropertyAccessException exception : this.propertyAccessExceptions) {
+			stringJoiner.add(exception.getMessage());
 		}
-		return sb.toString();
+		return stringJoiner.toString();
 	}
 
 	@Override
@@ -129,7 +130,7 @@ public class PropertyBatchUpdateException extends BeansException {
 	}
 
 	@Override
-	public boolean contains(Class exType) {
+	public boolean contains(@Nullable Class<?> exType) {
 		if (exType == null) {
 			return false;
 		}

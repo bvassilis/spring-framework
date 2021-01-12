@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,9 +18,9 @@ package org.springframework.beans.factory.config;
 
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.PropertyValue;
@@ -53,7 +53,7 @@ import org.springframework.beans.factory.BeanInitializationException;
  * the same bean property, the <i>last</i> one will win (due to the overriding mechanism).
  *
  * <p>Property values can be converted after reading them in, through overriding
- * the <code>convertPropertyValue</code> method. For example, encrypted values
+ * the {@code convertPropertyValue} method. For example, encrypted values
  * can be detected and decrypted accordingly before processing them.
  *
  * @author Juergen Hoeller
@@ -64,6 +64,9 @@ import org.springframework.beans.factory.BeanInitializationException;
  */
 public class PropertyOverrideConfigurer extends PropertyResourceConfigurer {
 
+	/**
+	 * The default bean name separator.
+	 */
 	public static final String DEFAULT_BEAN_NAME_SEPARATOR = ".";
 
 
@@ -71,8 +74,10 @@ public class PropertyOverrideConfigurer extends PropertyResourceConfigurer {
 
 	private boolean ignoreInvalidKeys = false;
 
-	/** Contains names of beans that have overrides */
-	private Set<String> beanNames = Collections.synchronizedSet(new HashSet<String>());
+	/**
+	 * Contains names of beans that have overrides.
+	 */
+	private final Set<String> beanNames = Collections.newSetFromMap(new ConcurrentHashMap<>(16));
 
 
 	/**
@@ -98,7 +103,7 @@ public class PropertyOverrideConfigurer extends PropertyResourceConfigurer {
 	protected void processProperties(ConfigurableListableBeanFactory beanFactory, Properties props)
 			throws BeansException {
 
-		for (Enumeration names = props.propertyNames(); names.hasMoreElements();) {
+		for (Enumeration<?> names = props.propertyNames(); names.hasMoreElements();) {
 			String key = (String) names.nextElement();
 			try {
 				processKey(beanFactory, key, props.getProperty(key));
@@ -127,7 +132,7 @@ public class PropertyOverrideConfigurer extends PropertyResourceConfigurer {
 					"': expected 'beanName" + this.beanNameSeparator + "property'");
 		}
 		String beanName = key.substring(0, separatorIndex);
-		String beanProperty = key.substring(separatorIndex+1);
+		String beanProperty = key.substring(separatorIndex + 1);
 		this.beanNames.add(beanName);
 		applyPropertyValue(factory, beanName, beanProperty, value);
 		if (logger.isDebugEnabled()) {
@@ -142,12 +147,14 @@ public class PropertyOverrideConfigurer extends PropertyResourceConfigurer {
 			ConfigurableListableBeanFactory factory, String beanName, String property, String value) {
 
 		BeanDefinition bd = factory.getBeanDefinition(beanName);
-		while (bd.getOriginatingBeanDefinition() != null) {
+		BeanDefinition bdToUse = bd;
+		while (bd != null) {
+			bdToUse = bd;
 			bd = bd.getOriginatingBeanDefinition();
 		}
 		PropertyValue pv = new PropertyValue(property, value);
 		pv.setOptional(this.ignoreInvalidKeys);
-		bd.getPropertyValues().addPropertyValue(pv);
+		bdToUse.getPropertyValues().addPropertyValue(pv);
 	}
 
 
@@ -155,8 +162,7 @@ public class PropertyOverrideConfigurer extends PropertyResourceConfigurer {
 	 * Were there overrides for this bean?
 	 * Only valid after processing has occurred at least once.
 	 * @param beanName name of the bean to query status for
-	 * @return whether there were property overrides for
-	 * the named bean
+	 * @return whether there were property overrides for the named bean
 	 */
 	public boolean hasPropertyOverridesFor(String beanName) {
 		return this.beanNames.contains(beanName);

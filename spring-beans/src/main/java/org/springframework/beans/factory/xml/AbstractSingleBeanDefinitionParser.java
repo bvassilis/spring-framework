@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,22 +18,24 @@ package org.springframework.beans.factory.xml;
 
 import org.w3c.dom.Element;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
+import org.springframework.lang.Nullable;
 
 /**
  * Base class for those {@link BeanDefinitionParser} implementations that
- * need to parse and define just a <i>single</i> <code>BeanDefinition</code>.
+ * need to parse and define just a <i>single</i> {@code BeanDefinition}.
  *
  * <p>Extend this parser class when you want to create a single bean definition
  * from an arbitrarily complex XML element. You may wish to consider extending
  * the {@link AbstractSimpleBeanDefinitionParser} when you want to create a
  * single bean definition from a relatively simple custom XML element.
  *
- * <p>The resulting <code>BeanDefinition</code> will be automatically registered
+ * <p>The resulting {@code BeanDefinition} will be automatically registered
  * with the {@link org.springframework.beans.factory.support.BeanDefinitionRegistry}.
  * Your job simply is to {@link #doParse parse} the custom XML {@link Element}
- * into a single <code>BeanDefinition</code>.
+ * into a single {@code BeanDefinition}.
  *
  * @author Rob Harrop
  * @author Juergen Hoeller
@@ -53,7 +55,7 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 	 * @param parserContext the object encapsulating the current state of the parsing process
 	 * @return the BeanDefinition resulting from the parsing of the supplied {@link Element}
 	 * @throws IllegalStateException if the bean {@link Class} returned from
-	 * {@link #getBeanClass(org.w3c.dom.Element)} is <code>null</code>
+	 * {@link #getBeanClass(org.w3c.dom.Element)} is {@code null}
 	 * @see #doParse
 	 */
 	@Override
@@ -74,9 +76,10 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 			}
 		}
 		builder.getRawBeanDefinition().setSource(parserContext.extractSource(element));
-		if (parserContext.isNested()) {
+		BeanDefinition containingBd = parserContext.getContainingBeanDefinition();
+		if (containingBd != null) {
 			// Inner bean definition must receive same scope as containing bean.
-			builder.setScope(parserContext.getContainingBeanDefinition().getScope());
+			builder.setScope(containingBd.getScope());
 		}
 		if (parserContext.isDefaultLazyInit()) {
 			// Default-lazy-init applies to custom bean definitions as well.
@@ -89,12 +92,13 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 	/**
 	 * Determine the name for the parent of the currently parsed bean,
 	 * in case of the current bean being defined as a child bean.
-	 * <p>The default implementation returns <code>null</code>,
+	 * <p>The default implementation returns {@code null},
 	 * indicating a root bean definition.
-	 * @param element the <code>Element</code> that is being parsed
+	 * @param element the {@code Element} that is being parsed
 	 * @return the name of the parent bean for the currently parsed bean,
-	 * or <code>null</code> if none
+	 * or {@code null} if none
 	 */
+	@Nullable
 	protected String getParentName(Element element) {
 		return null;
 	}
@@ -106,22 +110,24 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 	 * dependence on the bean implementation class. The BeanDefinitionParser
 	 * and its NamespaceHandler can be used within an IDE plugin then, even
 	 * if the application classes are not available on the plugin's classpath.
-	 * @param element the <code>Element</code> that is being parsed
+	 * @param element the {@code Element} that is being parsed
 	 * @return the {@link Class} of the bean that is being defined via parsing
-	 * the supplied <code>Element</code>, or <code>null</code> if none
+	 * the supplied {@code Element}, or {@code null} if none
 	 * @see #getBeanClassName
 	 */
+	@Nullable
 	protected Class<?> getBeanClass(Element element) {
 		return null;
 	}
 
 	/**
 	 * Determine the bean class name corresponding to the supplied {@link Element}.
-	 * @param element the <code>Element</code> that is being parsed
+	 * @param element the {@code Element} that is being parsed
 	 * @return the class name of the bean that is being defined via parsing
-	 * the supplied <code>Element</code>, or <code>null</code> if none
+	 * the supplied {@code Element}, or {@code null} if none
 	 * @see #getBeanClass
 	 */
+	@Nullable
 	protected String getBeanClassName(Element element) {
 		return null;
 	}
@@ -129,11 +135,11 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 	/**
 	 * Parse the supplied {@link Element} and populate the supplied
 	 * {@link BeanDefinitionBuilder} as required.
-	 * <p>The default implementation delegates to the <code>doParse</code>
+	 * <p>The default implementation delegates to the {@code doParse}
 	 * version without ParserContext argument.
 	 * @param element the XML element being parsed
 	 * @param parserContext the object encapsulating the current state of the parsing process
-	 * @param builder used to define the <code>BeanDefinition</code>
+	 * @param builder used to define the {@code BeanDefinition}
 	 * @see #doParse(Element, BeanDefinitionBuilder)
 	 */
 	protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
@@ -145,7 +151,7 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 	 * {@link BeanDefinitionBuilder} as required.
 	 * <p>The default implementation does nothing.
 	 * @param element the XML element being parsed
-	 * @param builder used to define the <code>BeanDefinition</code>
+	 * @param builder used to define the {@code BeanDefinition}
 	 */
 	protected void doParse(Element element, BeanDefinitionBuilder builder) {
 	}

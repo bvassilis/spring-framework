@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,7 @@ import javax.xml.transform.TransformerException;
 import org.apache.commons.logging.Log;
 
 /**
- * Simple <code>javax.xml.transform.ErrorListener</code> implementation:
+ * Simple {@code javax.xml.transform.ErrorListener} implementation:
  * logs warnings using the given Commons Logging logger instance,
  * and rethrows errors to discontinue the XML transformation.
  *
@@ -43,14 +43,17 @@ public class SimpleTransformErrorListener implements ErrorListener {
 	}
 
 
+	@Override
 	public void warning(TransformerException ex) throws TransformerException {
 		logger.warn("XSLT transformation warning", ex);
 	}
 
+	@Override
 	public void error(TransformerException ex) throws TransformerException {
 		logger.error("XSLT transformation error", ex);
 	}
 
+	@Override
 	public void fatalError(TransformerException ex) throws TransformerException {
 		throw ex;
 	}

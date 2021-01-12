@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,11 +23,8 @@ package org.springframework.scheduling.config;
  *
  * @author Chris Beams
  * @since 3.2
- * @see org.springframework.scheduling.annotation.Scheduled#fixedRate()
- * @see org.springframework.scheduling.annotation.Scheduled#fixedDelay()
- * @see ScheduledTaskRegistrar#setFixedRateTasksList(java.util.List)
- * @see ScheduledTaskRegistrar#setFixedDelayTasksList(java.util.List)
- * @see org.springframework.scheduling.TaskScheduler
+ * @see ScheduledTaskRegistrar#addFixedRateTask(IntervalTask)
+ * @see ScheduledTaskRegistrar#addFixedDelayTask(IntervalTask)
  */
 public class IntervalTask extends Task {
 
@@ -40,12 +37,12 @@ public class IntervalTask extends Task {
 	 * Create a new {@code IntervalTask}.
 	 * @param runnable the underlying task to execute
 	 * @param interval how often in milliseconds the task should be executed
-	 * @param initialDelay initial delay before first execution of the task
+	 * @param initialDelay the initial delay before first execution of the task
 	 */
 	public IntervalTask(Runnable runnable, long interval, long initialDelay) {
 		super(runnable);
-		this.initialDelay = initialDelay;
 		this.interval = interval;
+		this.initialDelay = initialDelay;
 	}
 
 	/**
@@ -58,11 +55,18 @@ public class IntervalTask extends Task {
 	}
 
 
+	/**
+	 * Return how often in milliseconds the task should be executed.
+	 */
 	public long getInterval() {
-		return interval;
+		return this.interval;
 	}
 
+	/**
+	 * Return the initial delay before first execution of the task.
+	 */
 	public long getInitialDelay() {
-		return initialDelay;
+		return this.initialDelay;
 	}
+
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
 
 /**
@@ -32,7 +33,7 @@ import org.springframework.util.ObjectUtils;
  * methods defined in the {@link org.springframework.context.MessageSource}.
  *
  * <p>{@link AbstractMessageSource} derives from this class, providing concrete
- * <code>getMessage</code> implementations that delegate to a central template
+ * {@code getMessage} implementations that delegate to a central template
  * method for message code resolution.
  *
  * @author Juergen Hoeller
@@ -42,7 +43,7 @@ public abstract class MessageSourceSupport {
 
 	private static final MessageFormat INVALID_MESSAGE_FORMAT = new MessageFormat("");
 
-	/** Logger available to subclasses */
+	/** Logger available to subclasses. */
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private boolean alwaysUseMessageFormat = false;
@@ -52,12 +53,12 @@ public abstract class MessageSourceSupport {
 	 * Used for passed-in default messages. MessageFormats for resolved
 	 * codes are cached on a specific basis in subclasses.
 	 */
-	private final Map<String, MessageFormat> cachedMessageFormats = new HashMap<String, MessageFormat>();
+	private final Map<String, Map<Locale, MessageFormat>> messageFormatsPerMessage = new HashMap<>();
 
 
 	/**
-	 * Set whether to always apply the MessageFormat rules, parsing even
-	 * messages without arguments.
+	 * Set whether to always apply the {@code MessageFormat} rules,
+	 * parsing even messages without arguments.
 	 * <p>Default is "false": Messages without arguments are by default
 	 * returned as-is, without parsing them through MessageFormat.
 	 * Set this to "true" to enforce MessageFormat for all messages,
@@ -86,17 +87,17 @@ public abstract class MessageSourceSupport {
 	 * Render the given default message String. The default message is
 	 * passed in as specified by the caller and can be rendered into
 	 * a fully formatted default message shown to the user.
-	 * <p>The default implementation passes the String to <code>formatMessage</code>,
+	 * <p>The default implementation passes the String to {@code formatMessage},
 	 * resolving any argument placeholders found in them. Subclasses may override
 	 * this method to plug in custom processing of default messages.
 	 * @param defaultMessage the passed-in default message String
 	 * @param args array of arguments that will be filled in for params within
-	 * the message, or <code>null</code> if none.
+	 * the message, or {@code null} if none.
 	 * @param locale the Locale used for formatting
 	 * @return the rendered default message (with resolved arguments)
 	 * @see #formatMessage(String, Object[], java.util.Locale)
 	 */
-	protected String renderDefaultMessage(String defaultMessage, Object[] args, Locale locale) {
+	protected String renderDefaultMessage(String defaultMessage, @Nullable Object[] args, Locale locale) {
 		return formatMessage(defaultMessage, args, locale);
 	}
 
@@ -106,31 +107,38 @@ public abstract class MessageSourceSupport {
 	 * any argument placeholders found in them.
 	 * @param msg the message to format
 	 * @param args array of arguments that will be filled in for params within
-	 * the message, or <code>null</code> if none
+	 * the message, or {@code null} if none
 	 * @param locale the Locale used for formatting
 	 * @return the formatted message (with resolved arguments)
 	 */
-	protected String formatMessage(String msg, Object[] args, Locale locale) {
-		if (msg == null || (!this.alwaysUseMessageFormat && ObjectUtils.isEmpty(args))) {
+	protected String formatMessage(String msg, @Nullable Object[] args, Locale locale) {
+		if (!isAlwaysUseMessageFormat() && ObjectUtils.isEmpty(args)) {
 			return msg;
 		}
-		MessageFormat messageFormat;
-		synchronized (this.cachedMessageFormats) {
-			messageFormat = this.cachedMessageFormats.get(msg);
+		MessageFormat messageFormat = null;
+		synchronized (this.messageFormatsPerMessage) {
+			Map<Locale, MessageFormat> messageFormatsPerLocale = this.messageFormatsPerMessage.get(msg);
+			if (messageFormatsPerLocale != null) {
+				messageFormat = messageFormatsPerLocale.get(locale);
+			}
+			else {
+				messageFormatsPerLocale = new HashMap<>();
+				this.messageFormatsPerMessage.put(msg, messageFormatsPerLocale);
+			}
 			if (messageFormat == null) {
 				try {
 					messageFormat = createMessageFormat(msg, locale);
 				}
 				catch (IllegalArgumentException ex) {
-					// invalid message format - probably not intended for formatting,
-					// rather using a message structure with no arguments involved
-					if (this.alwaysUseMessageFormat) {
+					// Invalid message format - probably not intended for formatting,
+					// rather using a message structure with no arguments involved...
+					if (isAlwaysUseMessageFormat()) {
 						throw ex;
 					}
-					// silently proceed with raw message if format not enforced
+					// Silently proceed with raw message if format not enforced...
 					messageFormat = INVALID_MESSAGE_FORMAT;
 				}
-				this.cachedMessageFormats.put(msg, messageFormat);
+				messageFormatsPerLocale.put(locale, messageFormat);
 			}
 		}
 		if (messageFormat == INVALID_MESSAGE_FORMAT) {
@@ -148,20 +156,19 @@ public abstract class MessageSourceSupport {
 	 * @return the MessageFormat instance
 	 */
 	protected MessageFormat createMessageFormat(String msg, Locale locale) {
-		return new MessageFormat((msg != null ? msg : ""), locale);
+		return new MessageFormat(msg, locale);
 	}
 
 	/**
 	 * Template method for resolving argument objects.
-	 * <p>The default implementation simply returns the given argument
-	 * array as-is. Can be overridden in subclasses in order to resolve
-	 * special argument types.
+	 * <p>The default implementation simply returns the given argument array as-is.
+	 * Can be overridden in subclasses in order to resolve special argument types.
 	 * @param args the original argument array
 	 * @param locale the Locale to resolve against
 	 * @return the resolved argument array
 	 */
-	protected Object[] resolveArguments(Object[] args, Locale locale) {
-		return args;
+	protected Object[] resolveArguments(@Nullable Object[] args, Locale locale) {
+		return (args != null ? args : new Object[0]);
 	}
 
 }

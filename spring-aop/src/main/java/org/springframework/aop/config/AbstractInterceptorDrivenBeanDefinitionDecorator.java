@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +30,7 @@ import org.springframework.beans.factory.support.ManagedList;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.beans.factory.xml.BeanDefinitionDecorator;
 import org.springframework.beans.factory.xml.ParserContext;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
@@ -40,7 +41,7 @@ import org.springframework.util.StringUtils;
  * to the resulting bean.
  *
  * <p>This base class controls the creation of the {@link ProxyFactoryBean} bean definition
- * and wraps the original as an inner-bean definition for the <code>target</code> property
+ * and wraps the original as an inner-bean definition for the {@code target} property
  * of {@link ProxyFactoryBean}.
  *
  * <p>Chaining is correctly handled, ensuring that only one {@link ProxyFactoryBean} definition
@@ -48,7 +49,7 @@ import org.springframework.util.StringUtils;
  * already created the {@link org.springframework.aop.framework.ProxyFactoryBean} then the
  * interceptor is simply added to the existing definition.
  *
- * <p>Subclasses have only to create the <code>BeanDefinition</code> to the interceptor that
+ * <p>Subclasses have only to create the {@code BeanDefinition} to the interceptor that
  * they wish to add.
  *
  * @author Rob Harrop
@@ -58,9 +59,10 @@ import org.springframework.util.StringUtils;
  */
 public abstract class AbstractInterceptorDrivenBeanDefinitionDecorator implements BeanDefinitionDecorator {
 
+	@Override
 	public final BeanDefinitionHolder decorate(Node node, BeanDefinitionHolder definitionHolder, ParserContext parserContext) {
 		BeanDefinitionRegistry registry = parserContext.getRegistry();
-		
+
 		// get the root bean name - will be the name of the generated proxy factory bean
 		String existingBeanName = definitionHolder.getBeanName();
 		BeanDefinition targetDefinition = definitionHolder.getBeanDefinition();
@@ -70,7 +72,7 @@ public abstract class AbstractInterceptorDrivenBeanDefinitionDecorator implement
 		BeanDefinition interceptorDefinition = createInterceptorDefinition(node);
 
 		// generate name and register the interceptor
-		String interceptorName = existingBeanName + "." + getInterceptorNameSuffix(interceptorDefinition);
+		String interceptorName = existingBeanName + '.' + getInterceptorNameSuffix(interceptorDefinition);
 		BeanDefinitionReaderUtils.registerBeanDefinition(
 				new BeanDefinitionHolder(interceptorDefinition, interceptorName), registry);
 
@@ -104,8 +106,8 @@ public abstract class AbstractInterceptorDrivenBeanDefinitionDecorator implement
 
 	@SuppressWarnings("unchecked")
 	private void addInterceptorNameToList(String interceptorName, BeanDefinition beanDefinition) {
-		List<String> list = (List<String>)
-				beanDefinition.getPropertyValues().getPropertyValue("interceptorNames").getValue();
+		List<String> list = (List<String>) beanDefinition.getPropertyValues().get("interceptorNames");
+		Assert.state(list != null, "Missing 'interceptorNames' property");
 		list.add(interceptorName);
 	}
 
@@ -114,11 +116,13 @@ public abstract class AbstractInterceptorDrivenBeanDefinitionDecorator implement
 	}
 
 	protected String getInterceptorNameSuffix(BeanDefinition interceptorDefinition) {
-		return StringUtils.uncapitalize(ClassUtils.getShortName(interceptorDefinition.getBeanClassName()));
+		String beanClassName = interceptorDefinition.getBeanClassName();
+		return (StringUtils.hasLength(beanClassName) ?
+				StringUtils.uncapitalize(ClassUtils.getShortName(beanClassName)) : "");
 	}
 
 	/**
-	 * Subclasses should implement this method to return the <code>BeanDefinition</code>
+	 * Subclasses should implement this method to return the {@code BeanDefinition}
 	 * for the interceptor they wish to apply to the bean being decorated.
 	 */
 	protected abstract BeanDefinition createInterceptorDefinition(Node node);

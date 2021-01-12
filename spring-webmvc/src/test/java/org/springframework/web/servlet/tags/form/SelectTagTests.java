@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,11 +24,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+
 import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.tagext.Tag;
 
@@ -37,16 +37,19 @@ import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
+import org.junit.jupiter.api.Test;
 
-import org.springframework.beans.TestBean;
 import org.springframework.beans.propertyeditors.CustomCollectionEditor;
+import org.springframework.beans.testfixture.beans.TestBean;
 import org.springframework.format.Formatter;
 import org.springframework.format.support.FormattingConversionService;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.support.BindStatus;
 import org.springframework.web.servlet.tags.TransformTag;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * @author Rob Harrop
@@ -54,6 +57,7 @@ import org.springframework.web.servlet.tags.TransformTag;
  * @author Jeremy Grelle
  * @author Dave Syer
  */
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class SelectTagTests extends AbstractFormTagTests {
 
 	private static final Locale LOCALE_AT = new Locale("de", "AT");
@@ -64,8 +68,11 @@ public class SelectTagTests extends AbstractFormTagTests {
 	private TestBeanWithRealCountry bean;
 
 
+	@Override
+	@SuppressWarnings("serial")
 	protected void onSetUp() {
 		this.tag = new SelectTag() {
+			@Override
 			protected TagWriter createTagWriter() {
 				return new TagWriter(getWriter());
 			}
@@ -73,7 +80,8 @@ public class SelectTagTests extends AbstractFormTagTests {
 		this.tag.setPageContext(getPageContext());
 	}
 
-	public void testDynamicAttributes() throws JspException {
+	@Test
+	public void dynamicAttributes() throws JspException {
 		String dynamicAttribute1 = "attr1";
 		String dynamicAttribute2 = "attr2";
 
@@ -83,54 +91,59 @@ public class SelectTagTests extends AbstractFormTagTests {
 		this.tag.setItemLabel("name");
 		this.tag.setDynamicAttribute(null, dynamicAttribute1, dynamicAttribute1);
 		this.tag.setDynamicAttribute(null, dynamicAttribute2, dynamicAttribute2);
-		
+
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
 		assertContainsAttribute(output, dynamicAttribute1, dynamicAttribute1);
 		assertContainsAttribute(output, dynamicAttribute2, dynamicAttribute2);
 	}
 
-	public void testEmptyItems() throws Exception {
+	@Test
+	public void emptyItems() throws Exception {
 		this.tag.setPath("country");
 		this.tag.setItems(Collections.EMPTY_LIST);
 
 		this.tag.setItemValue("isoCode");
 		this.tag.setItemLabel("name");
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
-		assertEquals("<select id=\"country\" name=\"country\"></select>", output);
+		assertThat(output).isEqualTo("<select id=\"country\" name=\"country\"></select>");
 	}
 
-	public void testNullItems() throws Exception {
+	@Test
+	public void nullItems() throws Exception {
 		this.tag.setPath("country");
 		this.tag.setItems(null);
 
 		this.tag.setItemValue("isoCode");
 		this.tag.setItemLabel("name");
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
-		assertEquals("<select id=\"country\" name=\"country\"></select>", output);
+		assertThat(output).isEqualTo("<select id=\"country\" name=\"country\"></select>");
 	}
 
-	public void testWithList() throws Exception {
+	@Test
+	public void withList() throws Exception {
 		this.tag.setPath("country");
 		this.tag.setItems(Country.getCountries());
 		assertList(true);
 	}
 
-	public void testWithResolvedList() throws Exception {
+	@Test
+	public void withResolvedList() throws Exception {
 		this.tag.setPath("country");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		assertList(true);
 	}
 
-	public void testWithOtherValue() throws Exception {
+	@Test
+	public void withOtherValue() throws Exception {
 		TestBean tb = getTestBean();
 		tb.setCountry("AT");
 		this.tag.setPath("country");
@@ -138,7 +151,8 @@ public class SelectTagTests extends AbstractFormTagTests {
 		assertList(false);
 	}
 
-	public void testWithNullValue() throws Exception {
+	@Test
+	public void withNullValue() throws Exception {
 		TestBean tb = getTestBean();
 		tb.setCountry(null);
 		this.tag.setPath("country");
@@ -146,16 +160,18 @@ public class SelectTagTests extends AbstractFormTagTests {
 		assertList(false);
 	}
 
-	public void testWithListAndNoLabel() throws Exception {
+	@Test
+	public void withListAndNoLabel() throws Exception {
 		this.tag.setPath("country");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		this.tag.setItemValue("isoCode");
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 		validateOutput(getOutput(), true);
 	}
 
-	public void testWithListAndTransformTag() throws Exception {
+	@Test
+	public void withListAndTransformTag() throws Exception {
 		this.tag.setPath("country");
 		this.tag.setItems(Country.getCountries());
 		assertList(true);
@@ -166,17 +182,20 @@ public class SelectTagTests extends AbstractFormTagTests {
 		transformTag.setParent(this.tag);
 		transformTag.setPageContext(getPageContext());
 		transformTag.doStartTag();
-		assertEquals("Austria(AT)", getPageContext().findAttribute("key"));
+		assertThat(getPageContext().findAttribute("key")).isEqualTo("Austria(AT)");
 	}
 
-	public void testWithListAndTransformTagAndEditor() throws Exception {
+	@Test
+	public void withListAndTransformTagAndEditor() throws Exception {
 		this.tag.setPath("realCountry");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(getTestBean(), "testBean");
 		bindingResult.getPropertyAccessor().registerCustomEditor(Country.class, new PropertyEditorSupport() {
+			@Override
 			public void setAsText(String text) throws IllegalArgumentException {
 				setValue(Country.getCountryWithIsoCode(text));
 			}
+			@Override
 			public String getAsText() {
 				return ((Country) getValue()).getName();
 			}
@@ -190,21 +209,22 @@ public class SelectTagTests extends AbstractFormTagTests {
 		transformTag.setParent(this.tag);
 		transformTag.setPageContext(getPageContext());
 		transformTag.doStartTag();
-		String output = getOutput();
-		System.err.println(output);
-		assertEquals("Austria", getPageContext().findAttribute("key"));
+		assertThat(getPageContext().findAttribute("key")).isEqualTo("Austria");
 	}
 
-	public void testWithListAndEditor() throws Exception {
+	@Test
+	public void withListAndEditor() throws Exception {
 		this.tag.setPath("realCountry");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		this.tag.setItemValue("isoCode");
 		this.tag.setItemLabel("name");
 		BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(getTestBean(), "testBean");
 		bindingResult.getPropertyAccessor().registerCustomEditor(Country.class, new PropertyEditorSupport() {
+			@Override
 			public void setAsText(String text) throws IllegalArgumentException {
 				setValue(Country.getCountryWithIsoCode(text));
 			}
+			@Override
 			public String getAsText() {
 				return ((Country) getValue()).getName();
 			}
@@ -212,14 +232,15 @@ public class SelectTagTests extends AbstractFormTagTests {
 		getPageContext().getRequest().setAttribute(BindingResult.MODEL_KEY_PREFIX + "testBean", bindingResult);
 		this.tag.doStartTag();
 		String output = getOutput();
-		assertTrue(output.startsWith("<select "));
-		assertTrue(output.endsWith("</select>"));
-		assertTrue(output.contains("option value=\"AT\" selected=\"selected\">Austria"));
+		assertThat(output.startsWith("<select ")).isTrue();
+		assertThat(output.endsWith("</select>")).isTrue();
+		assertThat(output.contains("option value=\"AT\" selected=\"selected\">Austria")).isTrue();
 	}
 
-	public void testNestedPathWithListAndEditorAndNullValue() throws Exception {
+	@Test
+	public void nestedPathWithListAndEditorAndNullValue() throws Exception {
 		this.tag.setPath("bean.realCountry");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		this.tag.setItemValue("isoCode");
 		this.tag.setItemLabel("name");
 		this.tag.setMultiple("false");
@@ -229,6 +250,7 @@ public class SelectTagTests extends AbstractFormTagTests {
 		testBean.setBean(withCountry);
 		BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(testBean , "testBean");
 		bindingResult.getPropertyAccessor().registerCustomEditor(Country.class, new PropertyEditorSupport() {
+			@Override
 			public void setAsText(String text) throws IllegalArgumentException {
 				if (text==null || text.length()==0) {
 					setValue(null);
@@ -236,35 +258,39 @@ public class SelectTagTests extends AbstractFormTagTests {
 				}
 				setValue(Country.getCountryWithIsoCode(text));
 			}
+			@Override
 			public String getAsText() {
 				Country value = (Country) getValue();
 				if (value==null) {
 					return null;
 				}
-				return ((Country) value).getName();
+				return value.getName();
 			}
 		});
 		getPageContext().getRequest().setAttribute(BindingResult.MODEL_KEY_PREFIX + "testBean", bindingResult);
 		this.tag.doStartTag();
 		String output = getOutput();
-		System.err.println(output);
-		assertTrue(output.startsWith("<select "));
-		assertTrue(output.endsWith("</select>"));
-		assertFalse(output.contains("selected=\"selected\""));
+		assertThat(output.startsWith("<select ")).isTrue();
+		assertThat(output.endsWith("</select>")).isTrue();
+		assertThat(output.contains("selected=\"selected\"")).isFalse();
+		assertThat(output.contains("multiple=\"multiple\"")).isFalse();
 	}
 
-	public void testNestedPathWithListAndEditor() throws Exception {
+	@Test
+	public void nestedPathWithListAndEditor() throws Exception {
 		this.tag.setPath("bean.realCountry");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		this.tag.setItemValue("isoCode");
 		this.tag.setItemLabel("name");
 		TestBeanWrapper testBean = new TestBeanWrapper();
 		testBean.setBean(getTestBean());
 		BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(testBean , "testBean");
 		bindingResult.getPropertyAccessor().registerCustomEditor(Country.class, new PropertyEditorSupport() {
+			@Override
 			public void setAsText(String text) throws IllegalArgumentException {
 				setValue(Country.getCountryWithIsoCode(text));
 			}
+			@Override
 			public String getAsText() {
 				return ((Country) getValue()).getName();
 			}
@@ -272,101 +298,104 @@ public class SelectTagTests extends AbstractFormTagTests {
 		getPageContext().getRequest().setAttribute(BindingResult.MODEL_KEY_PREFIX + "testBean", bindingResult);
 		this.tag.doStartTag();
 		String output = getOutput();
-		assertTrue(output.startsWith("<select "));
-		assertTrue(output.endsWith("</select>"));
-		assertTrue(output.contains("option value=\"AT\" selected=\"selected\">Austria"));
+		assertThat(output.startsWith("<select ")).isTrue();
+		assertThat(output.endsWith("</select>")).isTrue();
+		assertThat(output.contains("option value=\"AT\" selected=\"selected\">Austria")).isTrue();
 	}
 
-	public void testWithListAndEditorAndNullValue() throws Exception {
+	@Test
+	public void withListAndEditorAndNullValue() throws Exception {
 		this.tag.setPath("realCountry");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		this.tag.setItemValue("isoCode");
 		this.tag.setItemLabel("name");
 		TestBeanWithRealCountry testBean = (TestBeanWithRealCountry) getTestBean();
 		testBean.setRealCountry(null);
 		BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(testBean, "testBean");
 		bindingResult.getPropertyAccessor().registerCustomEditor(Country.class, new PropertyEditorSupport() {
+			@Override
 			public void setAsText(String text) throws IllegalArgumentException {
 				setValue(Country.getCountryWithIsoCode(text));
 			}
+			@Override
 			public String getAsText() {
 				Country value = (Country) getValue();
 				if (value==null) {
 					return "";
 				}
-				return ((Country) value).getName();
+				return value.getName();
 			}
 		});
 		getPageContext().getRequest().setAttribute(BindingResult.MODEL_KEY_PREFIX + "testBean", bindingResult);
 		this.tag.doStartTag();
 		String output = getOutput();
-		System.err.println(output);
-		assertTrue(output.startsWith("<select "));
-		assertTrue(output.endsWith("</select>"));
-		assertFalse(output.contains("selected=\"selected\""));
+		assertThat(output.startsWith("<select ")).isTrue();
+		assertThat(output.endsWith("</select>")).isTrue();
+		assertThat(output.contains("selected=\"selected\"")).isFalse();
 	}
 
-	public void testWithMap() throws Exception {
+	@Test
+	public void withMap() throws Exception {
 		this.tag.setPath("sex");
-		this.tag.setItems("${sexes}");
+		this.tag.setItems(getSexes());
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 	}
 
-	public void testWithInvalidList() throws Exception {
+	@Test
+	public void withInvalidList() throws Exception {
 		this.tag.setPath("country");
-		this.tag.setItems("${other}");
+		this.tag.setItems(new TestBean());
 		this.tag.setItemValue("isoCode");
-		try {
-			this.tag.doStartTag();
-			fail("Must not be able to use a non-Collection typed value as the value of 'items'");
-		}
-		catch (JspException expected) {
-			String message = expected.getMessage();
-			assertTrue(message.indexOf("items") > -1);
-			assertTrue(message.indexOf("org.springframework.beans.TestBean") > -1);
-		}
+		assertThatExceptionOfType(JspException.class).as("use a non-Collection typed value as the value of 'items'").isThrownBy(
+				this.tag::doStartTag)
+			.withMessageContaining("items")
+			.withMessageContaining("org.springframework.beans.testfixture.beans.TestBean");
 	}
 
-	public void testWithNestedOptions() throws Exception {
+	@Test
+	public void withNestedOptions() throws Exception {
 		this.tag.setPath("country");
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.EVAL_BODY_INCLUDE, result);
+		assertThat(result).isEqualTo(Tag.EVAL_BODY_INCLUDE);
 
 		BindStatus value = (BindStatus) getPageContext().getAttribute(SelectTag.LIST_VALUE_PAGE_ATTRIBUTE);
-		assertEquals("Selected country not exposed in page context", "UK", value.getValue());
+		assertThat(value.getValue()).as("Selected country not exposed in page context").isEqualTo("UK");
 
 		result = this.tag.doEndTag();
-		assertEquals(Tag.EVAL_PAGE, result);
+		assertThat(result).isEqualTo(Tag.EVAL_PAGE);
 		this.tag.doFinally();
 
 		String output = getOutput();
-		assertTrue(output.startsWith("<select "));
-		assertTrue(output.endsWith("</select>"));
+		assertThat(output.startsWith("<select ")).isTrue();
+		assertThat(output.endsWith("</select>")).isTrue();
 		assertContainsAttribute(output, "name", "country");
 	}
 
-	public void testWithStringArray() throws Exception {
+	@Test
+	public void withStringArray() throws Exception {
 		this.tag.setPath("name");
 		this.tag.setItems(getNames());
 		assertStringArray();
 	}
 
-	public void testWithResolvedStringArray() throws Exception {
+	@Test
+	public void withResolvedStringArray() throws Exception {
 		this.tag.setPath("name");
-		this.tag.setItems("${names}");
+		this.tag.setItems(getNames());
 		assertStringArray();
 	}
 
-	public void testWithIntegerArray() throws Exception {
+	@Test
+	public void withIntegerArray() throws Exception {
 		this.tag.setPath("someIntegerArray");
 		Integer[] array = new Integer[50];
 		for (int i = 0; i < array.length; i++) {
-			array[i] = new Integer(i);
+			array[i] = i;
 		}
 		this.tag.setItems(array);
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
 		output = "<doc>" + output + "</doc>";
@@ -374,23 +403,24 @@ public class SelectTagTests extends AbstractFormTagTests {
 		SAXReader reader = new SAXReader();
 		Document document = reader.read(new StringReader(output));
 		Element rootElement = document.getRootElement();
-		assertEquals(2, rootElement.elements().size());
+		assertThat(rootElement.elements().size()).isEqualTo(2);
 
 		Element selectElement = rootElement.element("select");
-		assertEquals("select", selectElement.getName());
-		assertEquals("someIntegerArray", selectElement.attribute("name").getValue());
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("someIntegerArray");
 
 		List children = selectElement.elements();
-		assertEquals("Incorrect number of children", array.length, children.size());
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(array.length);
 
 		Element e = (Element) selectElement.selectSingleNode("option[text() = '12']");
-		assertEquals("'12' node not selected", "selected", e.attribute("selected").getValue());
+		assertThat(e.attribute("selected").getValue()).as("'12' node not selected").isEqualTo("selected");
 
 		e = (Element) selectElement.selectSingleNode("option[text() = '34']");
-		assertEquals("'34' node not selected", "selected", e.attribute("selected").getValue());
+		assertThat(e.attribute("selected").getValue()).as("'34' node not selected").isEqualTo("selected");
 	}
 
-	public void testWithFloatCustom() throws Exception {
+	@Test
+	public void withFloatCustom() throws Exception {
 		PropertyEditor propertyEditor = new SimpleFloatEditor();
 		BeanPropertyBindingResult errors = new BeanPropertyBindingResult(getTestBean(), COMMAND_NAME);
 		errors.getPropertyAccessor().registerCustomEditor(Float.class, propertyEditor);
@@ -406,38 +436,39 @@ public class SelectTagTests extends AbstractFormTagTests {
 
 		this.tag.setItems(array);
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
-		assertTrue(output.startsWith("<select "));
-		assertTrue(output.endsWith("</select>"));
+		assertThat(output.startsWith("<select ")).isTrue();
+		assertThat(output.endsWith("</select>")).isTrue();
 
 		SAXReader reader = new SAXReader();
 		Document document = reader.read(new StringReader(output));
 		Element rootElement = document.getRootElement();
-		assertEquals("select", rootElement.getName());
-		assertEquals("myFloat", rootElement.attribute("name").getValue());
+		assertThat(rootElement.getName()).isEqualTo("select");
+		assertThat(rootElement.attribute("name").getValue()).isEqualTo("myFloat");
 		List children = rootElement.elements();
-		assertEquals("Incorrect number of children", array.length, children.size());
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(array.length);
 
 		Element e = (Element) rootElement.selectSingleNode("option[text() = '12.34f']");
-		assertEquals("'12.34' node not selected", "selected", e.attribute("selected").getValue());
+		assertThat(e.attribute("selected").getValue()).as("'12.34' node not selected").isEqualTo("selected");
 
 		e = (Element) rootElement.selectSingleNode("option[text() = '12.32f']");
-		assertNull("'12.32' node incorrectly selected", e.attribute("selected"));
+		assertThat(e.attribute("selected")).as("'12.32' node incorrectly selected").isNull();
 	}
 
-	public void testWithMultiList() throws Exception {
+	@Test
+	public void withMultiList() throws Exception {
 		List list = new ArrayList();
 		list.add(Country.COUNTRY_UK);
 		list.add(Country.COUNTRY_AT);
 		this.bean.setSomeList(list);
 
 		this.tag.setPath("someList");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		this.tag.setItemValue("isoCode");
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
 		output = "<doc>" + output + "</doc>";
@@ -445,33 +476,36 @@ public class SelectTagTests extends AbstractFormTagTests {
 		SAXReader reader = new SAXReader();
 		Document document = reader.read(new StringReader(output));
 		Element rootElement = document.getRootElement();
-		assertEquals(2, rootElement.elements().size());
+		assertThat(rootElement.elements().size()).isEqualTo(2);
 
 		Element selectElement = rootElement.element("select");
-		assertEquals("select", selectElement.getName());
-		assertEquals("someList", selectElement.attribute("name").getValue());
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("someList");
 
 		List children = selectElement.elements();
-		assertEquals("Incorrect number of children", 4, children.size());
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
 
 		Element e = (Element) selectElement.selectSingleNode("option[@value = 'UK']");
-		assertEquals("UK node not selected", "selected", e.attribute("selected").getValue());
-		assertEquals("United Kingdom(UK)", e.getText());
+		assertThat(e.attribute("selected").getValue()).as("UK node not selected").isEqualTo("selected");
+		assertThat(e.getText()).isEqualTo("United Kingdom(UK)");
 
 		e = (Element) selectElement.selectSingleNode("option[@value = 'AT']");
-		assertEquals("AT node not selected", "selected", e.attribute("selected").getValue());
-		assertEquals("Austria(AT)", e.getText());
+		assertThat(e.attribute("selected").getValue()).as("AT node not selected").isEqualTo("selected");
+		assertThat(e.getText()).isEqualTo("Austria(AT)");
 	}
 
-	public void testWithElementFormatter() throws Exception {
+	@Test
+	public void withElementFormatter() throws Exception {
 		this.bean.setRealCountry(Country.COUNTRY_UK);
 
 		BeanPropertyBindingResult errors = new BeanPropertyBindingResult(this.bean, COMMAND_NAME);
 		FormattingConversionService cs = new FormattingConversionService();
 		cs.addFormatterForFieldType(Country.class, new Formatter<Country>() {
+			@Override
 			public String print(Country object, Locale locale) {
 				return object.getName();
 			}
+			@Override
 			public Country parse(String text, Locale locale) throws ParseException {
 				return new Country(text, text);
 			}
@@ -480,10 +514,10 @@ public class SelectTagTests extends AbstractFormTagTests {
 		exposeBindingResult(errors);
 
 		this.tag.setPath("realCountry");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		this.tag.setItemValue("isoCode");
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
 		output = "<doc>" + output + "</doc>";
@@ -491,21 +525,22 @@ public class SelectTagTests extends AbstractFormTagTests {
 		SAXReader reader = new SAXReader();
 		Document document = reader.read(new StringReader(output));
 		Element rootElement = document.getRootElement();
-		assertEquals(1, rootElement.elements().size());
+		assertThat(rootElement.elements().size()).isEqualTo(1);
 
 		Element selectElement = rootElement.element("select");
-		assertEquals("select", selectElement.getName());
-		assertEquals("realCountry", selectElement.attribute("name").getValue());
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("realCountry");
 
 		List children = selectElement.elements();
-		assertEquals("Incorrect number of children", 4, children.size());
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
 
 		Element e = (Element) selectElement.selectSingleNode("option[@value = 'UK']");
-		assertEquals("UK node not selected", "selected", e.attribute("selected").getValue());
-		assertEquals("United Kingdom", e.getText());
+		assertThat(e.attribute("selected").getValue()).as("UK node not selected").isEqualTo("selected");
+		assertThat(e.getText()).isEqualTo("United Kingdom");
 	}
 
-	public void testWithMultiListAndElementFormatter() throws Exception {
+	@Test
+	public void withMultiListAndElementFormatter() throws Exception {
 		List list = new ArrayList();
 		list.add(Country.COUNTRY_UK);
 		list.add(Country.COUNTRY_AT);
@@ -514,9 +549,11 @@ public class SelectTagTests extends AbstractFormTagTests {
 		BeanPropertyBindingResult errors = new BeanPropertyBindingResult(this.bean, COMMAND_NAME);
 		FormattingConversionService cs = new FormattingConversionService();
 		cs.addFormatterForFieldType(Country.class, new Formatter<Country>() {
+			@Override
 			public String print(Country object, Locale locale) {
 				return object.getName();
 			}
+			@Override
 			public Country parse(String text, Locale locale) throws ParseException {
 				return new Country(text, text);
 			}
@@ -525,10 +562,10 @@ public class SelectTagTests extends AbstractFormTagTests {
 		exposeBindingResult(errors);
 
 		this.tag.setPath("someList");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		this.tag.setItemValue("isoCode");
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
 		output = "<doc>" + output + "</doc>";
@@ -536,32 +573,34 @@ public class SelectTagTests extends AbstractFormTagTests {
 		SAXReader reader = new SAXReader();
 		Document document = reader.read(new StringReader(output));
 		Element rootElement = document.getRootElement();
-		assertEquals(2, rootElement.elements().size());
+		assertThat(rootElement.elements().size()).isEqualTo(2);
 
 		Element selectElement = rootElement.element("select");
-		assertEquals("select", selectElement.getName());
-		assertEquals("someList", selectElement.attribute("name").getValue());
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("someList");
 
 		List children = selectElement.elements();
-		assertEquals("Incorrect number of children", 4, children.size());
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
 
 		Element e = (Element) selectElement.selectSingleNode("option[@value = 'UK']");
-		assertEquals("UK node not selected", "selected", e.attribute("selected").getValue());
-		assertEquals("United Kingdom", e.getText());
+		assertThat(e.attribute("selected").getValue()).as("UK node not selected").isEqualTo("selected");
+		assertThat(e.getText()).isEqualTo("United Kingdom");
 
 		e = (Element) selectElement.selectSingleNode("option[@value = 'AT']");
-		assertEquals("AT node not selected", "selected", e.attribute("selected").getValue());
-		assertEquals("Austria", e.getText());
+		assertThat(e.attribute("selected").getValue()).as("AT node not selected").isEqualTo("selected");
+		assertThat(e.getText()).isEqualTo("Austria");
 	}
 
-	public void testWithMultiListAndCustomEditor() throws Exception {
+	@Test
+	public void withMultiListAndCustomEditor() throws Exception {
 		List list = new ArrayList();
 		list.add(Country.COUNTRY_UK);
 		list.add(Country.COUNTRY_AT);
 		this.bean.setSomeList(list);
 
 		BeanPropertyBindingResult errors = new BeanPropertyBindingResult(this.bean, COMMAND_NAME);
-		errors.getPropertyAccessor().registerCustomEditor(List.class, new CustomCollectionEditor(LinkedList.class) {
+		errors.getPropertyAccessor().registerCustomEditor(List.class, new CustomCollectionEditor(ArrayList.class) {
+			@Override
 			public String getAsText() {
 				return getValue().toString();
 			}
@@ -569,10 +608,10 @@ public class SelectTagTests extends AbstractFormTagTests {
 		exposeBindingResult(errors);
 
 		this.tag.setPath("someList");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		this.tag.setItemValue("isoCode");
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
 		output = "<doc>" + output + "</doc>";
@@ -580,33 +619,34 @@ public class SelectTagTests extends AbstractFormTagTests {
 		SAXReader reader = new SAXReader();
 		Document document = reader.read(new StringReader(output));
 		Element rootElement = document.getRootElement();
-		assertEquals(2, rootElement.elements().size());
+		assertThat(rootElement.elements().size()).isEqualTo(2);
 
 		Element selectElement = rootElement.element("select");
-		assertEquals("select", selectElement.getName());
-		assertEquals("someList", selectElement.attribute("name").getValue());
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("someList");
 
 		List children = selectElement.elements();
-		assertEquals("Incorrect number of children", 4, children.size());
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
 
 		Element e = (Element) selectElement.selectSingleNode("option[@value = 'UK']");
-		assertEquals("UK node not selected", "selected", e.attribute("selected").getValue());
+		assertThat(e.attribute("selected").getValue()).as("UK node not selected").isEqualTo("selected");
 
 		e = (Element) selectElement.selectSingleNode("option[@value = 'AT']");
-		assertEquals("AT node not selected", "selected", e.attribute("selected").getValue());
+		assertThat(e.attribute("selected").getValue()).as("AT node not selected").isEqualTo("selected");
 	}
 
-	public void testWithMultiMap() throws Exception {
+	@Test
+	public void withMultiMap() throws Exception {
 		Map someMap = new HashMap();
 		someMap.put("M", "Male");
 		someMap.put("F", "Female");
 		this.bean.setSomeMap(someMap);
 
 		this.tag.setPath("someMap");
-		this.tag.setItems("${sexes}");
+		this.tag.setItems(getSexes());
 
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
 		output = "<doc>" + output + "</doc>";
@@ -614,44 +654,44 @@ public class SelectTagTests extends AbstractFormTagTests {
 		SAXReader reader = new SAXReader();
 		Document document = reader.read(new StringReader(output));
 		Element rootElement = document.getRootElement();
-		assertEquals(2, rootElement.elements().size());
+		assertThat(rootElement.elements().size()).isEqualTo(2);
 
 		Element selectElement = rootElement.element("select");
-		assertEquals("select", selectElement.getName());
-		assertEquals("someMap", selectElement.attribute("name").getValue());
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("someMap");
 
 		List children = selectElement.elements();
-		assertEquals("Incorrect number of children", 2, children.size());
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(2);
 
 		Element e = (Element) selectElement.selectSingleNode("option[@value = 'M']");
-		assertEquals("M node not selected", "selected", e.attribute("selected").getValue());
+		assertThat(e.attribute("selected").getValue()).as("M node not selected").isEqualTo("selected");
 
 		e = (Element) selectElement.selectSingleNode("option[@value = 'F']");
-		assertEquals("F node not selected", "selected", e.attribute("selected").getValue());
+		assertThat(e.attribute("selected").getValue()).as("F node not selected").isEqualTo("selected");
 	}
 
 	/**
 	 * Tests new support added as a result of <a
-	 * href="http://opensource.atlassian.com/projects/spring/browse/SPR-2660"
+	 * href="https://opensource.atlassian.com/projects/spring/browse/SPR-2660"
 	 * target="_blank">SPR-2660</a>.
 	 * <p>
-	 * Specifically, if the <code>items</code> attribute is supplied a
-	 * {@link Map}, and <code>itemValue</code> and <code>itemLabel</code>
+	 * Specifically, if the {@code items} attribute is supplied a
+	 * {@link Map}, and {@code itemValue} and {@code itemLabel}
 	 * are supplied non-null values, then:
 	 * </p>
 	 * <ul>
-	 * <li><code>itemValue</code> will be used as the property name of the
+	 * <li>{@code itemValue} will be used as the property name of the
 	 * map's <em>key</em>, and</li>
-	 * <li><code>itemLabel</code> will be used as the property name of the
+	 * <li>{@code itemLabel} will be used as the property name of the
 	 * map's <em>value</em>.</li>
 	 * </ul>
 	 */
-	public void testWithMultiMapWithItemValueAndItemLabel() throws Exception {
-
+	@Test
+	public void withMultiMapWithItemValueAndItemLabel() throws Exception {
 		// Save original default locale.
 		final Locale defaultLocale = Locale.getDefault();
 		// Use a locale that doesn't result in the generation of HTML entities
-		// (e.g., not German, where ä becomes &auml;)
+		// (e.g., not German, where \u00e4 becomes &auml;)
 		Locale.setDefault(Locale.US);
 
 		try {
@@ -663,17 +703,18 @@ public class SelectTagTests extends AbstractFormTagTests {
 			this.bean.setSomeMap(someMap);
 
 			this.tag.setPath("someMap"); // see: TestBean
-			this.tag.setItems("${countryToLocaleMap}"); // see: extendRequest()
+			this.tag.setItems(getCountryToLocaleMap());
 			this.tag.setItemValue("isoCode"); // Map key: Country
 			this.tag.setItemLabel("displayLanguage"); // Map value: Locale
 
 			BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(getTestBean(), COMMAND_NAME);
 			bindingResult.getPropertyAccessor().registerCustomEditor(Country.class, new PropertyEditorSupport() {
-
+				@Override
 				public void setAsText(final String text) throws IllegalArgumentException {
 					setValue(Country.getCountryWithIsoCode(text));
 				}
 
+				@Override
 				public String getAsText() {
 					return ((Country) getValue()).getIsoCode();
 				}
@@ -681,7 +722,7 @@ public class SelectTagTests extends AbstractFormTagTests {
 			exposeBindingResult(bindingResult);
 
 			int result = this.tag.doStartTag();
-			assertEquals(Tag.SKIP_BODY, result);
+			assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 			String output = getOutput();
 			output = "<doc>" + output + "</doc>";
@@ -689,27 +730,25 @@ public class SelectTagTests extends AbstractFormTagTests {
 			SAXReader reader = new SAXReader();
 			Document document = reader.read(new StringReader(output));
 			Element rootElement = document.getRootElement();
-			assertEquals(2, rootElement.elements().size());
+			assertThat(rootElement.elements().size()).isEqualTo(2);
 
 			Element selectElement = rootElement.element("select");
-			assertEquals("select", selectElement.getName());
-			assertEquals("someMap", selectElement.attribute("name").getValue());
+			assertThat(selectElement.getName()).isEqualTo("select");
+			assertThat(selectElement.attribute("name").getValue()).isEqualTo("someMap");
 
 			List children = selectElement.elements();
-			assertEquals("Incorrect number of children", 3, children.size());
+			assertThat(children.size()).as("Incorrect number of children").isEqualTo(3);
 
 			Element e;
 			e = (Element) selectElement.selectSingleNode("option[@value = '" + austria.getIsoCode() + "']");
-			assertNotNull("Option node not found with Country ISO code value [" + austria.getIsoCode() + "].", e);
-			assertEquals("AT node not selected.", "selected", e.attribute("selected").getValue());
-			assertEquals("AT Locale displayLanguage property not used for option label.",
-					LOCALE_AT.getDisplayLanguage(), e.getData());
+			assertThat(e).as("Option node not found with Country ISO code value [" + austria.getIsoCode() + "].").isNotNull();
+			assertThat(e.attribute("selected").getValue()).as("AT node not selected.").isEqualTo("selected");
+			assertThat(e.getData()).as("AT Locale displayLanguage property not used for option label.").isEqualTo(LOCALE_AT.getDisplayLanguage());
 
 			e = (Element) selectElement.selectSingleNode("option[@value = '" + usa.getIsoCode() + "']");
-			assertNotNull("Option node not found with Country ISO code value [" + usa.getIsoCode() + "].", e);
-			assertEquals("US node not selected.", "selected", e.attribute("selected").getValue());
-			assertEquals("US Locale displayLanguage property not used for option label.",
-					Locale.US.getDisplayLanguage(), e.getData());
+			assertThat(e).as("Option node not found with Country ISO code value [" + usa.getIsoCode() + "].").isNotNull();
+			assertThat(e.attribute("selected").getValue()).as("US node not selected.").isEqualTo("selected");
+			assertThat(e.getData()).as("US Locale displayLanguage property not used for option label.").isEqualTo(Locale.US.getDisplayLanguage());
 
 		}
 		finally {
@@ -718,14 +757,15 @@ public class SelectTagTests extends AbstractFormTagTests {
 		}
 	}
 
-	public void testMultiWithEmptyCollection() throws Exception {
+	@Test
+	public void multipleForCollection() throws Exception {
 		this.bean.setSomeList(new ArrayList());
 
 		this.tag.setPath("someList");
-		this.tag.setItems("${countries}");
+		this.tag.setItems(Country.getCountries());
 		this.tag.setItemValue("isoCode");
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
 		output = "<doc>" + output + "</doc>";
@@ -733,44 +773,184 @@ public class SelectTagTests extends AbstractFormTagTests {
 		SAXReader reader = new SAXReader();
 		Document document = reader.read(new StringReader(output));
 		Element rootElement = document.getRootElement();
-		assertEquals(2, rootElement.elements().size());
+		assertThat(rootElement.elements().size()).isEqualTo(2);
 
 		Element selectElement = rootElement.element("select");
-		assertEquals("select", selectElement.getName());
-		assertEquals("someList", selectElement.attribute("name").getValue());
-		assertEquals("multiple", selectElement.attribute("multiple").getValue());
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("someList");
+		assertThat(selectElement.attribute("multiple").getValue()).isEqualTo("multiple");
 
 		List children = selectElement.elements();
-		assertEquals("Incorrect number of children", 4, children.size());
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
 
 		Element inputElement = rootElement.element("input");
-		assertNotNull(inputElement);
+		assertThat(inputElement).isNotNull();
+	}
+
+	@Test
+	public void multipleWithStringValue() throws Exception {
+		this.tag.setPath("name");
+		this.tag.setItems(Country.getCountries());
+		this.tag.setItemValue("isoCode");
+		this.tag.setMultiple("multiple");
+		int result = this.tag.doStartTag();
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
+
+		String output = getOutput();
+		output = "<doc>" + output + "</doc>";
+
+		SAXReader reader = new SAXReader();
+		Document document = reader.read(new StringReader(output));
+		Element rootElement = document.getRootElement();
+		assertThat(rootElement.elements().size()).isEqualTo(2);
+
+		Element selectElement = rootElement.element("select");
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("name");
+		assertThat(selectElement.attribute("multiple").getValue()).isEqualTo("multiple");
+
+		List children = selectElement.elements();
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
+
+		Element inputElement = rootElement.element("input");
+		assertThat(inputElement).isNotNull();
+	}
+
+	@Test
+	public void multipleExplicitlyTrue() throws Exception {
+		this.tag.setPath("name");
+		this.tag.setItems(Country.getCountries());
+		this.tag.setItemValue("isoCode");
+		this.tag.setMultiple("true");
+		int result = this.tag.doStartTag();
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
+
+		String output = getOutput();
+		output = "<doc>" + output + "</doc>";
+
+		SAXReader reader = new SAXReader();
+		Document document = reader.read(new StringReader(output));
+		Element rootElement = document.getRootElement();
+		assertThat(rootElement.elements().size()).isEqualTo(2);
+
+		Element selectElement = rootElement.element("select");
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("name");
+		assertThat(selectElement.attribute("multiple").getValue()).isEqualTo("multiple");
+
+		List children = selectElement.elements();
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
+
+		Element inputElement = rootElement.element("input");
+		assertThat(inputElement).isNotNull();
+	}
+
+	@Test
+	public void multipleExplicitlyFalse() throws Exception {
+		this.tag.setPath("name");
+		this.tag.setItems(Country.getCountries());
+		this.tag.setItemValue("isoCode");
+		this.tag.setMultiple("false");
+		int result = this.tag.doStartTag();
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
+
+		String output = getOutput();
+		output = "<doc>" + output + "</doc>";
+
+		SAXReader reader = new SAXReader();
+		Document document = reader.read(new StringReader(output));
+		Element rootElement = document.getRootElement();
+		assertThat(rootElement.elements().size()).isEqualTo(1);
+
+		Element selectElement = rootElement.element("select");
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("name");
+		assertThat(selectElement.attribute("multiple")).isNull();
+
+		List children = selectElement.elements();
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
+	}
+
+	@Test
+	public void multipleWithBooleanTrue() throws Exception {
+		this.tag.setPath("name");
+		this.tag.setItems(Country.getCountries());
+		this.tag.setItemValue("isoCode");
+		this.tag.setMultiple(true);
+		int result = this.tag.doStartTag();
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
+
+		String output = getOutput();
+		output = "<doc>" + output + "</doc>";
+
+		SAXReader reader = new SAXReader();
+		Document document = reader.read(new StringReader(output));
+		Element rootElement = document.getRootElement();
+		assertThat(rootElement.elements().size()).isEqualTo(2);
+
+		Element selectElement = rootElement.element("select");
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("name");
+		assertThat(selectElement.attribute("multiple").getValue()).isEqualTo("multiple");
+
+		List children = selectElement.elements();
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
+
+		Element inputElement = rootElement.element("input");
+		assertThat(inputElement).isNotNull();
+	}
+
+	@Test
+	public void multipleWithBooleanFalse() throws Exception {
+		this.tag.setPath("name");
+		this.tag.setItems(Country.getCountries());
+		this.tag.setItemValue("isoCode");
+		this.tag.setMultiple(false);
+		int result = this.tag.doStartTag();
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
+
+		String output = getOutput();
+		output = "<doc>" + output + "</doc>";
+
+		SAXReader reader = new SAXReader();
+		Document document = reader.read(new StringReader(output));
+		Element rootElement = document.getRootElement();
+		assertThat(rootElement.elements().size()).isEqualTo(1);
+
+		Element selectElement = rootElement.element("select");
+		assertThat(selectElement.getName()).isEqualTo("select");
+		assertThat(selectElement.attribute("name").getValue()).isEqualTo("name");
+		assertThat(selectElement.attribute("multiple")).isNull();
+
+		List children = selectElement.elements();
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
 	}
 
 
 	private void assertStringArray() throws JspException, DocumentException {
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
-		assertTrue(output.startsWith("<select "));
-		assertTrue(output.endsWith("</select>"));
+		assertThat(output.startsWith("<select ")).isTrue();
+		assertThat(output.endsWith("</select>")).isTrue();
 
 		SAXReader reader = new SAXReader();
 		Document document = reader.read(new StringReader(output));
 		Element rootElement = document.getRootElement();
-		assertEquals("select", rootElement.getName());
-		assertEquals("name", rootElement.attribute("name").getValue());
+		assertThat(rootElement.getName()).isEqualTo("select");
+		assertThat(rootElement.attribute("name").getValue()).isEqualTo("name");
 
 		List children = rootElement.elements();
-		assertEquals("Incorrect number of children", 4, children.size());
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
 
 		Element e = (Element) rootElement.selectSingleNode("option[text() = 'Rob']");
-		assertEquals("Rob node not selected", "selected", e.attribute("selected").getValue());
+		assertThat(e.attribute("selected").getValue()).as("Rob node not selected").isEqualTo("selected");
 	}
 
 	private Map getCountryToLocaleMap() {
 		Map map = new TreeMap(new Comparator() {
+			@Override
 			public int compare(Object o1, Object o2) {
 				return ((Country)o1).getName().compareTo(((Country)o2).getName());
 			}
@@ -786,19 +966,10 @@ public class SelectTagTests extends AbstractFormTagTests {
 	}
 
 	private Map getSexes() {
-		Map sexes = new HashMap();
+		Map<String, String> sexes = new HashMap<>();
 		sexes.put("F", "Female");
 		sexes.put("M", "Male");
 		return sexes;
-	}
-
-	protected void extendRequest(MockHttpServletRequest request) {
-		super.extendRequest(request);
-		request.setAttribute("countries", Country.getCountries());
-		request.setAttribute("countryToLocaleMap", getCountryToLocaleMap());
-		request.setAttribute("sexes", getSexes());
-		request.setAttribute("other", new TestBean());
-		request.setAttribute("names", getNames());
 	}
 
 	private void assertList(boolean selected) throws JspException, DocumentException {
@@ -806,7 +977,7 @@ public class SelectTagTests extends AbstractFormTagTests {
 		this.tag.setItemLabel("name");
 		this.tag.setSize("5");
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.SKIP_BODY, result);
+		assertThat(result).isEqualTo(Tag.SKIP_BODY);
 
 		String output = getOutput();
 		validateOutput(output, selected);
@@ -817,36 +988,37 @@ public class SelectTagTests extends AbstractFormTagTests {
 		SAXReader reader = new SAXReader();
 		Document document = reader.read(new StringReader(output));
 		Element rootElement = document.getRootElement();
-		assertEquals("select", rootElement.getName());
-		assertEquals("country", rootElement.attribute("name").getValue());
+		assertThat(rootElement.getName()).isEqualTo("select");
+		assertThat(rootElement.attribute("name").getValue()).isEqualTo("country");
 
 		List children = rootElement.elements();
-		assertEquals("Incorrect number of children", 4, children.size());
+		assertThat(children.size()).as("Incorrect number of children").isEqualTo(4);
 
 		Element e = (Element) rootElement.selectSingleNode("option[@value = 'UK']");
 		Attribute selectedAttr = e.attribute("selected");
 		if (selected) {
-			assertTrue(selectedAttr != null && "selected".equals(selectedAttr.getValue()));
+			assertThat(selectedAttr != null && "selected".equals(selectedAttr.getValue())).isTrue();
 		}
 		else {
-			assertNull(selectedAttr);
+			assertThat(selectedAttr).isNull();
 		}
 	}
 
+	@Override
 	protected TestBean createTestBean() {
 		this.bean = new TestBeanWithRealCountry();
 		this.bean.setName("Rob");
 		this.bean.setCountry("UK");
 		this.bean.setSex("M");
 		this.bean.setMyFloat(new Float("12.34"));
-		this.bean.setSomeIntegerArray(new Integer[]{new Integer(12), new Integer(34)});
+		this.bean.setSomeIntegerArray(new Integer[]{12, 34});
 		return this.bean;
 	}
 
 	private TestBean getTestBean() {
 		return (TestBean) getPageContext().getRequest().getAttribute(COMMAND_NAME);
 	}
-	
+
 	public static class TestBeanWrapper {
 		private TestBean bean;
 
@@ -857,7 +1029,7 @@ public class SelectTagTests extends AbstractFormTagTests {
 		public void setBean(TestBean bean) {
 			this.bean = bean;
 		}
-		
+
 	}
 
 }

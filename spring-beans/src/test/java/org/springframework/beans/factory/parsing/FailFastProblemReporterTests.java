@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,24 +16,30 @@
 
 package org.springframework.beans.factory.parsing;
 
-import static org.easymock.EasyMock.*;
-
 import org.apache.commons.logging.Log;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.core.io.DescriptiveResource;
+
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * @author Rick Evans
  * @author Juergen Hoeller
  * @author Chris Beams
  */
-public final class FailFastProblemReporterTests {
+public class FailFastProblemReporterTests {
 
-	@Test(expected=BeanDefinitionParsingException.class)
+	@Test
 	public void testError() throws Exception {
 		FailFastProblemReporter reporter = new FailFastProblemReporter();
-		reporter.error(new Problem("VGER", new Location(new DescriptiveResource("here")),
-				null, new IllegalArgumentException()));
+		assertThatExceptionOfType(BeanDefinitionParsingException.class).isThrownBy(() ->
+				reporter.error(new Problem("VGER", new Location(new DescriptiveResource("here")),
+						null, new IllegalArgumentException())));
 	}
 
 	@Test
@@ -41,15 +47,13 @@ public final class FailFastProblemReporterTests {
 		Problem problem = new Problem("VGER", new Location(new DescriptiveResource("here")),
 				null, new IllegalArgumentException());
 
-		Log log = createMock(Log.class);
-		log.warn(anyObject(), isA(IllegalArgumentException.class));
-		replay(log);
+		Log log = mock(Log.class);
 
 		FailFastProblemReporter reporter = new FailFastProblemReporter();
 		reporter.setLogger(log);
 		reporter.warning(problem);
 
-		verify(log);
+		verify(log).warn(any(), isA(IllegalArgumentException.class));
 	}
 
 }

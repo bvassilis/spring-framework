@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@ package org.springframework.beans.support;
 
 import java.io.Serializable;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 /**
@@ -29,6 +30,7 @@ import org.springframework.util.StringUtils;
  * @since 26.05.2003
  * @see #setToggleAscendingOnProperty
  */
+@SuppressWarnings("serial")
 public class MutableSortDefinition implements SortDefinition, Serializable {
 
 	private String property = "";
@@ -76,7 +78,7 @@ public class MutableSortDefinition implements SortDefinition, Serializable {
 	/**
 	 * Create a new MutableSortDefinition.
 	 * @param toggleAscendingOnSameProperty whether to toggle the ascending flag
-	 * if the same property gets set again (that is, <code>setProperty</code> gets
+	 * if the same property gets set again (that is, {@code setProperty} gets
 	 * called with already set property name again).
 	 */
 	public MutableSortDefinition(boolean toggleAscendingOnSameProperty) {
@@ -103,6 +105,7 @@ public class MutableSortDefinition implements SortDefinition, Serializable {
 		}
 	}
 
+	@Override
 	public String getProperty() {
 		return this.property;
 	}
@@ -114,6 +117,7 @@ public class MutableSortDefinition implements SortDefinition, Serializable {
 		this.ignoreCase = ignoreCase;
 	}
 
+	@Override
 	public boolean isIgnoreCase() {
 		return this.ignoreCase;
 	}
@@ -125,6 +129,7 @@ public class MutableSortDefinition implements SortDefinition, Serializable {
 		this.ascending = ascending;
 	}
 
+	@Override
 	public boolean isAscending() {
 		return this.ascending;
 	}
@@ -142,7 +147,7 @@ public class MutableSortDefinition implements SortDefinition, Serializable {
 
 	/**
 	 * Return whether to toggle the ascending flag if the same property gets set again
-	 * (that is, {@link #setProperty} gets called with already set property name again).
+	 * (that is, {@code setProperty} gets called with already set property name again).
 	 */
 	public boolean isToggleAscendingOnProperty() {
 		return this.toggleAscendingOnProperty;
@@ -150,7 +155,7 @@ public class MutableSortDefinition implements SortDefinition, Serializable {
 
 
 	@Override
-	public boolean equals(Object other) {
+	public boolean equals(@Nullable Object other) {
 		if (this == other) {
 			return true;
 		}
@@ -159,7 +164,8 @@ public class MutableSortDefinition implements SortDefinition, Serializable {
 		}
 		SortDefinition otherSd = (SortDefinition) other;
 		return (getProperty().equals(otherSd.getProperty()) &&
-		    isAscending() == otherSd.isAscending() && isIgnoreCase() == otherSd.isIgnoreCase());
+				isAscending() == otherSd.isAscending() &&
+				isIgnoreCase() == otherSd.isIgnoreCase());
 	}
 
 	@Override

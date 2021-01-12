@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,11 +16,11 @@
 
 package org.springframework.aop.aspectj;
 
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
+import org.springframework.beans.testfixture.beans.TestBean;
 
-import test.beans.TestBean;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for matching of bean() pointcut designator.
@@ -28,14 +28,14 @@ import test.beans.TestBean;
  * @author Ramnivas Laddad
  * @author Chris Beams
  */
-public final class BeanNamePointcutMatchingTests {
+public class BeanNamePointcutMatchingTests {
 
 	@Test
 	public void testMatchingPointcuts() {
 		assertMatch("someName", "bean(someName)");
 
-		// Spring bean names are less restrictive compared to AspectJ names (methods, types etc.) 
-		// MVC Controller-kind 
+		// Spring bean names are less restrictive compared to AspectJ names (methods, types etc.)
+		// MVC Controller-kind
 		assertMatch("someName/someOtherName", "bean(someName/someOtherName)");
 		assertMatch("someName/foo/someOtherName", "bean(someName/*/someOtherName)");
 		assertMatch("someName/foo/bar/someOtherName", "bean(someName/*/someOtherName)");
@@ -58,9 +58,9 @@ public final class BeanNamePointcutMatchingTests {
 		// Or, and, not expressions
 		assertMatch("someName", "bean(someName) || bean(someOtherName)");
 		assertMatch("someOtherName", "bean(someName) || bean(someOtherName)");
-		
+
 		assertMatch("someName", "!bean(someOtherName)");
-		
+
 		assertMatch("someName", "bean(someName) || !bean(someOtherName)");
 		assertMatch("someName", "bean(someName) && !bean(someOtherName)");
 	}
@@ -77,19 +77,19 @@ public final class BeanNamePointcutMatchingTests {
 		assertMisMatch("someName", "!bean(someName) || bean(someOtherName)");
 	}
 
+
 	private void assertMatch(String beanName, String pcExpression) {
-		assertTrue("Unexpected mismatch for bean \"" + beanName + "\" for pcExpression \"" + pcExpression + "\"",
-				matches(beanName, pcExpression));
+		assertThat(matches(beanName, pcExpression)).as("Unexpected mismatch for bean \"" + beanName + "\" for pcExpression \"" + pcExpression + "\"").isTrue();
 	}
 
 	private void assertMisMatch(String beanName, String pcExpression) {
-		assertFalse("Unexpected match for bean \"" + beanName + "\" for pcExpression \"" + pcExpression + "\"",
-				matches(beanName, pcExpression));
+		assertThat(matches(beanName, pcExpression)).as("Unexpected match for bean \"" + beanName + "\" for pcExpression \"" + pcExpression + "\"").isFalse();
 	}
 
 	private static boolean matches(final String beanName, String pcExpression) {
 		@SuppressWarnings("serial")
 		AspectJExpressionPointcut pointcut = new AspectJExpressionPointcut() {
+			@Override
 			protected String getCurrentProxiedBeanName() {
 				return beanName;
 			}
@@ -97,4 +97,5 @@ public final class BeanNamePointcutMatchingTests {
 		pointcut.setExpression(pcExpression);
 		return pointcut.matches(TestBean.class);
 	}
+
 }

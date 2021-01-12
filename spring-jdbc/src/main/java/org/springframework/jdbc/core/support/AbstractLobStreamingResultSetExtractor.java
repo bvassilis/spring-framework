@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2005 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,12 +25,13 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.LobRetrievalFailureException;
 import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.lang.Nullable;
 
 /**
  * Abstract ResultSetExtractor implementation that assumes streaming of LOB data.
  * Typically used as inner class, with access to surrounding method arguments.
  *
- * <p>Delegates to the <code>streamData</code> template method for streaming LOB
+ * <p>Delegates to the {@code streamData} template method for streaming LOB
  * content to some OutputStream, typically using a LobHandler. Converts an
  * IOException thrown during streaming to a LobRetrievalFailureException.
  *
@@ -44,16 +45,17 @@ import org.springframework.jdbc.core.ResultSetExtractor;
  *		 new AbstractLobStreamingResultSetExtractor() {
  *			 public void streamData(ResultSet rs) throws SQLException, IOException {
  *				 FileCopyUtils.copy(lobHandler.getBlobAsBinaryStream(rs, 1), contentStream);
- *			 }
- *		 }
+ *             }
+ *         }
  * );</pre>
  *
  * @author Juergen Hoeller
  * @since 1.0.2
+ * @param <T> the result type
  * @see org.springframework.jdbc.support.lob.LobHandler
  * @see org.springframework.jdbc.LobRetrievalFailureException
  */
-public abstract class AbstractLobStreamingResultSetExtractor implements ResultSetExtractor {
+public abstract class AbstractLobStreamingResultSetExtractor<T> implements ResultSetExtractor<T> {
 
 	/**
 	 * Delegates to handleNoRowFound, handleMultipleRowsFound and streamData,
@@ -64,7 +66,9 @@ public abstract class AbstractLobStreamingResultSetExtractor implements ResultSe
 	 * @see #streamData
 	 * @see org.springframework.jdbc.LobRetrievalFailureException
 	 */
-	public final Object extractData(ResultSet rs) throws SQLException, DataAccessException {
+	@Override
+	@Nullable
+	public final T extractData(ResultSet rs) throws SQLException, DataAccessException {
 		if (!rs.next()) {
 			handleNoRowFound();
 		}
@@ -76,7 +80,7 @@ public abstract class AbstractLobStreamingResultSetExtractor implements ResultSe
 				}
 			}
 			catch (IOException ex) {
-				throw new LobRetrievalFailureException("Couldn't stream LOB content", ex);
+				throw new LobRetrievalFailureException("Could not stream LOB content", ex);
 			}
 		}
 		return null;

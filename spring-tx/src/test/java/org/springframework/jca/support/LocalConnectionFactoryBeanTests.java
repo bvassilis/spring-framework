@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2006 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,13 +16,16 @@
 
 package org.springframework.jca.support;
 
-import static org.easymock.EasyMock.*;
-import static org.junit.Assert.*;
-
 import javax.resource.spi.ConnectionManager;
 import javax.resource.spi.ManagedConnectionFactory;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * Unit tests for the {@link LocalConnectionFactoryBean} class.
@@ -30,59 +33,46 @@ import org.junit.Test;
  * @author Rick Evans
  * @author Chris Beams
  */
-public final class LocalConnectionFactoryBeanTests {
+public class LocalConnectionFactoryBeanTests {
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testManagedConnectionFactoryIsRequired() throws Exception {
-		new LocalConnectionFactoryBean().afterPropertiesSet();
+		assertThatIllegalArgumentException().isThrownBy(
+				new LocalConnectionFactoryBean()::afterPropertiesSet);
 	}
 
 	@Test
 	public void testIsSingleton() throws Exception {
 		LocalConnectionFactoryBean factory = new LocalConnectionFactoryBean();
-		assertTrue(factory.isSingleton());
+		assertThat(factory.isSingleton()).isTrue();
 	}
 
 	@Test
 	public void testGetObjectTypeIsNullIfConnectionFactoryHasNotBeenConfigured() throws Exception {
 		LocalConnectionFactoryBean factory = new LocalConnectionFactoryBean();
-		assertNull(factory.getObjectType());
+		assertThat(factory.getObjectType()).isNull();
 	}
 
 	@Test
 	public void testCreatesVanillaConnectionFactoryIfNoConnectionManagerHasBeenConfigured() throws Exception {
-
 		final Object CONNECTION_FACTORY = new Object();
-
-		ManagedConnectionFactory managedConnectionFactory = createMock(ManagedConnectionFactory.class);
-
-		expect(managedConnectionFactory.createConnectionFactory()).andReturn(CONNECTION_FACTORY);
-		replay(managedConnectionFactory);
-
+		ManagedConnectionFactory managedConnectionFactory = mock(ManagedConnectionFactory.class);
+		given(managedConnectionFactory.createConnectionFactory()).willReturn(CONNECTION_FACTORY);
 		LocalConnectionFactoryBean factory = new LocalConnectionFactoryBean();
 		factory.setManagedConnectionFactory(managedConnectionFactory);
 		factory.afterPropertiesSet();
-		assertEquals(CONNECTION_FACTORY, factory.getObject());
-
-		verify(managedConnectionFactory);
+		assertThat(factory.getObject()).isEqualTo(CONNECTION_FACTORY);
 	}
 
 	@Test
 	public void testCreatesManagedConnectionFactoryIfAConnectionManagerHasBeenConfigured() throws Exception {
-		ManagedConnectionFactory managedConnectionFactory = createMock(ManagedConnectionFactory.class);
-
-		ConnectionManager connectionManager = createMock(ConnectionManager.class);
-
-		expect(managedConnectionFactory.createConnectionFactory(connectionManager)).andReturn(null);
-
-		replay(connectionManager, managedConnectionFactory);
-
+		ManagedConnectionFactory managedConnectionFactory = mock(ManagedConnectionFactory.class);
+		ConnectionManager connectionManager = mock(ConnectionManager.class);
 		LocalConnectionFactoryBean factory = new LocalConnectionFactoryBean();
 		factory.setManagedConnectionFactory(managedConnectionFactory);
 		factory.setConnectionManager(connectionManager);
 		factory.afterPropertiesSet();
-
-		verify(connectionManager, managedConnectionFactory);
+		verify(managedConnectionFactory).createConnectionFactory(connectionManager);
 	}
 
 }

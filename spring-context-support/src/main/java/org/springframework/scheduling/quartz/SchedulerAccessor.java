@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,10 +16,8 @@
 
 package org.springframework.scheduling.quartz;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import org.quartz.Calendar;
 import org.quartz.JobDetail;
 import org.quartz.JobListener;
+import org.quartz.ListenerManager;
 import org.quartz.ObjectAlreadyExistsException;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -35,14 +34,15 @@ import org.quartz.SchedulerListener;
 import org.quartz.Trigger;
 import org.quartz.TriggerListener;
 import org.quartz.spi.ClassLoadHelper;
+import org.quartz.xml.XMLSchedulingDataProcessor;
 
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.lang.Nullable;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
-import org.springframework.util.ReflectionUtils;
 
 /**
  * Common base class for accessing a Quartz Scheduler, i.e. for registering jobs,
@@ -51,53 +51,43 @@ import org.springframework.util.ReflectionUtils;
  * <p>For concrete usage, check out the {@link SchedulerFactoryBean} and
  * {@link SchedulerAccessorBean} classes.
  *
- * <p>Compatible with Quartz 1.5+ as well as Quartz 2.0/2.1, as of Spring 3.1.
+ * <p>Compatible with Quartz 2.1.4 and higher, as of Spring 4.1.
  *
  * @author Juergen Hoeller
+ * @author Stephane Nicoll
  * @since 2.5.6
  */
 public abstract class SchedulerAccessor implements ResourceLoaderAware {
-
-	private static Class<?> jobKeyClass;
-
-	private static Class<?> triggerKeyClass;
-
-	static {
-		try {
-			jobKeyClass = Class.forName("org.quartz.JobKey");
-			triggerKeyClass = Class.forName("org.quartz.TriggerKey");
-		}
-		catch (ClassNotFoundException ex) {
-			jobKeyClass = null;
-			triggerKeyClass = null;
-		}
-	}
-
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private boolean overwriteExistingJobs = false;
 
+	@Nullable
 	private String[] jobSchedulingDataLocations;
 
+	@Nullable
 	private List<JobDetail> jobDetails;
 
+	@Nullable
 	private Map<String, Calendar> calendars;
 
+	@Nullable
 	private List<Trigger> triggers;
 
+	@Nullable
 	private SchedulerListener[] schedulerListeners;
 
+	@Nullable
 	private JobListener[] globalJobListeners;
 
-	private JobListener[] jobListeners;
-
+	@Nullable
 	private TriggerListener[] globalTriggerListeners;
 
-	private TriggerListener[] triggerListeners;
-
+	@Nullable
 	private PlatformTransactionManager transactionManager;
 
+	@Nullable
 	protected ResourceLoader resourceLoader;
 
 
@@ -112,10 +102,10 @@ public abstract class SchedulerAccessor implements ResourceLoaderAware {
 
 	/**
 	 * Set the location of a Quartz job definition XML file that follows the
-	 * "job_scheduling_data_1_5" XSD. Can be specified to automatically
+	 * "job_scheduling_data_1_5" XSD or better. Can be specified to automatically
 	 * register jobs that are defined in such a file, possibly in addition
 	 * to jobs defined directly on this SchedulerFactoryBean.
-	 * @see org.quartz.xml.JobSchedulingDataProcessor
+	 * @see org.quartz.xml.XMLSchedulingDataProcessor
 	 */
 	public void setJobSchedulingDataLocation(String jobSchedulingDataLocation) {
 		this.jobSchedulingDataLocations = new String[] {jobSchedulingDataLocation};
@@ -123,12 +113,12 @@ public abstract class SchedulerAccessor implements ResourceLoaderAware {
 
 	/**
 	 * Set the locations of Quartz job definition XML files that follow the
-	 * "job_scheduling_data_1_5" XSD. Can be specified to automatically
+	 * "job_scheduling_data_1_5" XSD or better. Can be specified to automatically
 	 * register jobs that are defined in such files, possibly in addition
 	 * to jobs defined directly on this SchedulerFactoryBean.
-	 * @see org.quartz.xml.JobSchedulingDataProcessor
+	 * @see org.quartz.xml.XMLSchedulingDataProcessor
 	 */
-	public void setJobSchedulingDataLocations(String[] jobSchedulingDataLocations) {
+	public void setJobSchedulingDataLocations(String... jobSchedulingDataLocations) {
 		this.jobSchedulingDataLocations = jobSchedulingDataLocations;
 	}
 
@@ -140,23 +130,19 @@ public abstract class SchedulerAccessor implements ResourceLoaderAware {
 	 * in combination with the Trigger.
 	 * @see #setTriggers
 	 * @see org.quartz.JobDetail
-	 * @see JobDetailBean
-	 * @see JobDetailAwareTrigger
-	 * @see org.quartz.Trigger#setJobName
 	 */
-	public void setJobDetails(JobDetail[] jobDetails) {
+	public void setJobDetails(JobDetail... jobDetails) {
 		// Use modifiable ArrayList here, to allow for further adding of
-		// JobDetail objects during autodetection of JobDetailAwareTriggers.
-		this.jobDetails = new ArrayList<JobDetail>(Arrays.asList(jobDetails));
+		// JobDetail objects during autodetection of JobDetail-aware Triggers.
+		this.jobDetails = new ArrayList<>(Arrays.asList(jobDetails));
 	}
 
 	/**
 	 * Register a list of Quartz Calendar objects with the Scheduler
 	 * that this FactoryBean creates, to be referenced by Triggers.
-	 * @param calendars Map with calendar names as keys as Calendar
+	 * @param calendars a Map with calendar names as keys as Calendar
 	 * objects as values
 	 * @see org.quartz.Calendar
-	 * @see org.quartz.Trigger#setCalendarName
 	 */
 	public void setCalendars(Map<String, Calendar> calendars) {
 		this.calendars = calendars;
@@ -171,19 +157,15 @@ public abstract class SchedulerAccessor implements ResourceLoaderAware {
 	 * "jobDetails" property of this FactoryBean.
 	 * @see #setJobDetails
 	 * @see org.quartz.JobDetail
-	 * @see JobDetailAwareTrigger
-	 * @see CronTriggerBean
-	 * @see SimpleTriggerBean
 	 */
-	public void setTriggers(Trigger[] triggers) {
+	public void setTriggers(Trigger... triggers) {
 		this.triggers = Arrays.asList(triggers);
 	}
-
 
 	/**
 	 * Specify Quartz SchedulerListeners to be registered with the Scheduler.
 	 */
-	public void setSchedulerListeners(SchedulerListener[] schedulerListeners) {
+	public void setSchedulerListeners(SchedulerListener... schedulerListeners) {
 		this.schedulerListeners = schedulerListeners;
 	}
 
@@ -191,43 +173,17 @@ public abstract class SchedulerAccessor implements ResourceLoaderAware {
 	 * Specify global Quartz JobListeners to be registered with the Scheduler.
 	 * Such JobListeners will apply to all Jobs in the Scheduler.
 	 */
-	public void setGlobalJobListeners(JobListener[] globalJobListeners) {
+	public void setGlobalJobListeners(JobListener... globalJobListeners) {
 		this.globalJobListeners = globalJobListeners;
-	}
-
-	/**
-	 * Specify named Quartz JobListeners to be registered with the Scheduler.
-	 * Such JobListeners will only apply to Jobs that explicitly activate
-	 * them via their name.
-	 * @see org.quartz.JobListener#getName
-	 * @see org.quartz.JobDetail#addJobListener
-	 * @see JobDetailBean#setJobListenerNames
-	 */
-	public void setJobListeners(JobListener[] jobListeners) {
-		this.jobListeners = jobListeners;
 	}
 
 	/**
 	 * Specify global Quartz TriggerListeners to be registered with the Scheduler.
 	 * Such TriggerListeners will apply to all Triggers in the Scheduler.
 	 */
-	public void setGlobalTriggerListeners(TriggerListener[] globalTriggerListeners) {
+	public void setGlobalTriggerListeners(TriggerListener... globalTriggerListeners) {
 		this.globalTriggerListeners = globalTriggerListeners;
 	}
-
-	/**
-	 * Specify named Quartz TriggerListeners to be registered with the Scheduler.
-	 * Such TriggerListeners will only apply to Triggers that explicitly activate
-	 * them via their name.
-	 * @see org.quartz.TriggerListener#getName
-	 * @see org.quartz.Trigger#addTriggerListener
-	 * @see CronTriggerBean#setTriggerListenerNames
-	 * @see SimpleTriggerBean#setTriggerListenerNames
-	 */
-	public void setTriggerListeners(TriggerListener[] triggerListeners) {
-		this.triggerListeners = triggerListeners;
-	}
-
 
 	/**
 	 * Set the transaction manager to be used for registering jobs and triggers
@@ -238,6 +194,7 @@ public abstract class SchedulerAccessor implements ResourceLoaderAware {
 		this.transactionManager = transactionManager;
 	}
 
+	@Override
 	public void setResourceLoader(ResourceLoader resourceLoader) {
 		this.resourceLoader = resourceLoader;
 	}
@@ -249,32 +206,16 @@ public abstract class SchedulerAccessor implements ResourceLoaderAware {
 	protected void registerJobsAndTriggers() throws SchedulerException {
 		TransactionStatus transactionStatus = null;
 		if (this.transactionManager != null) {
-			transactionStatus = this.transactionManager.getTransaction(new DefaultTransactionDefinition());
+			transactionStatus = this.transactionManager.getTransaction(TransactionDefinition.withDefaults());
 		}
-		try {
 
+		try {
 			if (this.jobSchedulingDataLocations != null) {
 				ClassLoadHelper clh = new ResourceLoaderClassLoadHelper(this.resourceLoader);
 				clh.initialize();
-				try {
-					// Quartz 1.8 or higher?
-					Class dataProcessorClass = getClass().getClassLoader().loadClass("org.quartz.xml.XMLSchedulingDataProcessor");
-					logger.debug("Using Quartz 1.8 XMLSchedulingDataProcessor");
-					Object dataProcessor = dataProcessorClass.getConstructor(ClassLoadHelper.class).newInstance(clh);
-					Method processFileAndScheduleJobs = dataProcessorClass.getMethod("processFileAndScheduleJobs", String.class, Scheduler.class);
-					for (String location : this.jobSchedulingDataLocations) {
-						processFileAndScheduleJobs.invoke(dataProcessor, location, getScheduler());
-					}
-				}
-				catch (ClassNotFoundException ex) {
-					// Quartz 1.6
-					Class dataProcessorClass = getClass().getClassLoader().loadClass("org.quartz.xml.JobSchedulingDataProcessor");
-					logger.debug("Using Quartz 1.6 JobSchedulingDataProcessor");
-					Object dataProcessor = dataProcessorClass.getConstructor(ClassLoadHelper.class, boolean.class, boolean.class).newInstance(clh, true, true);
-					Method processFileAndScheduleJobs = dataProcessorClass.getMethod("processFileAndScheduleJobs", String.class, Scheduler.class, boolean.class);
-					for (String location : this.jobSchedulingDataLocations) {
-						processFileAndScheduleJobs.invoke(dataProcessor, location, getScheduler(), this.overwriteExistingJobs);
-					}
+				XMLSchedulingDataProcessor dataProcessor = new XMLSchedulingDataProcessor(clh);
+				for (String location : this.jobSchedulingDataLocations) {
+					dataProcessor.processFileAndScheduleJobs(location, getScheduler());
 				}
 			}
 
@@ -286,7 +227,7 @@ public abstract class SchedulerAccessor implements ResourceLoaderAware {
 			}
 			else {
 				// Create empty list for easier checks when registering triggers.
-				this.jobDetails = new LinkedList<JobDetail>();
+				this.jobDetails = new ArrayList<>();
 			}
 
 			// Register Calendars.
@@ -333,12 +274,12 @@ public abstract class SchedulerAccessor implements ResourceLoaderAware {
 	 * Add the given job to the Scheduler, if it doesn't already exist.
 	 * Overwrites the job in any case if "overwriteExistingJobs" is set.
 	 * @param jobDetail the job to add
-	 * @return <code>true</code> if the job was actually added,
-	 * <code>false</code> if it already existed before
+	 * @return {@code true} if the job was actually added,
+	 * {@code false} if it already existed before
 	 * @see #setOverwriteExistingJobs
 	 */
 	private boolean addJobToScheduler(JobDetail jobDetail) throws SchedulerException {
-		if (this.overwriteExistingJobs || !jobDetailExists(jobDetail)) {
+		if (this.overwriteExistingJobs || getScheduler().getJobDetail(jobDetail.getKey()) == null) {
 			getScheduler().addJob(jobDetail, true);
 			return true;
 		}
@@ -351,171 +292,76 @@ public abstract class SchedulerAccessor implements ResourceLoaderAware {
 	 * Add the given trigger to the Scheduler, if it doesn't already exist.
 	 * Overwrites the trigger in any case if "overwriteExistingJobs" is set.
 	 * @param trigger the trigger to add
-	 * @return <code>true</code> if the trigger was actually added,
-	 * <code>false</code> if it already existed before
+	 * @return {@code true} if the trigger was actually added,
+	 * {@code false} if it already existed before
 	 * @see #setOverwriteExistingJobs
 	 */
 	private boolean addTriggerToScheduler(Trigger trigger) throws SchedulerException {
-		boolean triggerExists = triggerExists(trigger);
-		if (!triggerExists || this.overwriteExistingJobs) {
-			// Check if the Trigger is aware of an associated JobDetail.
-			JobDetail jobDetail = findJobDetail(trigger);
-			if (jobDetail != null) {
-				// Automatically register the JobDetail too.
-				if (!this.jobDetails.contains(jobDetail) && addJobToScheduler(jobDetail)) {
-					this.jobDetails.add(jobDetail);
-				}
-			}
-			if (!triggerExists) {
-				try {
-					getScheduler().scheduleJob(trigger);
-				}
-				catch (ObjectAlreadyExistsException ex) {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Unexpectedly found existing trigger, assumably due to cluster race condition: " +
-								ex.getMessage() + " - can safely be ignored");
-					}
-					if (this.overwriteExistingJobs) {
-						rescheduleJob(trigger);
-					}
-				}
-			}
-			else {
-				rescheduleJob(trigger);
-			}
-			return true;
-		}
-		else {
+		boolean triggerExists = (getScheduler().getTrigger(trigger.getKey()) != null);
+		if (triggerExists && !this.overwriteExistingJobs) {
 			return false;
 		}
-	}
 
-	private JobDetail findJobDetail(Trigger trigger) {
-		if (trigger instanceof JobDetailAwareTrigger) {
-			return ((JobDetailAwareTrigger) trigger).getJobDetail();
+		// Check if the Trigger is aware of an associated JobDetail.
+		JobDetail jobDetail = (JobDetail) trigger.getJobDataMap().remove("jobDetail");
+		if (triggerExists) {
+			if (jobDetail != null && this.jobDetails != null &&
+					!this.jobDetails.contains(jobDetail) && addJobToScheduler(jobDetail)) {
+				this.jobDetails.add(jobDetail);
+			}
+			try {
+				getScheduler().rescheduleJob(trigger.getKey(), trigger);
+			}
+			catch (ObjectAlreadyExistsException ex) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Unexpectedly encountered existing trigger on rescheduling, assumably due to " +
+							"cluster race condition: " + ex.getMessage() + " - can safely be ignored");
+				}
+			}
 		}
 		else {
 			try {
-				Map jobDataMap = (Map) ReflectionUtils.invokeMethod(Trigger.class.getMethod("getJobDataMap"), trigger);
-				return (JobDetail) jobDataMap.get(JobDetailAwareTrigger.JOB_DETAIL_KEY);
+				if (jobDetail != null && this.jobDetails != null && !this.jobDetails.contains(jobDetail) &&
+						(this.overwriteExistingJobs || getScheduler().getJobDetail(jobDetail.getKey()) == null)) {
+					getScheduler().scheduleJob(jobDetail, trigger);
+					this.jobDetails.add(jobDetail);
+				}
+				else {
+					getScheduler().scheduleJob(trigger);
+				}
 			}
-			catch (NoSuchMethodException ex) {
-				throw new IllegalStateException("Inconsistent Quartz API: " + ex);
+			catch (ObjectAlreadyExistsException ex) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Unexpectedly encountered existing trigger on job scheduling, assumably due to " +
+							"cluster race condition: " + ex.getMessage() + " - can safely be ignored");
+				}
+				if (this.overwriteExistingJobs) {
+					getScheduler().rescheduleJob(trigger.getKey(), trigger);
+				}
 			}
 		}
+		return true;
 	}
-
-
-	// Reflectively adapting to differences between Quartz 1.x and Quartz 2.0...
-	private boolean jobDetailExists(JobDetail jobDetail) throws SchedulerException {
-		if (jobKeyClass != null) {
-			try {
-				Method getJobDetail = Scheduler.class.getMethod("getJobDetail", jobKeyClass);
-				Object key = ReflectionUtils.invokeMethod(JobDetail.class.getMethod("getKey"), jobDetail);
-				return (ReflectionUtils.invokeMethod(getJobDetail, getScheduler(), key) != null);
-			}
-			catch (NoSuchMethodException ex) {
-				throw new IllegalStateException("Inconsistent Quartz 2.0 API: " + ex);
-			}
-		}
-		else {
-			return (getScheduler().getJobDetail(jobDetail.getName(), jobDetail.getGroup()) != null);
-		}
-	}
-
-	// Reflectively adapting to differences between Quartz 1.x and Quartz 2.0...
-	private boolean triggerExists(Trigger trigger) throws SchedulerException {
-		if (triggerKeyClass != null) {
-			try {
-				Method getTrigger = Scheduler.class.getMethod("getTrigger", triggerKeyClass);
-				Object key = ReflectionUtils.invokeMethod(Trigger.class.getMethod("getKey"), trigger);
-				return (ReflectionUtils.invokeMethod(getTrigger, getScheduler(), key) != null);
-			}
-			catch (NoSuchMethodException ex) {
-				throw new IllegalStateException("Inconsistent Quartz 2.0 API: " + ex);
-			}
-		}
-		else {
-			return (getScheduler().getTrigger(trigger.getName(), trigger.getGroup()) != null);
-		}
-	}
-
-	// Reflectively adapting to differences between Quartz 1.x and Quartz 2.0...
-	private void rescheduleJob(Trigger trigger) throws SchedulerException {
-		if (triggerKeyClass != null) {
-			try {
-				Method rescheduleJob = Scheduler.class.getMethod("rescheduleJob", triggerKeyClass, Trigger.class);
-				Object key = ReflectionUtils.invokeMethod(Trigger.class.getMethod("getKey"), trigger);
-				ReflectionUtils.invokeMethod(rescheduleJob, getScheduler(), key, trigger);
-			}
-			catch (NoSuchMethodException ex) {
-				throw new IllegalStateException("Inconsistent Quartz 2.0 API: " + ex);
-			}
-		}
-		else {
-			getScheduler().rescheduleJob(trigger.getName(), trigger.getGroup(), trigger);
-		}
-	}
-
 
 	/**
 	 * Register all specified listeners with the Scheduler.
 	 */
 	protected void registerListeners() throws SchedulerException {
-		Object target;
-		boolean quartz2;
-		try {
-			Method getListenerManager = Scheduler.class.getMethod("getListenerManager");
-			target = ReflectionUtils.invokeMethod(getListenerManager, getScheduler());
-			quartz2 = true;
-		}
-		catch (NoSuchMethodException ex) {
-			target = getScheduler();
-			quartz2 = false;
-		}
-
-		try {
-			if (this.schedulerListeners != null) {
-				Method addSchedulerListener = target.getClass().getMethod("addSchedulerListener", SchedulerListener.class);
-				for (SchedulerListener listener : this.schedulerListeners) {
-					ReflectionUtils.invokeMethod(addSchedulerListener, target, listener);
-				}
-			}
-			if (this.globalJobListeners != null) {
-				Method addJobListener = target.getClass().getMethod(
-						(quartz2 ? "addJobListener" : "addGlobalJobListener"), JobListener.class);
-				for (JobListener listener : this.globalJobListeners) {
-					ReflectionUtils.invokeMethod(addJobListener, target, listener);
-				}
-			}
-			if (this.jobListeners != null) {
-				for (JobListener listener : this.jobListeners) {
-					if (quartz2) {
-						throw new IllegalStateException("Non-global JobListeners not supported on Quartz 2 - " +
-								"manually register a Matcher against the Quartz ListenerManager instead");
-					}
-					getScheduler().addJobListener(listener);
-				}
-			}
-			if (this.globalTriggerListeners != null) {
-				Method addTriggerListener = target.getClass().getMethod(
-						(quartz2 ? "addTriggerListener" : "addGlobalTriggerListener"), TriggerListener.class);
-				for (TriggerListener listener : this.globalTriggerListeners) {
-					ReflectionUtils.invokeMethod(addTriggerListener, target, listener);
-				}
-			}
-			if (this.triggerListeners != null) {
-				for (TriggerListener listener : this.triggerListeners) {
-					if (quartz2) {
-						throw new IllegalStateException("Non-global TriggerListeners not supported on Quartz 2 - " +
-								"manually register a Matcher against the Quartz ListenerManager instead");
-					}
-					getScheduler().addTriggerListener(listener);
-				}
+		ListenerManager listenerManager = getScheduler().getListenerManager();
+		if (this.schedulerListeners != null) {
+			for (SchedulerListener listener : this.schedulerListeners) {
+				listenerManager.addSchedulerListener(listener);
 			}
 		}
-		catch (NoSuchMethodException ex) {
-			throw new IllegalStateException("Expected Quartz API not present: " + ex);
+		if (this.globalJobListeners != null) {
+			for (JobListener listener : this.globalJobListeners) {
+				listenerManager.addJobListener(listener);
+			}
+		}
+		if (this.globalTriggerListeners != null) {
+			for (TriggerListener listener : this.globalTriggerListeners) {
+				listenerManager.addTriggerListener(listener);
+			}
 		}
 	}
 

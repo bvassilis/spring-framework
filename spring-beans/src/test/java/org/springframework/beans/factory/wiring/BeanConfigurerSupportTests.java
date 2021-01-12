@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,58 +16,56 @@
 
 package org.springframework.beans.factory.wiring;
 
-import junit.framework.TestCase;
-import org.easymock.MockControl;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.testfixture.beans.TestBean;
 
-import test.beans.TestBean;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * @author Rick Evans
  * @author Juergen Hoeller
+ * @author Sam Brannen
  */
-public class BeanConfigurerSupportTests extends TestCase {
+public class BeanConfigurerSupportTests {
 
-	public void testSupplyIncompatibleBeanFactoryImplementation() throws Exception {
-		MockControl mock = MockControl.createControl(BeanFactory.class);
-		mock.replay();
-		try {
-			new StubBeanConfigurerSupport().setBeanFactory((BeanFactory) mock.getMock());
-			fail("Must have thrown an IllegalArgumentException by this point (incompatible BeanFactory implementation supplied)");
-		}
-		catch (IllegalArgumentException expected) {
-		}
-		mock.verify();
+	@Test
+	public void supplyIncompatibleBeanFactoryImplementation() throws Exception {
+		assertThatIllegalArgumentException().isThrownBy(() ->
+				new StubBeanConfigurerSupport().setBeanFactory(mock(BeanFactory.class)));
 	}
 
-	public void testConfigureBeanDoesNothingIfBeanWiringInfoResolverResolvesToNull() throws Exception {
+	@Test
+	public void configureBeanDoesNothingIfBeanWiringInfoResolverResolvesToNull() throws Exception {
 		TestBean beanInstance = new TestBean();
 
-		MockControl mock = MockControl.createControl(BeanWiringInfoResolver.class);
-		BeanWiringInfoResolver resolver = (BeanWiringInfoResolver) mock.getMock();
-		resolver.resolveWiringInfo(beanInstance);
-		mock.setReturnValue(null);
-		mock.replay();
+		BeanWiringInfoResolver resolver = mock(BeanWiringInfoResolver.class);
 
 		BeanConfigurerSupport configurer = new StubBeanConfigurerSupport();
 		configurer.setBeanWiringInfoResolver(resolver);
 		configurer.setBeanFactory(new DefaultListableBeanFactory());
 		configurer.configureBean(beanInstance);
-		mock.verify();
-		assertNull(beanInstance.getName());
+		verify(resolver).resolveWiringInfo(beanInstance);
+		assertThat(beanInstance.getName()).isNull();
 	}
 
-	public void testConfigureBeanDoesNothingIfNoBeanFactoryHasBeenSet() throws Exception {
+	@Test
+	public void configureBeanDoesNothingIfNoBeanFactoryHasBeenSet() throws Exception {
 		TestBean beanInstance = new TestBean();
 		BeanConfigurerSupport configurer = new StubBeanConfigurerSupport();
 		configurer.configureBean(beanInstance);
-		assertNull(beanInstance.getName());
+		assertThat(beanInstance.getName()).isNull();
 	}
 
-	public void testConfigureBeanReallyDoesDefaultToUsingTheFullyQualifiedClassNameOfTheSuppliedBeanInstance() throws Exception {
+	@Test
+	public void configureBeanReallyDoesDefaultToUsingTheFullyQualifiedClassNameOfTheSuppliedBeanInstance() throws Exception {
 		TestBean beanInstance = new TestBean();
 		BeanDefinitionBuilder builder = BeanDefinitionBuilder.rootBeanDefinition(TestBean.class);
 		builder.addPropertyValue("name", "Harriet Wheeler");
@@ -79,10 +77,11 @@ public class BeanConfigurerSupportTests extends TestCase {
 		configurer.setBeanFactory(factory);
 		configurer.afterPropertiesSet();
 		configurer.configureBean(beanInstance);
-		assertEquals("Bean is evidently not being configured (for some reason)", "Harriet Wheeler", beanInstance.getName());
+		assertThat(beanInstance.getName()).as("Bean is evidently not being configured (for some reason)").isEqualTo("Harriet Wheeler");
 	}
 
-	public void testConfigureBeanPerformsAutowiringByNameIfAppropriateBeanWiringInfoResolverIsPluggedIn() throws Exception {
+	@Test
+	public void configureBeanPerformsAutowiringByNameIfAppropriateBeanWiringInfoResolverIsPluggedIn() throws Exception {
 		TestBean beanInstance = new TestBean();
 		// spouse for autowiring by name...
 		BeanDefinitionBuilder builder = BeanDefinitionBuilder.rootBeanDefinition(TestBean.class);
@@ -91,22 +90,18 @@ public class BeanConfigurerSupportTests extends TestCase {
 		DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
 		factory.registerBeanDefinition("spouse", builder.getBeanDefinition());
 
-		MockControl mock = MockControl.createControl(BeanWiringInfoResolver.class);
-		BeanWiringInfoResolver resolver = (BeanWiringInfoResolver) mock.getMock();
-		resolver.resolveWiringInfo(beanInstance);
-		mock.setReturnValue(new BeanWiringInfo(BeanWiringInfo.AUTOWIRE_BY_NAME, false));
-		mock.replay();
+		BeanWiringInfoResolver resolver = mock(BeanWiringInfoResolver.class);
+		given(resolver.resolveWiringInfo(beanInstance)).willReturn(new BeanWiringInfo(BeanWiringInfo.AUTOWIRE_BY_NAME, false));
 
 		BeanConfigurerSupport configurer = new StubBeanConfigurerSupport();
 		configurer.setBeanFactory(factory);
 		configurer.setBeanWiringInfoResolver(resolver);
 		configurer.configureBean(beanInstance);
-		assertEquals("Bean is evidently not being configured (for some reason)", "David Gavurin", beanInstance.getSpouse().getName());
-		
-		mock.verify();
+		assertThat(beanInstance.getSpouse().getName()).as("Bean is evidently not being configured (for some reason)").isEqualTo("David Gavurin");
 	}
 
-	public void testConfigureBeanPerformsAutowiringByTypeIfAppropriateBeanWiringInfoResolverIsPluggedIn() throws Exception {
+	@Test
+	public void configureBeanPerformsAutowiringByTypeIfAppropriateBeanWiringInfoResolverIsPluggedIn() throws Exception {
 		TestBean beanInstance = new TestBean();
 		// spouse for autowiring by type...
 		BeanDefinitionBuilder builder = BeanDefinitionBuilder.rootBeanDefinition(TestBean.class);
@@ -115,19 +110,14 @@ public class BeanConfigurerSupportTests extends TestCase {
 		DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
 		factory.registerBeanDefinition("Mmm, I fancy a salad!", builder.getBeanDefinition());
 
-		MockControl mock = MockControl.createControl(BeanWiringInfoResolver.class);
-		BeanWiringInfoResolver resolver = (BeanWiringInfoResolver) mock.getMock();
-		resolver.resolveWiringInfo(beanInstance);
-		mock.setReturnValue(new BeanWiringInfo(BeanWiringInfo.AUTOWIRE_BY_TYPE, false));
-		mock.replay();
+		BeanWiringInfoResolver resolver = mock(BeanWiringInfoResolver.class);
+		given(resolver.resolveWiringInfo(beanInstance)).willReturn(new BeanWiringInfo(BeanWiringInfo.AUTOWIRE_BY_TYPE, false));
 
 		BeanConfigurerSupport configurer = new StubBeanConfigurerSupport();
 		configurer.setBeanFactory(factory);
 		configurer.setBeanWiringInfoResolver(resolver);
 		configurer.configureBean(beanInstance);
-		assertEquals("Bean is evidently not being configured (for some reason)", "David Gavurin", beanInstance.getSpouse().getName());
-		
-		mock.verify();
+		assertThat(beanInstance.getSpouse().getName()).as("Bean is evidently not being configured (for some reason)").isEqualTo("David Gavurin");
 	}
 
 

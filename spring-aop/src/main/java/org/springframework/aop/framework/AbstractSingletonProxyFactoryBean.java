@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@ import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.FactoryBeanNotInitializedException;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 
 /**
@@ -41,19 +42,25 @@ import org.springframework.util.ClassUtils;
 public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 		implements FactoryBean<Object>, BeanClassLoaderAware, InitializingBean {
 
+	@Nullable
 	private Object target;
 
+	@Nullable
 	private Class<?>[] proxyInterfaces;
 
+	@Nullable
 	private Object[] preInterceptors;
 
+	@Nullable
 	private Object[] postInterceptors;
 
-	/** Default is global AdvisorAdapterRegistry */
+	/** Default is global AdvisorAdapterRegistry. */
 	private AdvisorAdapterRegistry advisorAdapterRegistry = GlobalAdvisorAdapterRegistry.getInstance();
 
+	@Nullable
 	private transient ClassLoader proxyClassLoader;
 
+	@Nullable
 	private Object proxy;
 
 
@@ -66,7 +73,7 @@ public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 	 * @see org.springframework.aop.target.SingletonTargetSource
 	 * @see org.springframework.aop.target.LazyInitTargetSource
 	 * @see org.springframework.aop.target.PrototypeTargetSource
-	 * @see org.springframework.aop.target.CommonsPoolTargetSource
+	 * @see org.springframework.aop.target.CommonsPool2TargetSource
 	 */
 	public void setTarget(Object target) {
 		this.target = target;
@@ -122,6 +129,7 @@ public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 		this.proxyClassLoader = classLoader;
 	}
 
+	@Override
 	public void setBeanClassLoader(ClassLoader classLoader) {
 		if (this.proxyClassLoader == null) {
 			this.proxyClassLoader = classLoader;
@@ -129,6 +137,7 @@ public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 	}
 
 
+	@Override
 	public void afterPropertiesSet() {
 		if (this.target == null) {
 			throw new IllegalArgumentException("Property 'target' is required");
@@ -167,16 +176,20 @@ public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 		}
 		else if (!isProxyTargetClass()) {
 			// Rely on AOP infrastructure to tell us what interfaces to proxy.
-			proxyFactory.setInterfaces(
-					ClassUtils.getAllInterfacesForClass(targetSource.getTargetClass(), this.proxyClassLoader));
+			Class<?> targetClass = targetSource.getTargetClass();
+			if (targetClass != null) {
+				proxyFactory.setInterfaces(ClassUtils.getAllInterfacesForClass(targetClass, this.proxyClassLoader));
+			}
 		}
+
+		postProcessProxyFactory(proxyFactory);
 
 		this.proxy = proxyFactory.getProxy(this.proxyClassLoader);
 	}
 
 	/**
 	 * Determine a TargetSource for the given target (or TargetSource).
-	 * @param target target. If this is an implementation of TargetSource it is
+	 * @param target the target. If this is an implementation of TargetSource it is
 	 * used as our TargetSource; otherwise it is wrapped in a SingletonTargetSource.
 	 * @return a TargetSource for this object
 	 */
@@ -189,7 +202,17 @@ public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 		}
 	}
 
+	/**
+	 * A hook for subclasses to post-process the {@link ProxyFactory}
+	 * before creating the proxy instance with it.
+	 * @param proxyFactory the AOP ProxyFactory about to be used
+	 * @since 4.2
+	 */
+	protected void postProcessProxyFactory(ProxyFactory proxyFactory) {
+	}
 
+
+	@Override
 	public Object getObject() {
 		if (this.proxy == null) {
 			throw new FactoryBeanNotInitializedException();
@@ -197,6 +220,8 @@ public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 		return this.proxy;
 	}
 
+	@Override
+	@Nullable
 	public Class<?> getObjectType() {
 		if (this.proxy != null) {
 			return this.proxy.getClass();
@@ -213,6 +238,7 @@ public abstract class AbstractSingletonProxyFactoryBean extends ProxyConfig
 		return null;
 	}
 
+	@Override
 	public final boolean isSingleton() {
 		return true;
 	}

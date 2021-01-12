@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,10 +18,11 @@ package org.springframework.web.servlet.tags.form;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.tagext.DynamicAttributes;
 
-import org.springframework.util.Assert;
+import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
@@ -29,18 +30,19 @@ import org.springframework.util.StringUtils;
 /**
  * Base class for databinding-aware JSP tags that render HTML element. Provides
  * a set of properties corresponding to the set of HTML attributes that are common
- * across elements.  
- * 
- * <p>Additionally, this base class allows for rendering non-standard attributes 
- * as part of the tag's output.  These attributes are accessible to subclasses if 
- * needed via the {@link AbstractHtmlElementTag#getDynamicAttributes() dynamicAttributes} 
+ * across elements.
+ *
+ * <p>Additionally, this base class allows for rendering non-standard attributes
+ * as part of the tag's output.  These attributes are accessible to subclasses if
+ * needed via the {@link AbstractHtmlElementTag#getDynamicAttributes() dynamicAttributes}
  * map.
- * 
+ *
  * @author Rob Harrop
  * @author Jeremy Grelle
  * @author Rossen Stoyanchev
  * @since 2.0
  */
+@SuppressWarnings("serial")
 public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElementTag implements DynamicAttributes {
 
 	public static final String CLASS_ATTRIBUTE = "class";
@@ -76,45 +78,63 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	public static final String ONKEYDOWN_ATTRIBUTE = "onkeydown";
 
 
+	@Nullable
 	private String cssClass;
 
+	@Nullable
 	private String cssErrorClass;
 
+	@Nullable
 	private String cssStyle;
 
+	@Nullable
 	private String lang;
 
+	@Nullable
 	private String title;
 
+	@Nullable
 	private String dir;
 
+	@Nullable
 	private String tabindex;
 
+	@Nullable
 	private String onclick;
 
+	@Nullable
 	private String ondblclick;
 
+	@Nullable
 	private String onmousedown;
 
+	@Nullable
 	private String onmouseup;
 
+	@Nullable
 	private String onmouseover;
 
+	@Nullable
 	private String onmousemove;
 
+	@Nullable
 	private String onmouseout;
 
+	@Nullable
 	private String onkeypress;
 
+	@Nullable
 	private String onkeyup;
 
+	@Nullable
 	private String onkeydown;
-	
+
+	@Nullable
 	private Map<String, Object> dynamicAttributes;
 
 
 	/**
-	 * Set the value of the '<code>class</code>' attribute.
+	 * Set the value of the '{@code class}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setCssClass(String cssClass) {
@@ -122,9 +142,10 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>class</code>' attribute.
+	 * Get the value of the '{@code class}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getCssClass() {
 		return this.cssClass;
 	}
@@ -141,12 +162,13 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	 * The CSS class to use when the field bound to a particular tag has errors.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getCssErrorClass() {
 		return this.cssErrorClass;
 	}
 
 	/**
-	 * Set the value of the '<code>style</code>' attribute.
+	 * Set the value of the '{@code style}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setCssStyle(String cssStyle) {
@@ -154,15 +176,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>style</code>' attribute.
+	 * Get the value of the '{@code style}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getCssStyle() {
 		return this.cssStyle;
 	}
 
 	/**
-	 * Set the value of the '<code>lang</code>' attribute.
+	 * Set the value of the '{@code lang}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setLang(String lang) {
@@ -170,15 +193,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>lang</code>' attribute.
+	 * Get the value of the '{@code lang}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getLang() {
 		return this.lang;
 	}
 
 	/**
-	 * Set the value of the '<code>title</code>' attribute.
+	 * Set the value of the '{@code title}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setTitle(String title) {
@@ -186,15 +210,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>title</code>' attribute.
+	 * Get the value of the '{@code title}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getTitle() {
 		return this.title;
 	}
 
 	/**
-	 * Set the value of the '<code>dir</code>' attribute.
+	 * Set the value of the '{@code dir}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setDir(String dir) {
@@ -202,15 +227,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>dir</code>' attribute.
+	 * Get the value of the '{@code dir}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getDir() {
 		return this.dir;
 	}
 
 	/**
-	 * Set the value of the '<code>tabindex</code>' attribute.
+	 * Set the value of the '{@code tabindex}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setTabindex(String tabindex) {
@@ -218,15 +244,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>tabindex</code>' attribute.
+	 * Get the value of the '{@code tabindex}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getTabindex() {
 		return this.tabindex;
 	}
 
 	/**
-	 * Set the value of the '<code>onclick</code>' attribute.
+	 * Set the value of the '{@code onclick}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setOnclick(String onclick) {
@@ -234,15 +261,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>onclick</code>' attribute.
+	 * Get the value of the '{@code onclick}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getOnclick() {
 		return this.onclick;
 	}
 
 	/**
-	 * Set the value of the '<code>ondblclick</code>' attribute.
+	 * Set the value of the '{@code ondblclick}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setOndblclick(String ondblclick) {
@@ -250,15 +278,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>ondblclick</code>' attribute.
+	 * Get the value of the '{@code ondblclick}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getOndblclick() {
 		return this.ondblclick;
 	}
 
 	/**
-	 * Set the value of the '<code>onmousedown</code>' attribute.
+	 * Set the value of the '{@code onmousedown}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setOnmousedown(String onmousedown) {
@@ -266,15 +295,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>onmousedown</code>' attribute.
+	 * Get the value of the '{@code onmousedown}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getOnmousedown() {
 		return this.onmousedown;
 	}
 
 	/**
-	 * Set the value of the '<code>onmouseup</code>' attribute.
+	 * Set the value of the '{@code onmouseup}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setOnmouseup(String onmouseup) {
@@ -282,15 +312,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>onmouseup</code>' attribute.
+	 * Get the value of the '{@code onmouseup}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getOnmouseup() {
 		return this.onmouseup;
 	}
 
 	/**
-	 * Set the value of the '<code>onmouseover</code>' attribute.
+	 * Set the value of the '{@code onmouseover}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setOnmouseover(String onmouseover) {
@@ -298,15 +329,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>onmouseover</code>' attribute.
+	 * Get the value of the '{@code onmouseover}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getOnmouseover() {
 		return this.onmouseover;
 	}
 
 	/**
-	 * Set the value of the '<code>onmousemove</code>' attribute.
+	 * Set the value of the '{@code onmousemove}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setOnmousemove(String onmousemove) {
@@ -314,30 +346,32 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>onmousemove</code>' attribute.
+	 * Get the value of the '{@code onmousemove}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getOnmousemove() {
 		return this.onmousemove;
 	}
 
 	/**
-	 * Set the value of the '<code>onmouseout</code>' attribute.
+	 * Set the value of the '{@code onmouseout}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setOnmouseout(String onmouseout) {
 		this.onmouseout = onmouseout;
 	}
 	/**
-	 * Get the value of the '<code>onmouseout</code>' attribute.
+	 * Get the value of the '{@code onmouseout}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getOnmouseout() {
 		return this.onmouseout;
 	}
 
 	/**
-	 * Set the value of the '<code>onkeypress</code>' attribute.
+	 * Set the value of the '{@code onkeypress}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setOnkeypress(String onkeypress) {
@@ -345,15 +379,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>onkeypress</code>' attribute.
+	 * Get the value of the '{@code onkeypress}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getOnkeypress() {
 		return this.onkeypress;
 	}
 
 	/**
-	 * Set the value of the '<code>onkeyup</code>' attribute.
+	 * Set the value of the '{@code onkeyup}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setOnkeyup(String onkeyup) {
@@ -361,15 +396,16 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>onkeyup</code>' attribute.
+	 * Get the value of the '{@code onkeyup}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getOnkeyup() {
 		return this.onkeyup;
 	}
 
 	/**
-	 * Set the value of the '<code>onkeydown</code>' attribute.
+	 * Set the value of the '{@code onkeydown}' attribute.
 	 * May be a runtime expression.
 	 */
 	public void setOnkeydown(String onkeydown) {
@@ -377,34 +413,37 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 	}
 
 	/**
-	 * Get the value of the '<code>onkeydown</code>' attribute.
+	 * Get the value of the '{@code onkeydown}' attribute.
 	 * May be a runtime expression.
 	 */
+	@Nullable
 	protected String getOnkeydown() {
 		return this.onkeydown;
 	}
-	
+
 	/**
-	 * Get the map of dynamic attributes. 
+	 * Get the map of dynamic attributes.
 	 */
+	@Nullable
 	protected Map<String, Object> getDynamicAttributes() {
 		return this.dynamicAttributes;
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
-	public void setDynamicAttribute(String uri, String localName, Object value ) throws JspException {
+	@Override
+	public void setDynamicAttribute(String uri, String localName, Object value) throws JspException {
 		if (this.dynamicAttributes == null) {
-			this.dynamicAttributes = new HashMap<String, Object>();
+			this.dynamicAttributes = new HashMap<>();
 		}
 		if (!isValidDynamicAttribute(localName, value)) {
 			throw new IllegalArgumentException(
 					"Attribute " + localName + "=\"" + value + "\" is not allowed");
 		}
-		dynamicAttributes.put(localName, value);
+		this.dynamicAttributes.put(localName, value);
 	}
-	
+
 	/**
 	 * Whether the given name-value pair is a valid dynamic attribute.
 	 */
@@ -445,10 +484,10 @@ public abstract class AbstractHtmlElementTag extends AbstractDataBoundFormElemen
 		writeOptionalAttribute(tagWriter, ONKEYPRESS_ATTRIBUTE, getOnkeypress());
 		writeOptionalAttribute(tagWriter, ONKEYUP_ATTRIBUTE, getOnkeyup());
 		writeOptionalAttribute(tagWriter, ONKEYDOWN_ATTRIBUTE, getOnkeydown());
-		
+
 		if (!CollectionUtils.isEmpty(this.dynamicAttributes)) {
-			for (String attr : this.dynamicAttributes.keySet()) {
-				tagWriter.writeOptionalAttributeValue(attr, getDisplayString(this.dynamicAttributes.get(attr)));
+			for (Map.Entry<String, Object> entry : this.dynamicAttributes.entrySet()) {
+				tagWriter.writeOptionalAttributeValue(entry.getKey(), getDisplayString(entry.getValue()));
 			}
 		}
 	}

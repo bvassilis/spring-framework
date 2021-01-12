@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,12 +17,15 @@
 package org.springframework.util;
 
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+
+import org.springframework.lang.Nullable;
 
 /**
  * Simple {@link List} wrapper class that allows for elements to be
@@ -33,12 +36,14 @@ import java.util.ListIterator;
  * <p>Note: This class is not thread-safe. To create a thread-safe version,
  * use the {@link java.util.Collections#synchronizedList} utility methods.
  *
- * <p>Inspired by <code>LazyList</code> from Commons Collections.
+ * <p>Inspired by {@code LazyList} from Commons Collections.
  *
  * @author Rob Harrop
  * @author Juergen Hoeller
  * @since 2.0
+ * @param <E> the element type
  */
+@SuppressWarnings("serial")
 public class AutoPopulatingList<E> implements List<E>, Serializable {
 
 	/**
@@ -54,33 +59,33 @@ public class AutoPopulatingList<E> implements List<E>, Serializable {
 
 
 	/**
-	 * Creates a new <code>AutoPopulatingList</code> that is backed by a standard
+	 * Creates a new {@code AutoPopulatingList} that is backed by a standard
 	 * {@link ArrayList} and adds new instances of the supplied {@link Class element Class}
 	 * to the backing {@link List} on demand.
 	 */
 	public AutoPopulatingList(Class<? extends E> elementClass) {
-		this(new ArrayList<E>(), elementClass);
+		this(new ArrayList<>(), elementClass);
 	}
 
 	/**
-	 * Creates a new <code>AutoPopulatingList</code> that is backed by the supplied {@link List}
+	 * Creates a new {@code AutoPopulatingList} that is backed by the supplied {@link List}
 	 * and adds new instances of the supplied {@link Class element Class} to the backing
 	 * {@link List} on demand.
 	 */
 	public AutoPopulatingList(List<E> backingList, Class<? extends E> elementClass) {
-		this(backingList, new ReflectiveElementFactory<E>(elementClass));
+		this(backingList, new ReflectiveElementFactory<>(elementClass));
 	}
 
 	/**
-	 * Creates a new <code>AutoPopulatingList</code> that is backed by a standard
+	 * Creates a new {@code AutoPopulatingList} that is backed by a standard
 	 * {@link ArrayList} and creates new elements on demand using the supplied {@link ElementFactory}.
 	 */
 	public AutoPopulatingList(ElementFactory<E> elementFactory) {
-		this(new ArrayList<E>(), elementFactory);
+		this(new ArrayList<>(), elementFactory);
 	}
 
 	/**
-	 * Creates a new <code>AutoPopulatingList</code> that is backed by the supplied {@link List}
+	 * Creates a new {@code AutoPopulatingList} that is backed by the supplied {@link List}
 	 * and creates new elements on demand using the supplied {@link ElementFactory}.
 	 */
 	public AutoPopulatingList(List<E> backingList, ElementFactory<E> elementFactory) {
@@ -91,31 +96,38 @@ public class AutoPopulatingList<E> implements List<E>, Serializable {
 	}
 
 
+	@Override
 	public void add(int index, E element) {
 		this.backingList.add(index, element);
 	}
 
+	@Override
 	public boolean add(E o) {
 		return this.backingList.add(o);
 	}
 
+	@Override
 	public boolean addAll(Collection<? extends E> c) {
 		return this.backingList.addAll(c);
 	}
 
+	@Override
 	public boolean addAll(int index, Collection<? extends E> c) {
 		return this.backingList.addAll(index, c);
 	}
 
+	@Override
 	public void clear() {
 		this.backingList.clear();
 	}
 
+	@Override
 	public boolean contains(Object o) {
 		return this.backingList.contains(o);
 	}
 
-	public boolean containsAll(Collection c) {
+	@Override
+	public boolean containsAll(Collection<?> c) {
 		return this.backingList.containsAll(c);
 	}
 
@@ -123,6 +135,7 @@ public class AutoPopulatingList<E> implements List<E>, Serializable {
 	 * Get the element at the supplied index, creating it if there is
 	 * no element at that index.
 	 */
+	@Override
 	public E get(int index) {
 		int backingListSize = this.backingList.size();
 		E element = null;
@@ -143,69 +156,84 @@ public class AutoPopulatingList<E> implements List<E>, Serializable {
 		return element;
 	}
 
+	@Override
 	public int indexOf(Object o) {
 		return this.backingList.indexOf(o);
 	}
 
+	@Override
 	public boolean isEmpty() {
 		return this.backingList.isEmpty();
 	}
 
+	@Override
 	public Iterator<E> iterator() {
 		return this.backingList.iterator();
 	}
 
+	@Override
 	public int lastIndexOf(Object o) {
 		return this.backingList.lastIndexOf(o);
 	}
 
+	@Override
 	public ListIterator<E> listIterator() {
 		return this.backingList.listIterator();
 	}
 
+	@Override
 	public ListIterator<E> listIterator(int index) {
 		return this.backingList.listIterator(index);
 	}
 
+	@Override
 	public E remove(int index) {
 		return this.backingList.remove(index);
 	}
 
+	@Override
 	public boolean remove(Object o) {
 		return this.backingList.remove(o);
 	}
 
+	@Override
 	public boolean removeAll(Collection<?> c) {
 		return this.backingList.removeAll(c);
 	}
 
+	@Override
 	public boolean retainAll(Collection<?> c) {
 		return this.backingList.retainAll(c);
 	}
 
+	@Override
 	public E set(int index, E element) {
 		return this.backingList.set(index, element);
 	}
 
+	@Override
 	public int size() {
 		return this.backingList.size();
 	}
 
+	@Override
 	public List<E> subList(int fromIndex, int toIndex) {
 		return this.backingList.subList(fromIndex, toIndex);
 	}
 
+	@Override
 	public Object[] toArray() {
 		return this.backingList.toArray();
 	}
 
+	@Override
 	public <T> T[] toArray(T[] a) {
 		return this.backingList.toArray(a);
 	}
 
 
 	@Override
-	public boolean equals(Object other) {
+	public boolean equals(@Nullable Object other) {
 		return this.backingList.equals(other);
 	}
 
@@ -218,7 +246,10 @@ public class AutoPopulatingList<E> implements List<E>, Serializable {
 	/**
 	 * Factory interface for creating elements for an index-based access
 	 * data structure such as a {@link java.util.List}.
+	 *
+	 * @param <E> the element type
 	 */
+	@FunctionalInterface
 	public interface ElementFactory<E> {
 
 		/**
@@ -239,36 +270,48 @@ public class AutoPopulatingList<E> implements List<E>, Serializable {
 		public ElementInstantiationException(String msg) {
 			super(msg);
 		}
+
+		public ElementInstantiationException(String message, Throwable cause) {
+			super(message, cause);
+		}
 	}
 
 
 	/**
-	 * Reflective implementation of the ElementFactory interface,
-	 * using <code>Class.newInstance()</code> on a given element class.
-	 * @see java.lang.Class#newInstance()
+	 * Reflective implementation of the ElementFactory interface, using
+	 * {@code Class.getDeclaredConstructor().newInstance()} on a given element class.
 	 */
 	private static class ReflectiveElementFactory<E> implements ElementFactory<E>, Serializable {
 
 		private final Class<? extends E> elementClass;
 
 		public ReflectiveElementFactory(Class<? extends E> elementClass) {
-			Assert.notNull(elementClass, "Element clas must not be null");
+			Assert.notNull(elementClass, "Element class must not be null");
 			Assert.isTrue(!elementClass.isInterface(), "Element class must not be an interface type");
 			Assert.isTrue(!Modifier.isAbstract(elementClass.getModifiers()), "Element class cannot be an abstract class");
 			this.elementClass = elementClass;
 		}
 
+		@Override
 		public E createElement(int index) {
 			try {
-				return this.elementClass.newInstance();
+				return ReflectionUtils.accessibleConstructor(this.elementClass).newInstance();
+			}
+			catch (NoSuchMethodException ex) {
+				throw new ElementInstantiationException(
+						"No default constructor on element class: " + this.elementClass.getName(), ex);
 			}
 			catch (InstantiationException ex) {
-				throw new ElementInstantiationException("Unable to instantiate element class [" +
-						this.elementClass.getName() + "]. Root cause is " + ex);
+				throw new ElementInstantiationException(
+						"Unable to instantiate element class: " + this.elementClass.getName(), ex);
 			}
 			catch (IllegalAccessException ex) {
-				throw new ElementInstantiationException("Cannot access element class [" +
-						this.elementClass.getName() + "]. Root cause is " + ex);
+				throw new ElementInstantiationException(
+						"Could not access element constructor: " + this.elementClass.getName(), ex);
+			}
+			catch (InvocationTargetException ex) {
+				throw new ElementInstantiationException(
+						"Failed to invoke element constructor: " + this.elementClass.getName(), ex.getTargetException());
 			}
 		}
 	}

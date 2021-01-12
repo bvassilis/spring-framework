@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +19,8 @@ package org.springframework.web.servlet.tags;
 import java.beans.PropertyEditor;
 
 import javax.servlet.jsp.JspException;
+
+import org.springframework.lang.Nullable;
 
 /**
  * Interface to be implemented by JSP tags that expose a
@@ -34,9 +36,10 @@ public interface EditorAwareTag {
 	/**
 	 * Retrieve the PropertyEditor for the property that this tag is
 	 * currently bound to. Intended for cooperating nesting tags.
-	 * @return the current PropertyEditor, or <code>null</code> if none
+	 * @return the current PropertyEditor, or {@code null} if none
 	 * @throws JspException if resolving the editor failed
 	 */
+	@Nullable
 	PropertyEditor getEditor() throws JspException;
 
 }

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -58,7 +58,7 @@ public class SpringModelMBean extends RequiredModelMBean {
 	 * Construct a new SpringModelMBean instance with the given {@link ModelMBeanInfo}.
 	 * @see javax.management.modelmbean.RequiredModelMBean#RequiredModelMBean(ModelMBeanInfo)
 	 */
-	public SpringModelMBean(ModelMBeanInfo mbi) throws MBeanException, RuntimeOperationsException  {
+	public SpringModelMBean(ModelMBeanInfo mbi) throws MBeanException, RuntimeOperationsException {
 		super(mbi);
 	}
 

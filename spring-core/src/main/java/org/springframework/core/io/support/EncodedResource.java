@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,75 +17,129 @@
 package org.springframework.core.io.support;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.Charset;
 
+import org.springframework.core.io.InputStreamSource;
 import org.springframework.core.io.Resource;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
 /**
- * Holder that combines a {@link org.springframework.core.io.Resource}
- * with a specific encoding to be used for reading from the resource.
+ * Holder that combines a {@link Resource} descriptor with a specific encoding
+ * or {@code Charset} to be used for reading from the resource.
  *
- * <p>Used as argument for operations that support to read content with
- * a specific encoding (usually through a <code>java.io.Reader</code>.
+ * <p>Used as an argument for operations that support reading content with
+ * a specific encoding, typically via a {@code java.io.Reader}.
  *
  * @author Juergen Hoeller
+ * @author Sam Brannen
  * @since 1.2.6
+ * @see Resource#getInputStream()
  * @see java.io.Reader
+ * @see java.nio.charset.Charset
  */
-public class EncodedResource {
+public class EncodedResource implements InputStreamSource {
 
 	private final Resource resource;
 
+	@Nullable
 	private final String encoding;
+
+	@Nullable
+	private final Charset charset;
 
 
 	/**
-	 * Create a new EncodedResource for the given Resource,
-	 * not specifying a specific encoding.
-	 * @param resource the Resource to hold
+	 * Create a new {@code EncodedResource} for the given {@code Resource},
+	 * not specifying an explicit encoding or {@code Charset}.
+	 * @param resource the {@code Resource} to hold (never {@code null})
 	 */
 	public EncodedResource(Resource resource) {
-		this(resource, null);
+		this(resource, null, null);
 	}
 
 	/**
-	 * Create a new EncodedResource for the given Resource,
-	 * using the specified encoding.
-	 * @param resource the Resource to hold
+	 * Create a new {@code EncodedResource} for the given {@code Resource},
+	 * using the specified {@code encoding}.
+	 * @param resource the {@code Resource} to hold (never {@code null})
 	 * @param encoding the encoding to use for reading from the resource
 	 */
-	public EncodedResource(Resource resource, String encoding) {
+	public EncodedResource(Resource resource, @Nullable String encoding) {
+		this(resource, encoding, null);
+	}
+
+	/**
+	 * Create a new {@code EncodedResource} for the given {@code Resource},
+	 * using the specified {@code Charset}.
+	 * @param resource the {@code Resource} to hold (never {@code null})
+	 * @param charset the {@code Charset} to use for reading from the resource
+	 */
+	public EncodedResource(Resource resource, @Nullable Charset charset) {
+		this(resource, null, charset);
+	}
+
+	private EncodedResource(Resource resource, @Nullable String encoding, @Nullable Charset charset) {
+		super();
 		Assert.notNull(resource, "Resource must not be null");
 		this.resource = resource;
 		this.encoding = encoding;
+		this.charset = charset;
 	}
 
 
 	/**
-	 * Return the Resource held.
+	 * Return the {@code Resource} held by this {@code EncodedResource}.
 	 */
 	public final Resource getResource() {
 		return this.resource;
 	}
 
 	/**
-	 * Return the encoding to use for reading from the resource,
-	 * or <code>null</code> if none specified.
+	 * Return the encoding to use for reading from the {@linkplain #getResource() resource},
+	 * or {@code null} if none specified.
 	 */
+	@Nullable
 	public final String getEncoding() {
 		return this.encoding;
 	}
 
 	/**
-	 * Open a <code>java.io.Reader</code> for the specified resource,
-	 * using the specified encoding (if any).
+	 * Return the {@code Charset} to use for reading from the {@linkplain #getResource() resource},
+	 * or {@code null} if none specified.
+	 */
+	@Nullable
+	public final Charset getCharset() {
+		return this.charset;
+	}
+
+	/**
+	 * Determine whether a {@link Reader} is required as opposed to an {@link InputStream},
+	 * i.e. whether an {@linkplain #getEncoding() encoding} or a {@link #getCharset() Charset}
+	 * has been specified.
+	 * @see #getReader()
+	 * @see #getInputStream()
+	 */
+	public boolean requiresReader() {
+		return (this.encoding != null || this.charset != null);
+	}
+
+	/**
+	 * Open a {@code java.io.Reader} for the specified resource, using the specified
+	 * {@link #getCharset() Charset} or {@linkplain #getEncoding() encoding}
+	 * (if any).
 	 * @throws IOException if opening the Reader failed
+	 * @see #requiresReader()
+	 * @see #getInputStream()
 	 */
 	public Reader getReader() throws IOException {
-		if (this.encoding != null) {
+		if (this.charset != null) {
+			return new InputStreamReader(this.resource.getInputStream(), this.charset);
+		}
+		else if (this.encoding != null) {
 			return new InputStreamReader(this.resource.getInputStream(), this.encoding);
 		}
 		else {
@@ -93,18 +147,31 @@ public class EncodedResource {
 		}
 	}
 
+	/**
+	 * Open an {@code InputStream} for the specified resource, ignoring any specified
+	 * {@link #getCharset() Charset} or {@linkplain #getEncoding() encoding}.
+	 * @throws IOException if opening the InputStream failed
+	 * @see #requiresReader()
+	 * @see #getReader()
+	 */
+	@Override
+	public InputStream getInputStream() throws IOException {
+		return this.resource.getInputStream();
+	}
+
 
 	@Override
-	public boolean equals(Object obj) {
-		if (obj == this) {
+	public boolean equals(@Nullable Object other) {
+		if (this == other) {
 			return true;
 		}
-		if (obj instanceof EncodedResource) {
-			EncodedResource otherRes = (EncodedResource) obj;
-			return (this.resource.equals(otherRes.resource) &&
-					ObjectUtils.nullSafeEquals(this.encoding, otherRes.encoding));
+		if (!(other instanceof EncodedResource)) {
+			return false;
 		}
-		return false;
+		EncodedResource otherResource = (EncodedResource) other;
+		return (this.resource.equals(otherResource.resource) &&
+				ObjectUtils.nullSafeEquals(this.charset, otherResource.charset) &&
+				ObjectUtils.nullSafeEquals(this.encoding, otherResource.encoding));
 	}
 
 	@Override

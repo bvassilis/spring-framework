@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,9 +16,11 @@
 
 package org.springframework.transaction;
 
+import org.springframework.lang.Nullable;
+
 /**
- * This is the central interface in Spring's transaction infrastructure.
- * Applications can use this directly, but it is not primarily meant as API:
+ * This is the central interface in Spring's imperative transaction infrastructure.
+ * Applications can use this directly, but it is not primarily meant as an API:
  * Typically, applications will work with either TransactionTemplate or
  * declarative transaction demarcation through AOP.
  *
@@ -39,9 +41,9 @@ package org.springframework.transaction;
  * @since 16.05.2003
  * @see org.springframework.transaction.support.TransactionTemplate
  * @see org.springframework.transaction.interceptor.TransactionInterceptor
- * @see org.springframework.transaction.interceptor.TransactionProxyFactoryBean
+ * @see org.springframework.transaction.ReactiveTransactionManager
  */
-public interface PlatformTransactionManager {
+public interface PlatformTransactionManager extends TransactionManager {
 
 	/**
 	 * Return a currently active transaction or create a new one, according to
@@ -54,7 +56,7 @@ public interface PlatformTransactionManager {
 	 * <p>An exception to the above rule is the read-only flag, which should be
 	 * ignored if no explicit read-only mode is supported. Essentially, the
 	 * read-only flag is just a hint for potential optimization.
-	 * @param definition TransactionDefinition instance (can be <code>null</code> for defaults),
+	 * @param definition the TransactionDefinition instance (can be {@code null} for defaults),
 	 * describing propagation behavior, isolation level, timeout etc.
 	 * @return transaction status object representing the new or current transaction
 	 * @throws TransactionException in case of lookup, creation, or system errors
@@ -66,7 +68,8 @@ public interface PlatformTransactionManager {
 	 * @see TransactionDefinition#getTimeout
 	 * @see TransactionDefinition#isReadOnly
 	 */
-	TransactionStatus getTransaction(TransactionDefinition definition) throws TransactionException;
+	TransactionStatus getTransaction(@Nullable TransactionDefinition definition)
+			throws TransactionException;
 
 	/**
 	 * Commit the given transaction, with regard to its status. If the transaction
@@ -84,7 +87,7 @@ public interface PlatformTransactionManager {
 	 * database right before commit, with the resulting DataAccessException
 	 * causing the transaction to fail. The original exception will be
 	 * propagated to the caller of this commit method in such a case.
-	 * @param status object returned by the <code>getTransaction</code> method
+	 * @param status object returned by the {@code getTransaction} method
 	 * @throws UnexpectedRollbackException in case of an unexpected rollback
 	 * that the transaction coordinator initiated
 	 * @throws HeuristicCompletionException in case of a transaction failure
@@ -107,7 +110,7 @@ public interface PlatformTransactionManager {
 	 * The transaction will already have been completed and cleaned up when commit
 	 * returns, even in case of a commit exception. Consequently, a rollback call
 	 * after commit failure will lead to an IllegalTransactionStateException.
-	 * @param status object returned by the <code>getTransaction</code> method
+	 * @param status object returned by the {@code getTransaction} method
 	 * @throws TransactionSystemException in case of rollback or system errors
 	 * (typically caused by fundamental resource failures)
 	 * @throws IllegalTransactionStateException if the given transaction

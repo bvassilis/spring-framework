@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,8 +36,8 @@ import org.springframework.util.ClassUtils;
  * {@link org.springframework.remoting.support.RemoteInvocationResult} objects,
  * for example Spring's HTTP invoker.
  *
- * <p>Provides template methods for <code>ObjectInputStream</code> and
- * <code>ObjectOutputStream</code> handling.
+ * <p>Provides template methods for {@code ObjectInputStream} and
+ * {@code ObjectOutputStream} handling.
  *
  * @author Juergen Hoeller
  * @since 2.5.1
@@ -45,12 +45,14 @@ import org.springframework.util.ClassUtils;
  * @see java.io.ObjectOutputStream
  * @see #doReadRemoteInvocation
  * @see #doWriteRemoteInvocationResult
+ * @deprecated as of 5.3 (phasing out serialization-based remoting)
  */
+@Deprecated
 public abstract class RemoteInvocationSerializingExporter extends RemoteInvocationBasedExporter
 		implements InitializingBean {
 
 	/**
-	 * Default content type: "application/x-java-serialized-object"
+	 * Default content type: "application/x-java-serialized-object".
 	 */
 	public static final String CONTENT_TYPE_SERIALIZED_OBJECT = "application/x-java-serialized-object";
 
@@ -94,6 +96,7 @@ public abstract class RemoteInvocationSerializingExporter extends RemoteInvocati
 	}
 
 
+	@Override
 	public void afterPropertiesSet() {
 		prepare();
 	}
@@ -106,7 +109,9 @@ public abstract class RemoteInvocationSerializingExporter extends RemoteInvocati
 	}
 
 	protected final Object getProxy() {
-		Assert.notNull(this.proxy, ClassUtils.getShortName(getClass()) + " has not been initialized");
+		if (this.proxy == null) {
+			throw new IllegalStateException(ClassUtils.getShortName(getClass()) + " has not been initialized");
+		}
 		return this.proxy;
 	}
 
@@ -141,7 +146,7 @@ public abstract class RemoteInvocationSerializingExporter extends RemoteInvocati
 		Object obj = ois.readObject();
 		if (!(obj instanceof RemoteInvocation)) {
 			throw new RemoteException("Deserialized object needs to be assignable to type [" +
-					RemoteInvocation.class.getName() + "]: " + obj);
+					RemoteInvocation.class.getName() + "]: " + ClassUtils.getDescriptiveType(obj));
 		}
 		return (RemoteInvocation) obj;
 	}

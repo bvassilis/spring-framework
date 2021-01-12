@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,14 +16,15 @@
 
 package org.springframework.aop.aspectj;
 
-import static org.junit.Assert.*;
-
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.core.Ordered;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Test for SPR-3522. Arguments changed on a call to proceed should be
@@ -32,7 +33,7 @@ import org.springframework.core.Ordered;
  * @author Adrian Colyer
  * @author Chris Beams
  */
-public final class ProceedTests {
+public class ProceedTests {
 
 	private SimpleBean testBean;
 
@@ -41,40 +42,41 @@ public final class ProceedTests {
 	private ProceedTestingAspect secondTestAspect;
 
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	public void setup() {
 		ClassPathXmlApplicationContext ctx =
-			new ClassPathXmlApplicationContext(getClass().getSimpleName() + ".xml", getClass());
+				new ClassPathXmlApplicationContext(getClass().getSimpleName() + ".xml", getClass());
 		testBean = (SimpleBean) ctx.getBean("testBean");
 		firstTestAspect = (ProceedTestingAspect) ctx.getBean("firstTestAspect");
 		secondTestAspect = (ProceedTestingAspect) ctx.getBean("secondTestAspect");
 	}
 
+
 	@Test
 	public void testSimpleProceedWithChangedArgs() {
 		this.testBean.setName("abc");
-		assertEquals("Name changed in around advice", "ABC", this.testBean.getName());
+		assertThat(this.testBean.getName()).as("Name changed in around advice").isEqualTo("ABC");
 	}
 
 	@Test
 	public void testGetArgsIsDefensive() {
 		this.testBean.setAge(5);
-		assertEquals("getArgs is defensive", 5, this.testBean.getAge());
+		assertThat(this.testBean.getAge()).as("getArgs is defensive").isEqualTo(5);
 	}
 
 	@Test
 	public void testProceedWithArgsInSameAspect() {
 		this.testBean.setMyFloat(1.0F);
-		assertTrue("value changed in around advice", this.testBean.getMyFloat() > 1.9F);
-		assertTrue("changed value visible to next advice in chain", this.firstTestAspect.getLastBeforeFloatValue() > 1.9F);
+		assertThat(this.testBean.getMyFloat() > 1.9F).as("value changed in around advice").isTrue();
+		assertThat(this.firstTestAspect.getLastBeforeFloatValue() > 1.9F).as("changed value visible to next advice in chain").isTrue();
 	}
 
 	@Test
 	public void testProceedWithArgsAcrossAspects() {
 		this.testBean.setSex("male");
-		assertEquals("value changed in around advice","MALE", this.testBean.getSex());
-		assertEquals("changed value visible to next before advice in chain","MALE", this.secondTestAspect.getLastBeforeStringValue());
-		assertEquals("changed value visible to next around advice in chain","MALE", this.secondTestAspect.getLastAroundStringValue());
+		assertThat(this.testBean.getSex()).as("value changed in around advice").isEqualTo("MALE");
+		assertThat(this.secondTestAspect.getLastBeforeStringValue()).as("changed value visible to next before advice in chain").isEqualTo("MALE");
+		assertThat(this.secondTestAspect.getLastAroundStringValue()).as("changed value visible to next around advice in chain").isEqualTo("MALE");
 	}
 
 
@@ -82,7 +84,7 @@ public final class ProceedTests {
 
 
 interface SimpleBean {
-	
+
 	void setName(String name);
 	String getName();
 	void setAge(int age);
@@ -100,35 +102,43 @@ class SimpleBeanImpl implements SimpleBean {
 	private float aFloat;
 	private String name;
 	private String sex;
-	
+
+	@Override
 	public int getAge() {
 		return age;
 	}
 
+	@Override
 	public float getMyFloat() {
 		return aFloat;
 	}
 
+	@Override
 	public String getName() {
 		return name;
 	}
 
+	@Override
 	public String getSex() {
 		return sex;
 	}
 
+	@Override
 	public void setAge(int age) {
 		this.age = age;
 	}
 
+	@Override
 	public void setMyFloat(float f) {
 		this.aFloat = f;
 	}
 
+	@Override
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	@Override
 	public void setSex(String sex) {
 		this.sex = sex;
 	}
@@ -136,30 +146,31 @@ class SimpleBeanImpl implements SimpleBean {
 
 
 class ProceedTestingAspect implements Ordered {
-	
+
 	private String lastBeforeStringValue;
 	private String lastAroundStringValue;
 	private float lastBeforeFloatValue;
 	private int order;
-	
+
 	public void setOrder(int order) { this.order = order; }
+	@Override
 	public int getOrder() { return this.order; }
-	
+
 	public Object capitalize(ProceedingJoinPoint pjp, String value) throws Throwable {
 		return pjp.proceed(new Object[] {value.toUpperCase()});
 	}
-	
+
 	public Object doubleOrQuits(ProceedingJoinPoint pjp) throws Throwable {
 		int value = ((Integer) pjp.getArgs()[0]).intValue();
 		pjp.getArgs()[0] = new Integer(value * 2);
 		return pjp.proceed();
 	}
-	
+
 	public Object addOne(ProceedingJoinPoint pjp, Float value) throws Throwable {
 		float fv = value.floatValue();
 		return pjp.proceed(new Object[] {new Float(fv + 1.0F)});
 	}
-	
+
 	public void captureStringArgument(JoinPoint tjp, String arg) {
 		if (!tjp.getArgs()[0].equals(arg)) {
 			throw new IllegalStateException(
@@ -169,7 +180,7 @@ class ProceedTestingAspect implements Ordered {
 		}
 		this.lastBeforeStringValue = arg;
 	}
-	
+
 	public Object captureStringArgumentInAround(ProceedingJoinPoint pjp, String arg) throws Throwable {
 		if (!pjp.getArgs()[0].equals(arg)) {
 			throw new IllegalStateException(
@@ -179,7 +190,7 @@ class ProceedTestingAspect implements Ordered {
 		this.lastAroundStringValue = arg;
 		return pjp.proceed();
 	}
-	
+
 	public void captureFloatArgument(JoinPoint tjp, float arg) {
 		float tjpArg = ((Float) tjp.getArgs()[0]).floatValue();
 		if (Math.abs(tjpArg - arg) > 0.000001) {
@@ -190,15 +201,15 @@ class ProceedTestingAspect implements Ordered {
 		}
 		this.lastBeforeFloatValue = arg;
 	}
-	
+
 	public String getLastBeforeStringValue() {
 		return this.lastBeforeStringValue;
 	}
-	
+
 	public String getLastAroundStringValue() {
 		return this.lastAroundStringValue;
 	}
-	
+
 	public float getLastBeforeFloatValue() {
 		return this.lastBeforeFloatValue;
 	}

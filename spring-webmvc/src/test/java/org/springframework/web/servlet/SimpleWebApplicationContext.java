@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2005 the original author or authors.
- * 
+ * Copyright 2002-2019 the original author or authors.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,15 +31,13 @@ import org.springframework.ui.context.ThemeSource;
 import org.springframework.ui.context.support.SimpleTheme;
 import org.springframework.ui.context.support.UiApplicationContextUtils;
 import org.springframework.web.context.support.StaticWebApplicationContext;
+import org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 import org.springframework.web.servlet.mvc.Controller;
 import org.springframework.web.servlet.mvc.LastModified;
-import org.springframework.web.servlet.mvc.SimpleFormController;
 import org.springframework.web.servlet.support.RequestContextUtils;
 import org.springframework.web.servlet.theme.AbstractThemeResolver;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
-import org.springframework.web.servlet.view.XmlViewResolver;
-import org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping;
 
 /**
  * @author Juergen Hoeller
@@ -47,12 +45,9 @@ import org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping;
  */
 public class SimpleWebApplicationContext extends StaticWebApplicationContext {
 
+	@Override
+	@SuppressWarnings("deprecation")
 	public void refresh() throws BeansException {
-		MutablePropertyValues pvs = new MutablePropertyValues();
-		pvs.add("commandClass", "org.springframework.beans.TestBean");
-		pvs.add("formView", "form");
-		registerSingleton("/form.do", SimpleFormController.class, pvs);
-
 		registerSingleton("/locale.do", LocaleChecker.class);
 
 		addMessage("test", Locale.ENGLISH, "test message");
@@ -65,9 +60,9 @@ public class SimpleWebApplicationContext extends StaticWebApplicationContext {
 		registerSingleton("handlerMapping", BeanNameUrlHandlerMapping.class);
 		registerSingleton("viewResolver", InternalResourceViewResolver.class);
 
-		pvs = new MutablePropertyValues();
+		MutablePropertyValues pvs = new MutablePropertyValues();
 		pvs.add("location", "org/springframework/web/context/WEB-INF/sessionContext.xml");
-		registerSingleton("viewResolver2", XmlViewResolver.class, pvs);
+		registerSingleton("viewResolver2", org.springframework.web.servlet.view.XmlViewResolver.class, pvs);
 
 		super.refresh();
 	}
@@ -75,9 +70,11 @@ public class SimpleWebApplicationContext extends StaticWebApplicationContext {
 
 	public static class LocaleChecker implements Controller, LastModified {
 
+		@Override
 		public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response)
 				throws ServletException, IOException {
-			if (!(RequestContextUtils.getWebApplicationContext(request) instanceof SimpleWebApplicationContext)) {
+
+			if (!(RequestContextUtils.findWebApplicationContext(request) instanceof SimpleWebApplicationContext)) {
 				throw new ServletException("Incorrect WebApplicationContext");
 			}
 			if (!(RequestContextUtils.getLocaleResolver(request) instanceof AcceptHeaderLocaleResolver)) {
@@ -89,8 +86,9 @@ public class SimpleWebApplicationContext extends StaticWebApplicationContext {
 			return null;
 		}
 
+		@Override
 		public long getLastModified(HttpServletRequest request) {
-			return 98;
+			return 1427846400000L;
 		}
 	}
 
@@ -105,6 +103,7 @@ public class SimpleWebApplicationContext extends StaticWebApplicationContext {
 			this.messageSource.addMessage("themetestArgs", Locale.ENGLISH, "theme test message {0}");
 		}
 
+		@Override
 		public Theme getTheme(String themeName) {
 			if (AbstractThemeResolver.ORIGINAL_DEFAULT_THEME_NAME.equals(themeName)) {
 				return new SimpleTheme(AbstractThemeResolver.ORIGINAL_DEFAULT_THEME_NAME, this.messageSource);

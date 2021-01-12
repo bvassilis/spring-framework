@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,13 +21,14 @@ import javax.sql.DataSource;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
  * {@link DataSourceLookup} implementation based on a Spring {@link BeanFactory}.
- * 
+ *
  * <p>Will lookup Spring managed beans identified by bean name,
- * expecting them to be of type <code>javax.sql.DataSource</code>.
+ * expecting them to be of type {@code javax.sql.DataSource}.
  *
  * @author Costin Leau
  * @author Juergen Hoeller
@@ -36,12 +37,13 @@ import org.springframework.util.Assert;
  */
 public class BeanFactoryDataSourceLookup implements DataSourceLookup, BeanFactoryAware {
 
+	@Nullable
 	private BeanFactory beanFactory;
 
 
 	/**
 	 * Create a new instance of the {@link BeanFactoryDataSourceLookup} class.
-	 * <p>The BeanFactory to access must be set via <code>setBeanFactory</code>.
+	 * <p>The BeanFactory to access must be set via {@code setBeanFactory}.
 	 * @see #setBeanFactory
 	 */
 	public BeanFactoryDataSourceLookup() {
@@ -53,7 +55,7 @@ public class BeanFactoryDataSourceLookup implements DataSourceLookup, BeanFactor
 	 * by a Spring IoC container, as the supplied {@link BeanFactory} will be
 	 * replaced by the {@link BeanFactory} that creates it (c.f. the
 	 * {@link BeanFactoryAware} contract). So only use this constructor if you
-	 * are using this class outside the context of a Spring IoC container. 
+	 * are using this class outside the context of a Spring IoC container.
 	 * @param beanFactory the bean factory to be used to lookup {@link DataSource DataSources}
 	 */
 	public BeanFactoryDataSourceLookup(BeanFactory beanFactory) {
@@ -62,15 +64,17 @@ public class BeanFactoryDataSourceLookup implements DataSourceLookup, BeanFactor
 	}
 
 
+	@Override
 	public void setBeanFactory(BeanFactory beanFactory) {
 		this.beanFactory = beanFactory;
 	}
 
 
+	@Override
 	public DataSource getDataSource(String dataSourceName) throws DataSourceLookupFailureException {
 		Assert.state(this.beanFactory != null, "BeanFactory is required");
 		try {
-			return (DataSource) this.beanFactory.getBean(dataSourceName, DataSource.class);
+			return this.beanFactory.getBean(dataSourceName, DataSource.class);
 		}
 		catch (BeansException ex) {
 			throw new DataSourceLookupFailureException(

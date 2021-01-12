@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.rmi.server.RMIClassLoader;
 
 import org.springframework.core.ConfigurableObjectInputStream;
+import org.springframework.lang.Nullable;
 
 /**
  * Special ObjectInputStream subclass that falls back to a specified codebase
@@ -49,7 +50,9 @@ import org.springframework.core.ConfigurableObjectInputStream;
  * @see java.rmi.server.RMIClassLoader
  * @see RemoteInvocationSerializingExporter#createObjectInputStream
  * @see org.springframework.remoting.httpinvoker.HttpInvokerClientInterceptor#setCodebaseUrl
+ * @deprecated as of 5.3 (phasing out serialization-based remoting)
  */
+@Deprecated
 public class CodebaseAwareObjectInputStream extends ConfigurableObjectInputStream {
 
 	private final String codebaseUrl;
@@ -70,13 +73,13 @@ public class CodebaseAwareObjectInputStream extends ConfigurableObjectInputStrea
 	 * Create a new CodebaseAwareObjectInputStream for the given InputStream and codebase.
 	 * @param in the InputStream to read from
 	 * @param classLoader the ClassLoader to use for loading local classes
-	 * (may be <code>null</code> to indicate RMI's default ClassLoader)
+	 * (may be {@code null} to indicate RMI's default ClassLoader)
 	 * @param codebaseUrl the codebase URL to load classes from if not found locally
 	 * (can consist of multiple URLs, separated by spaces)
 	 * @see java.io.ObjectInputStream#ObjectInputStream(java.io.InputStream)
 	 */
 	public CodebaseAwareObjectInputStream(
-			InputStream in, ClassLoader classLoader, String codebaseUrl) throws IOException {
+			InputStream in, @Nullable ClassLoader classLoader, String codebaseUrl) throws IOException {
 
 		super(in, classLoader);
 		this.codebaseUrl = codebaseUrl;
@@ -86,13 +89,13 @@ public class CodebaseAwareObjectInputStream extends ConfigurableObjectInputStrea
 	 * Create a new CodebaseAwareObjectInputStream for the given InputStream and codebase.
 	 * @param in the InputStream to read from
 	 * @param classLoader the ClassLoader to use for loading local classes
-	 * (may be <code>null</code> to indicate RMI's default ClassLoader)
+	 * (may be {@code null} to indicate RMI's default ClassLoader)
 	 * @param acceptProxyClasses whether to accept deserialization of proxy classes
 	 * (may be deactivated as a security measure)
 	 * @see java.io.ObjectInputStream#ObjectInputStream(java.io.InputStream)
 	 */
 	public CodebaseAwareObjectInputStream(
-			InputStream in, ClassLoader classLoader, boolean acceptProxyClasses) throws IOException {
+			InputStream in, @Nullable ClassLoader classLoader, boolean acceptProxyClasses) throws IOException {
 
 		super(in, classLoader, acceptProxyClasses);
 		this.codebaseUrl = null;
@@ -100,7 +103,7 @@ public class CodebaseAwareObjectInputStream extends ConfigurableObjectInputStrea
 
 
 	@Override
-	protected Class resolveFallbackIfPossible(String className, ClassNotFoundException ex)
+	protected Class<?> resolveFallbackIfPossible(String className, ClassNotFoundException ex)
 			throws IOException, ClassNotFoundException {
 
 		// If codebaseUrl is set, try to load the class with the RMIClassLoader.

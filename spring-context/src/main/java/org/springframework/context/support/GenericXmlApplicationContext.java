@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,7 +29,8 @@ import org.springframework.core.io.Resource;
  *
  * <p>In case of multiple configuration files, bean definitions in later files
  * will override those defined in earlier files. This can be leveraged to
- * deliberately override certain bean definitions via an extra configuration file.
+ * intentionally override certain bean definitions via an extra configuration
+ * file appended to the list.
  *
  * @author Juergen Hoeller
  * @author Chris Beams
@@ -45,10 +46,9 @@ public class GenericXmlApplicationContext extends GenericApplicationContext {
 
 	/**
 	 * Create a new GenericXmlApplicationContext that needs to be
-	 * {@linkplain #load loaded} and then manually {@link #refresh refreshed}.
+	 * {@link #load loaded} and then manually {@link #refresh refreshed}.
 	 */
 	public GenericXmlApplicationContext() {
-		reader.setEnvironment(this.getEnvironment());
 	}
 
 	/**
@@ -83,23 +83,36 @@ public class GenericXmlApplicationContext extends GenericApplicationContext {
 		refresh();
 	}
 
+
 	/**
-	 * Set whether to use XML validation. Default is <code>true</code>.
+	 * Exposes the underlying {@link XmlBeanDefinitionReader} for additional
+	 * configuration facilities and {@code loadBeanDefinition} variations.
+	 */
+	public final XmlBeanDefinitionReader getReader() {
+		return this.reader;
+	}
+
+	/**
+	 * Set whether to use XML validation. Default is {@code true}.
 	 */
 	public void setValidating(boolean validating) {
 		this.reader.setValidating(validating);
 	}
 
 	/**
-	 * {@inheritDoc}
-	 * <p>Delegates the given environment to underlying {@link XmlBeanDefinitionReader}.
-	 * Should be called before any call to {@link #load}.
+	 * Delegates the given environment to underlying {@link XmlBeanDefinitionReader}.
+	 * Should be called before any call to {@code #load}.
 	 */
 	@Override
 	public void setEnvironment(ConfigurableEnvironment environment) {
 		super.setEnvironment(environment);
-		this.reader.setEnvironment(this.getEnvironment());
+		this.reader.setEnvironment(getEnvironment());
 	}
+
+
+	//---------------------------------------------------------------------
+	// Convenient methods for loading XML bean definition files
+	//---------------------------------------------------------------------
 
 	/**
 	 * Load bean definitions from the given XML resources.

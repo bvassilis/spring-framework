@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,19 +18,25 @@ package org.springframework.util.xml;
 
 import java.io.InputStream;
 import java.io.StringReader;
+
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import org.easymock.MockControl;
-import static org.junit.Assert.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
-import org.xml.sax.helpers.AttributesImpl;
+import org.xml.sax.Locator;
 
-public class StaxStreamXMLReaderTests extends AbstractStaxXMLReaderTestCase {
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+class StaxStreamXMLReaderTests extends AbstractStaxXMLReaderTests {
 
 	public static final String CONTENT = "<root xmlns='http://springframework.org/spring-ws'><child/></root>";
 
@@ -40,33 +46,24 @@ public class StaxStreamXMLReaderTests extends AbstractStaxXMLReaderTestCase {
 	}
 
 	@Test
-	public void testPartial() throws Exception {
+	void partial() throws Exception {
 		XMLInputFactory inputFactory = XMLInputFactory.newInstance();
 		XMLStreamReader streamReader = inputFactory.createXMLStreamReader(new StringReader(CONTENT));
-		streamReader.nextTag(); // skip to root
-		assertEquals("Invalid element", new QName("http://springframework.org/spring-ws", "root"),
-				streamReader.getName());
-		streamReader.nextTag(); // skip to child
-		assertEquals("Invalid element", new QName("http://springframework.org/spring-ws", "child"),
-				streamReader.getName());
+		streamReader.nextTag();  // skip to root
+		assertThat(streamReader.getName()).as("Invalid element").isEqualTo(new QName("http://springframework.org/spring-ws", "root"));
+		streamReader.nextTag();  // skip to child
+		assertThat(streamReader.getName()).as("Invalid element").isEqualTo(new QName("http://springframework.org/spring-ws", "child"));
 		StaxStreamXMLReader xmlReader = new StaxStreamXMLReader(streamReader);
 
-		MockControl mockControl = MockControl.createStrictControl(ContentHandler.class);
-		mockControl.setDefaultMatcher(new SaxArgumentMatcher());
-		ContentHandler contentHandlerMock = (ContentHandler) mockControl.getMock();
-
-		contentHandlerMock.setDocumentLocator(null);
-		mockControl.setMatcher(MockControl.ALWAYS_MATCHER);
-		contentHandlerMock.startDocument();
-		contentHandlerMock.startElement("http://springframework.org/spring-ws", "child", "child", new AttributesImpl());
-		contentHandlerMock.endElement("http://springframework.org/spring-ws", "child", "child");
-		contentHandlerMock.endDocument();
-
-		xmlReader.setContentHandler(contentHandlerMock);
-		mockControl.replay();
+		ContentHandler contentHandler = mock(ContentHandler.class);
+		xmlReader.setContentHandler(contentHandler);
 		xmlReader.parse(new InputSource());
-		mockControl.verify();
-	}
 
+		verify(contentHandler).setDocumentLocator(any(Locator.class));
+		verify(contentHandler).startDocument();
+		verify(contentHandler).startElement(eq("http://springframework.org/spring-ws"), eq("child"), eq("child"), any(Attributes.class));
+		verify(contentHandler).endElement("http://springframework.org/spring-ws", "child", "child");
+		verify(contentHandler).endDocument();
+	}
 
 }

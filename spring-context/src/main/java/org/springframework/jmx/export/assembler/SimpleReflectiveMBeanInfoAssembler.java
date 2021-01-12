@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2005 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,7 @@ package org.springframework.jmx.export.assembler;
 import java.lang.reflect.Method;
 
 /**
- * Simple subclass of <code>AbstractReflectiveMBeanInfoAssembler</code>
+ * Simple subclass of {@code AbstractReflectiveMBeanInfoAssembler}
  * that always votes yes for method and property inclusion, effectively exposing
  * all public methods and properties as operations and attributes.
  *
@@ -30,7 +30,7 @@ import java.lang.reflect.Method;
 public class SimpleReflectiveMBeanInfoAssembler extends AbstractConfigurableMBeanInfoAssembler {
 
 	/**
-	 * Always returns <code>true</code>.
+	 * Always returns {@code true}.
 	 */
 	@Override
 	protected boolean includeReadAttribute(Method method, String beanKey) {
@@ -38,15 +38,15 @@ public class SimpleReflectiveMBeanInfoAssembler extends AbstractConfigurableMBea
 	}
 
 	/**
-	 * Always returns <code>true</code>.
+	 * Always returns {@code true}.
 	 */
 	@Override
 	protected boolean includeWriteAttribute(Method method, String beanKey) {
 		return true;
 	}
 
-  /**
-	 * Always returns <code>true</code>.
+	/**
+	 * Always returns {@code true}.
 	 */
 	@Override
 	protected boolean includeOperation(Method method, String beanKey) {

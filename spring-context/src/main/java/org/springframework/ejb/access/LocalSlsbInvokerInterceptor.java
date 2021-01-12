@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,6 +26,8 @@ import javax.naming.NamingException;
 
 import org.aopalliance.intercept.MethodInvocation;
 
+import org.springframework.lang.Nullable;
+
 /**
  * Invoker for a local Stateless Session Bean.
  * Designed for EJB 2.x, but works for EJB 3 Session Beans as well.
@@ -42,7 +44,7 @@ import org.aopalliance.intercept.MethodInvocation;
  * bound at the target location yet. The best solution is to set the lookupHomeOnStartup
  * property to false, in which case the home will be fetched on first access to the EJB.
  * (This flag is only true by default for backwards compatibility reasons).
- * 
+ *
  * @author Rod Johnson
  * @author Juergen Hoeller
  * @see AbstractSlsbInvokerInterceptor#setLookupHomeOnStartup
@@ -50,7 +52,7 @@ import org.aopalliance.intercept.MethodInvocation;
  */
 public class LocalSlsbInvokerInterceptor extends AbstractSlsbInvokerInterceptor {
 
-	private volatile boolean homeAsComponent = false;
+	private volatile boolean homeAsComponent;
 
 
 	/**
@@ -61,6 +63,7 @@ public class LocalSlsbInvokerInterceptor extends AbstractSlsbInvokerInterceptor 
 	 * for example to hold a single shared EJB instance.
 	 */
 	@Override
+	@Nullable
 	public Object invokeInContext(MethodInvocation invocation) throws Throwable {
 		Object ejb = null;
 		try {
@@ -93,7 +96,7 @@ public class LocalSlsbInvokerInterceptor extends AbstractSlsbInvokerInterceptor 
 		}
 		catch (IllegalAccessException ex) {
 			throw new EjbAccessException("Could not access method [" + invocation.getMethod().getName() +
-			    "] of local EJB [" + getJndiName() + "]", ex);
+				"] of local EJB [" + getJndiName() + "]", ex);
 		}
 		finally {
 			if (ejb instanceof EJBLocalObject) {
@@ -162,7 +165,7 @@ public class LocalSlsbInvokerInterceptor extends AbstractSlsbInvokerInterceptor 
 	 * @param ejb the EJB instance to remove
 	 * @see javax.ejb.EJBLocalObject#remove()
 	 */
-	protected void removeSessionBeanInstance(EJBLocalObject ejb) {
+	protected void removeSessionBeanInstance(@Nullable EJBLocalObject ejb) {
 		if (ejb != null && !this.homeAsComponent) {
 			try {
 				ejb.remove();

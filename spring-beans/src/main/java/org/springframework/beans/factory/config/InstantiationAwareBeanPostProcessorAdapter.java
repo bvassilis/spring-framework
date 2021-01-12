@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,12 +15,6 @@
  */
 
 package org.springframework.beans.factory.config;
-
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.Constructor;
-
-import org.springframework.beans.BeansException;
-import org.springframework.beans.PropertyValues;
 
 /**
  * Adapter that implements all methods on {@link SmartInstantiationAwareBeanPostProcessor}
@@ -36,42 +30,10 @@ import org.springframework.beans.PropertyValues;
  * @author Rod Johnson
  * @author Juergen Hoeller
  * @since 2.0
+ * @deprecated as of 5.3 in favor of implementing {@link InstantiationAwareBeanPostProcessor}
+ * or {@link SmartInstantiationAwareBeanPostProcessor} directly.
  */
+@Deprecated
 public abstract class InstantiationAwareBeanPostProcessorAdapter implements SmartInstantiationAwareBeanPostProcessor {
-
-	public Class<?> predictBeanType(Class<?> beanClass, String beanName) {
-		return null;
-	}
-
-	public Constructor<?>[] determineCandidateConstructors(Class<?> beanClass, String beanName) throws BeansException {
-		return null;
-	}
-
-	public Object getEarlyBeanReference(Object bean, String beanName) throws BeansException {
-		return bean;
-	}
-
-	public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) throws BeansException {
-		return null;
-	}
-
-	public boolean postProcessAfterInstantiation(Object bean, String beanName) throws BeansException {
-		return true;
-	}
-
-	public PropertyValues postProcessPropertyValues(
-			PropertyValues pvs, PropertyDescriptor[] pds, Object bean, String beanName)
-			throws BeansException {
-
-		return pvs;
-	}
-
-	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-		return bean;
-	}
-
-	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-		return bean;
-	}
 
 }

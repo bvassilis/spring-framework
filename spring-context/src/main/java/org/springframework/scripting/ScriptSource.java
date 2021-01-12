@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,8 @@
 package org.springframework.scripting;
 
 import java.io.IOException;
+
+import org.springframework.lang.Nullable;
 
 /**
  * Interface that defines the source of a script.
@@ -38,15 +40,16 @@ public interface ScriptSource {
 	/**
 	 * Indicate whether the underlying script data has been modified since
 	 * the last time {@link #getScriptAsString()} was called.
-	 * Returns <code>true</code> if the script has not been read yet.
+	 * Returns {@code true} if the script has not been read yet.
 	 * @return whether the script data has been modified
 	 */
 	boolean isModified();
 
 	/**
 	 * Determine a class name for the underlying script.
-	 * @return the suggested class name, or <code>null</code> if none available
+	 * @return the suggested class name, or {@code null} if none available
 	 */
+	@Nullable
 	String suggestedClassName();
 
 }

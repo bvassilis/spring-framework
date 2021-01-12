@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@ import org.springframework.context.support.AbstractRefreshableConfigApplicationC
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.lang.Nullable;
 import org.springframework.ui.context.Theme;
 import org.springframework.ui.context.ThemeSource;
 import org.springframework.ui.context.support.UiApplicationContextUtils;
@@ -80,16 +81,20 @@ import org.springframework.web.context.ServletContextAware;
 public abstract class AbstractRefreshableWebApplicationContext extends AbstractRefreshableConfigApplicationContext
 		implements ConfigurableWebApplicationContext, ThemeSource {
 
-	/** Servlet context that this context runs in */
+	/** Servlet context that this context runs in. */
+	@Nullable
 	private ServletContext servletContext;
 
-	/** Servlet config that this context runs in, if any */
+	/** Servlet config that this context runs in, if any. */
+	@Nullable
 	private ServletConfig servletConfig;
 
-	/** Namespace of this context, or <code>null</code> if root */
+	/** Namespace of this context, or {@code null} if root. */
+	@Nullable
 	private String namespace;
 
-	/** the ThemeSource for this ApplicationContext */
+	/** the ThemeSource for this ApplicationContext. */
+	@Nullable
 	private ThemeSource themeSource;
 
 
@@ -98,32 +103,41 @@ public abstract class AbstractRefreshableWebApplicationContext extends AbstractR
 	}
 
 
-	public void setServletContext(ServletContext servletContext) {
+	@Override
+	public void setServletContext(@Nullable ServletContext servletContext) {
 		this.servletContext = servletContext;
 	}
 
+	@Override
+	@Nullable
 	public ServletContext getServletContext() {
 		return this.servletContext;
 	}
 
-	public void setServletConfig(ServletConfig servletConfig) {
+	@Override
+	public void setServletConfig(@Nullable ServletConfig servletConfig) {
 		this.servletConfig = servletConfig;
 		if (servletConfig != null && this.servletContext == null) {
-			this.setServletContext(servletConfig.getServletContext());
+			setServletContext(servletConfig.getServletContext());
 		}
 	}
 
+	@Override
+	@Nullable
 	public ServletConfig getServletConfig() {
 		return this.servletConfig;
 	}
 
-	public void setNamespace(String namespace) {
+	@Override
+	public void setNamespace(@Nullable String namespace) {
 		this.namespace = namespace;
 		if (namespace != null) {
 			setDisplayName("WebApplicationContext for namespace '" + namespace + "'");
 		}
 	}
 
+	@Override
+	@Nullable
 	public String getNamespace() {
 		return this.namespace;
 	}
@@ -133,21 +147,18 @@ public abstract class AbstractRefreshableWebApplicationContext extends AbstractR
 		return super.getConfigLocations();
 	}
 
+	@Override
+	public String getApplicationName() {
+		return (this.servletContext != null ? this.servletContext.getContextPath() : "");
+	}
+
 	/**
-	 * Create and return a new {@link StandardServletEnvironment}.
+	 * Create and return a new {@link StandardServletEnvironment}. Subclasses may override
+	 * in order to configure the environment or specialize the environment type returned.
 	 */
 	@Override
 	protected ConfigurableEnvironment createEnvironment() {
 		return new StandardServletEnvironment();
-	}
-
-	@Override
-	public ConfigurableWebEnvironment getEnvironment() {
-		ConfigurableEnvironment env = super.getEnvironment();
-		Assert.isInstanceOf(ConfigurableWebEnvironment.class, env,
-				"ConfigurableWebApplicationContext environment must be of type " +
-				"ConfigurableWebEnvironment");
-		return (ConfigurableWebEnvironment) env;
 	}
 
 	/**
@@ -169,6 +180,7 @@ public abstract class AbstractRefreshableWebApplicationContext extends AbstractR
 	 */
 	@Override
 	protected Resource getResourceByPath(String path) {
+		Assert.state(this.servletContext != null, "No ServletContext available");
 		return new ServletContextResource(this.servletContext, path);
 	}
 
@@ -195,11 +207,16 @@ public abstract class AbstractRefreshableWebApplicationContext extends AbstractR
 	 */
 	@Override
 	protected void initPropertySources() {
-		super.initPropertySources();
-		this.getEnvironment().initPropertySources(this.servletContext, this.servletConfig);
+		ConfigurableEnvironment env = getEnvironment();
+		if (env instanceof ConfigurableWebEnvironment) {
+			((ConfigurableWebEnvironment) env).initPropertySources(this.servletContext, this.servletConfig);
+		}
 	}
 
+	@Override
+	@Nullable
 	public Theme getTheme(String themeName) {
+		Assert.state(this.themeSource != null, "No ThemeSource available");
 		return this.themeSource.getTheme(themeName);
 	}
 

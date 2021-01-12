@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2006 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,7 @@
 package org.springframework.beans.factory.parsing;
 
 import org.springframework.core.io.Resource;
+import org.springframework.lang.Nullable;
 
 /**
  * Simple strategy allowing tools to control how source metadata is attached
@@ -33,16 +34,18 @@ import org.springframework.core.io.Resource;
  * @see org.springframework.beans.BeanMetadataElement#getSource()
  * @see org.springframework.beans.factory.config.BeanDefinition
  */
+@FunctionalInterface
 public interface SourceExtractor {
 
 	/**
 	 * Extract the source metadata from the candidate object supplied
 	 * by the configuration parser.
-	 * @param sourceCandidate the original source metadata (never <code>null</code>)
+	 * @param sourceCandidate the original source metadata (never {@code null})
 	 * @param definingResource the resource that defines the given source object
-	 * (may be <code>null</code>)
-	 * @return the source metadata object to store (may be <code>null</code>)
+	 * (may be {@code null})
+	 * @return the source metadata object to store (may be {@code null})
 	 */
-	Object extractSource(Object sourceCandidate, Resource definingResource);
+	@Nullable
+	Object extractSource(Object sourceCandidate, @Nullable Resource definingResource);
 
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,14 +18,16 @@ package org.springframework.jdbc.object;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
 import javax.sql.DataSource;
 
 import org.springframework.dao.TypeMismatchDataAccessException;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
+import org.springframework.lang.Nullable;
 
 /**
- * SQL "function" wrapper for a query that returns a single row of results. 
- * The default behavior is to return an int, but that can be overridden by 
+ * SQL "function" wrapper for a query that returns a single row of results.
+ * The default behavior is to return an int, but that can be overridden by
  * using the constructor with an extra return type parameter.
  *
  * <p>Intended to use to call SQL functions that return a single result using a
@@ -36,26 +38,27 @@ import org.springframework.jdbc.core.SingleColumnRowMapper;
  *
  * <p>This is a concrete class, which there is often no need to subclass.
  * Code using this package can create an object of this type, declaring SQL
- * and parameters, and then invoke the appropriate <code>run</code> method
+ * and parameters, and then invoke the appropriate {@code run} method
  * repeatedly to execute the function. Subclasses are only supposed to add
- * specialized <code>run</code> methods for specific parameter and return types.
+ * specialized {@code run} methods for specific parameter and return types.
  *
  * <p>Like all RdbmsOperation objects, SqlFunction objects are thread-safe.
  *
  * @author Rod Johnson
  * @author Juergen Hoeller
  * @author Jean-Pierre Pawlak
- * @see org.springframework.jdbc.object.StoredProcedure
+ * @param <T> the result type
+ * @see StoredProcedure
  */
 public class SqlFunction<T> extends MappingSqlQuery<T> {
 
-	private final SingleColumnRowMapper<T> rowMapper = new SingleColumnRowMapper<T>();
+	private final SingleColumnRowMapper<T> rowMapper = new SingleColumnRowMapper<>();
 
 
 	/**
 	 * Constructor to allow use as a JavaBean.
 	 * A DataSource, SQL and any parameters must be supplied before
-	 * invoking the <code>compile</code> method and using this object.
+	 * invoking the {@code compile} method and using this object.
 	 * @see #setDataSource
 	 * @see #setSql
 	 * @see #compile
@@ -67,8 +70,8 @@ public class SqlFunction<T> extends MappingSqlQuery<T> {
 	/**
 	 * Create a new SqlFunction object with SQL, but without parameters.
 	 * Must add parameters or settle with none.
-	 * @param ds DataSource to obtain connections from
-	 * @param sql SQL to execute
+	 * @param ds the DataSource to obtain connections from
+	 * @param sql the SQL to execute
 	 */
 	public SqlFunction(DataSource ds, String sql) {
 		setRowsExpected(1);
@@ -78,10 +81,10 @@ public class SqlFunction<T> extends MappingSqlQuery<T> {
 
 	/**
 	 * Create a new SqlFunction object with SQL and parameters.
-	 * @param ds DataSource to obtain connections from
-	 * @param sql SQL to execute
-	 * @param types SQL types of the parameters, as defined in the
-	 * <code>java.sql.Types</code> class
+	 * @param ds the DataSource to obtain connections from
+	 * @param sql the SQL to execute
+	 * @param types the SQL types of the parameters, as defined in the
+	 * {@code java.sql.Types} class
 	 * @see java.sql.Types
 	 */
 	public SqlFunction(DataSource ds, String sql, int[] types) {
@@ -93,10 +96,10 @@ public class SqlFunction<T> extends MappingSqlQuery<T> {
 
 	/**
 	 * Create a new SqlFunction object with SQL, parameters and a result type.
-	 * @param ds DataSource to obtain connections from
-	 * @param sql SQL to execute
-	 * @param types SQL types of the parameters, as defined in the
-	 * <code>java.sql.Types</code> class
+	 * @param ds the DataSource to obtain connections from
+	 * @param sql the SQL to execute
+	 * @param types the SQL types of the parameters, as defined in the
+	 * {@code java.sql.Types} class
 	 * @param resultType the type that the result object is required to match
 	 * @see #setResultType(Class)
 	 * @see java.sql.Types
@@ -126,6 +129,7 @@ public class SqlFunction<T> extends MappingSqlQuery<T> {
 	 * of rows returned, this is treated as an error.
 	 */
 	@Override
+	@Nullable
 	protected T mapRow(ResultSet rs, int rowNum) throws SQLException {
 		return this.rowMapper.mapRow(rs, rowNum);
 	}
@@ -158,7 +162,7 @@ public class SqlFunction<T> extends MappingSqlQuery<T> {
 	public int run(Object... parameters) {
 		Object obj = super.findObject(parameters);
 		if (!(obj instanceof Number)) {
-			throw new TypeMismatchDataAccessException("Couldn't convert result object [" + obj + "] to int");
+			throw new TypeMismatchDataAccessException("Could not convert result object [" + obj + "] to int");
 		}
 		return ((Number) obj).intValue();
 	}
@@ -168,8 +172,9 @@ public class SqlFunction<T> extends MappingSqlQuery<T> {
 	 * returning the value as an object.
 	 * @return the value of the function
 	 */
+	@Nullable
 	public Object runGeneric() {
-		return findObject((Object[]) null);
+		return findObject((Object[]) null, null);
 	}
 
 	/**
@@ -177,18 +182,20 @@ public class SqlFunction<T> extends MappingSqlQuery<T> {
 	 * @param parameter single int parameter
 	 * @return the value of the function as an Object
 	 */
+	@Nullable
 	public Object runGeneric(int parameter) {
 		return findObject(parameter);
 	}
 
 	/**
-	 * Analogous to the <code>SqlQuery.findObject(Object[])</code> method.
+	 * Analogous to the {@code SqlQuery.findObject(Object[])} method.
 	 * This is a generic method to execute a query, taken a number of arguments.
 	 * @param parameters array of parameters. These will be objects or
 	 * object wrapper types for primitives.
 	 * @return the value of the function, as an Object
 	 * @see #execute(Object[])
 	 */
+	@Nullable
 	public Object runGeneric(Object[] parameters) {
 		return findObject(parameters);
 	}

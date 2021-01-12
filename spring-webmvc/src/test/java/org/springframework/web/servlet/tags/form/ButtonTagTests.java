@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,11 @@ import java.io.Writer;
 
 import javax.servlet.jsp.tagext.Tag;
 
-import org.springframework.beans.TestBean;
+import org.junit.jupiter.api.Test;
+
+import org.springframework.beans.testfixture.beans.TestBean;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Rossen Stoyanchev
@@ -29,6 +33,7 @@ public class ButtonTagTests extends AbstractFormTagTests {
 
 	private ButtonTag tag;
 
+	@Override
 	protected void onSetUp() {
 		this.tag = createTag(getWriter());
 		this.tag.setParent(getFormTag());
@@ -37,11 +42,12 @@ public class ButtonTagTests extends AbstractFormTagTests {
 		this.tag.setName("My Name");
 		this.tag.setValue("My Button");
 	}
-	
-	public void testButtonTag() throws Exception {
-		assertEquals(Tag.EVAL_BODY_INCLUDE, this.tag.doStartTag());
-		assertEquals(Tag.EVAL_PAGE, this.tag.doEndTag());
-		
+
+	@Test
+	public void buttonTag() throws Exception {
+		assertThat(this.tag.doStartTag()).isEqualTo(Tag.EVAL_BODY_INCLUDE);
+		assertThat(this.tag.doEndTag()).isEqualTo(Tag.EVAL_PAGE);
+
 		String output = getOutput();
 		assertTagOpened(output);
 		assertTagClosed(output);
@@ -52,10 +58,11 @@ public class ButtonTagTests extends AbstractFormTagTests {
 		assertContainsAttribute(output, "value", "My Button");
 		assertAttributeNotPresent(output, "disabled");
 	}
-	
-	public void testDisabled() throws Exception {
-		this.tag.setDisabled("true");
-		
+
+	@Test
+	public void disabled() throws Exception {
+		this.tag.setDisabled(true);
+
 		this.tag.doStartTag();
 		this.tag.doEndTag();
 
@@ -65,23 +72,24 @@ public class ButtonTagTests extends AbstractFormTagTests {
 
 		assertContainsAttribute(output, "disabled", "disabled");
 	}
-	
+
 	@Override
 	protected TestBean createTestBean() {
 		return new TestBean();
 	}
 
 	protected final void assertTagClosed(String output) {
-		assertTrue("Tag not closed properly", output.endsWith("</button>"));
+		assertThat(output.endsWith("</button>")).as("Tag not closed properly").isTrue();
 	}
 
 	protected final void assertTagOpened(String output) {
-		assertTrue("Tag not opened properly", output.startsWith("<button "));
+		assertThat(output.startsWith("<button ")).as("Tag not opened properly").isTrue();
 	}
-	
+
 	@SuppressWarnings("serial")
 	protected ButtonTag createTag(final Writer writer) {
 		return new ButtonTag() {
+			@Override
 			protected TagWriter createTagWriter() {
 				return new TagWriter(writer);
 			}

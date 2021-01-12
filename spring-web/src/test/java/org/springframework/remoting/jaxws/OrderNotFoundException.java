@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,12 +22,14 @@ import javax.xml.ws.WebFault;
  * @author Juergen Hoeller
  */
 @WebFault
+@SuppressWarnings("serial")
 public class OrderNotFoundException extends Exception {
 
-	private String faultInfo;
+	private final String faultInfo;
 
 	public OrderNotFoundException(String message) {
 		super(message);
+		this.faultInfo = null;
 	}
 
 	public OrderNotFoundException(String message, String faultInfo) {

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.springframework.beans.BeanMetadataElement;
 import org.springframework.beans.Mergeable;
+import org.springframework.lang.Nullable;
 
 /**
  * Tag collection class used to hold managed List elements, which may
@@ -30,11 +31,15 @@ import org.springframework.beans.Mergeable;
  * @author Rob Harrop
  * @author Juergen Hoeller
  * @since 27.05.2003
+ * @param <E> the element type
  */
+@SuppressWarnings("serial")
 public class ManagedList<E> extends ArrayList<E> implements Mergeable, BeanMetadataElement {
 
+	@Nullable
 	private Object source;
 
+	@Nullable
 	private String elementTypeName;
 
 	private boolean mergeEnabled;
@@ -49,13 +54,15 @@ public class ManagedList<E> extends ArrayList<E> implements Mergeable, BeanMetad
 
 
 	/**
-	 * Set the configuration source <code>Object</code> for this metadata element.
+	 * Set the configuration source {@code Object} for this metadata element.
 	 * <p>The exact type of the object will depend on the configuration mechanism used.
 	 */
-	public void setSource(Object source) {
+	public void setSource(@Nullable Object source) {
 		this.source = source;
 	}
 
+	@Override
+	@Nullable
 	public Object getSource() {
 		return this.source;
 	}
@@ -70,6 +77,7 @@ public class ManagedList<E> extends ArrayList<E> implements Mergeable, BeanMetad
 	/**
 	 * Return the default element type name (class name) to be used for this list.
 	 */
+	@Nullable
 	public String getElementTypeName() {
 		return this.elementTypeName;
 	}
@@ -82,12 +90,14 @@ public class ManagedList<E> extends ArrayList<E> implements Mergeable, BeanMetad
 		this.mergeEnabled = mergeEnabled;
 	}
 
+	@Override
 	public boolean isMergeEnabled() {
 		return this.mergeEnabled;
 	}
 
+	@Override
 	@SuppressWarnings("unchecked")
-	public List<E> merge(Object parent) {
+	public List<E> merge(@Nullable Object parent) {
 		if (!this.mergeEnabled) {
 			throw new IllegalStateException("Not allowed to merge when the 'mergeEnabled' property is set to 'false'");
 		}
@@ -97,8 +107,8 @@ public class ManagedList<E> extends ArrayList<E> implements Mergeable, BeanMetad
 		if (!(parent instanceof List)) {
 			throw new IllegalArgumentException("Cannot merge with object of type [" + parent.getClass() + "]");
 		}
-		List<E> merged = new ManagedList<E>();
-		merged.addAll((List) parent);
+		List<E> merged = new ManagedList<>();
+		merged.addAll((List<E>) parent);
 		merged.addAll(this);
 		return merged;
 	}

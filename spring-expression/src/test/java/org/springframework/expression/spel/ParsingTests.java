@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,17 +16,17 @@
 
 package org.springframework.expression.spel;
 
-import junit.framework.Assert;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
-import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Parse some expressions and check we get the AST we expect. Rather than inspecting each node in the AST, we ask it to
  * write itself to a string form and check that is as expected.
- * 
+ *
  * @author Andy Clement
  */
 public class ParsingTests {
@@ -160,7 +160,7 @@ public class ParsingTests {
 	public void testElvis() {
 		parseCheck("3?:1", "3 ?: 1");
 	}
-	
+
 	// public void testRelOperatorsIn01() {
 	// parseCheck("3 in {1,2,3,4,5}", "(3 in {1,2,3,4,5})");
 	// }
@@ -297,30 +297,26 @@ public class ParsingTests {
 	}
 
 	// inline list creation
-	// public void testInlineListCreation01() {
-	// parseCheck("{1, 2, 3, 4, 5}", "{1,2,3,4,5}");
-	// }
-	//
-	// public void testInlineListCreation02() {
-	// parseCheck("{'abc','xyz'}", "{'abc','xyz'}");
-	// }
+	@Test
+	public void testInlineListCreation01() {
+		parseCheck("{1, 2, 3, 4, 5}", "{1,2,3,4,5}");
+	}
 
-	// // inline map creation
-	// public void testInlineMapCreation01() {
-	// parseCheck("#{'key1':'Value 1', 'today':DateTime.Today}");
-	// }
-	//
-	// public void testInlineMapCreation02() {
-	// parseCheck("#{1:'January', 2:'February', 3:'March'}");
-	// }
-	//
-	// public void testInlineMapCreation03() {
-	// parseCheck("#{'key1':'Value 1', 'today':'Monday'}['key1']");
-	// }
-	//
-	// public void testInlineMapCreation04() {
-	// parseCheck("#{1:'January', 2:'February', 3:'March'}[3]");
-	// }
+	@Test
+	public void testInlineListCreation02() {
+		parseCheck("{'abc','xyz'}", "{'abc','xyz'}");
+	}
+
+	// inline map creation
+	@Test
+	public void testInlineMapCreation01() {
+		parseCheck("{'key1':'Value 1','today':DateTime.Today}");
+	}
+
+	@Test
+	public void testInlineMapCreation02() {
+		parseCheck("{1:'January',2:'February',3:'March'}");
+	}
 
 	// methods
 	@Test
@@ -399,14 +395,14 @@ public class ParsingTests {
 		parseCheck("#var1='value1'");
 	}
 
-	
+
 	// ternary operator
-	
+
 	@Test
 	public void testTernaryOperator01() {
 		parseCheck("1>2?3:4","(1 > 2) ? 3 : 4");
 	}
-	
+
 	// public void testTernaryOperator01() {
 	// parseCheck("{1}.#isEven(#this) == 'y'?'it is even':'it is odd'",
 	// "({1}.#isEven(#this) == 'y') ? 'it is even' : 'it is odd'");
@@ -432,16 +428,16 @@ public class ParsingTests {
 	public void testTypeReferences02() {
 		parseCheck("T(String)");
 	}
-	
+
 	@Test
 	public void testInlineList1() {
 		parseCheck("{1,2,3,4}");
 	}
-	
+
 	/**
 	 * Parse the supplied expression and then create a string representation of the resultant AST, it should be the same
 	 * as the original expression.
-	 * 
+	 *
 	 * @param expression the expression to parse *and* the expected value of the string form of the resultant AST
 	 */
 	public void parseCheck(String expression) {
@@ -451,24 +447,14 @@ public class ParsingTests {
 	/**
 	 * Parse the supplied expression and then create a string representation of the resultant AST, it should be the
 	 * expected value.
-	 * 
+	 *
 	 * @param expression the expression to parse
 	 * @param expectedStringFormOfAST the expected string form of the AST
 	 */
 	public void parseCheck(String expression, String expectedStringFormOfAST) {
-		try {
-			SpelExpression e = (SpelExpression) parser.parseRaw(expression);
-			if (e != null && !e.toStringAST().equals(expectedStringFormOfAST)) {
-				SpelUtilities.printAbstractSyntaxTree(System.err, e);
-			}
-			if (e == null) {
-				Assert.fail("Parsed exception was null");
-			}
-			Assert.assertEquals("String form of AST does not match expected output", expectedStringFormOfAST, e.toStringAST());
-		} catch (ParseException ee) {
-			ee.printStackTrace();
-			Assert.fail("Unexpected Exception: " + ee.getMessage());
-		}
+		SpelExpression e = parser.parseRaw(expression);
+		assertThat(e).isNotNull();
+		assertThat(e.toStringAST()).isEqualTo(expectedStringFormOfAST);
 	}
 
 }

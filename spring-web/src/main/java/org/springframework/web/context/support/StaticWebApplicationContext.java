@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,12 +24,12 @@ import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.lang.Nullable;
 import org.springframework.ui.context.Theme;
 import org.springframework.ui.context.ThemeSource;
 import org.springframework.ui.context.support.UiApplicationContextUtils;
 import org.springframework.util.Assert;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
-import org.springframework.web.context.ConfigurableWebEnvironment;
 import org.springframework.web.context.ServletConfigAware;
 import org.springframework.web.context.ServletContextAware;
 
@@ -58,12 +58,16 @@ import org.springframework.web.context.ServletContextAware;
 public class StaticWebApplicationContext extends StaticApplicationContext
 		implements ConfigurableWebApplicationContext, ThemeSource {
 
+	@Nullable
 	private ServletContext servletContext;
 
+	@Nullable
 	private ServletConfig servletConfig;
 
+	@Nullable
 	private String namespace;
 
+	@Nullable
 	private ThemeSource themeSource;
 
 
@@ -75,32 +79,41 @@ public class StaticWebApplicationContext extends StaticApplicationContext
 	/**
 	 * Set the ServletContext that this WebApplicationContext runs in.
 	 */
-	public void setServletContext(ServletContext servletContext) {
+	@Override
+	public void setServletContext(@Nullable ServletContext servletContext) {
 		this.servletContext = servletContext;
 	}
 
+	@Override
+	@Nullable
 	public ServletContext getServletContext() {
 		return this.servletContext;
 	}
 
-	public void setServletConfig(ServletConfig servletConfig) {
+	@Override
+	public void setServletConfig(@Nullable ServletConfig servletConfig) {
 		this.servletConfig = servletConfig;
 		if (servletConfig != null && this.servletContext == null) {
 			this.servletContext = servletConfig.getServletContext();
 		}
 	}
 
+	@Override
+	@Nullable
 	public ServletConfig getServletConfig() {
 		return this.servletConfig;
 	}
 
-	public void setNamespace(String namespace) {
+	@Override
+	public void setNamespace(@Nullable String namespace) {
 		this.namespace = namespace;
 		if (namespace != null) {
 			setDisplayName("WebApplicationContext for namespace '" + namespace + "'");
 		}
 	}
 
+	@Override
+	@Nullable
 	public String getNamespace() {
 		return this.namespace;
 	}
@@ -109,22 +122,21 @@ public class StaticWebApplicationContext extends StaticApplicationContext
 	 * The {@link StaticWebApplicationContext} class does not support this method.
 	 * @throws UnsupportedOperationException <b>always</b>
 	 */
+	@Override
 	public void setConfigLocation(String configLocation) {
-		if (configLocation != null) {
-			throw new UnsupportedOperationException("StaticWebApplicationContext does not support config locations");
-		}
+		throw new UnsupportedOperationException("StaticWebApplicationContext does not support config locations");
 	}
 
 	/**
 	 * The {@link StaticWebApplicationContext} class does not support this method.
 	 * @throws UnsupportedOperationException <b>always</b>
 	 */
-	public void setConfigLocations(String[] configLocations) {
-		if (configLocations != null) {
-			throw new UnsupportedOperationException("StaticWebApplicationContext does not support config locations");
-		}
+	@Override
+	public void setConfigLocations(String... configLocations) {
+		throw new UnsupportedOperationException("StaticWebApplicationContext does not support config locations");
 	}
 
+	@Override
 	public String[] getConfigLocations() {
 		return null;
 	}
@@ -149,6 +161,7 @@ public class StaticWebApplicationContext extends StaticApplicationContext
 	 */
 	@Override
 	protected Resource getResourceByPath(String path) {
+		Assert.state(this.servletContext != null, "No ServletContext available");
 		return new ServletContextResource(this.servletContext, path);
 	}
 
@@ -169,15 +182,6 @@ public class StaticWebApplicationContext extends StaticApplicationContext
 		return new StandardServletEnvironment();
 	}
 
-	@Override
-	public ConfigurableWebEnvironment getEnvironment() {
-		ConfigurableEnvironment env = super.getEnvironment();
-		Assert.isInstanceOf(ConfigurableWebEnvironment.class, env,
-				"ConfigurableWebApplication environment must be of type " +
-				"ConfigurableWebEnvironment");
-		return (ConfigurableWebEnvironment) env;
-	}
-
 	/**
 	 * Initialize the theme capability.
 	 */
@@ -188,12 +192,14 @@ public class StaticWebApplicationContext extends StaticApplicationContext
 
 	@Override
 	protected void initPropertySources() {
-		super.initPropertySources();
-		WebApplicationContextUtils.initServletPropertySources(
-				this.getEnvironment().getPropertySources(), this.servletContext, this.servletConfig);
+		WebApplicationContextUtils.initServletPropertySources(getEnvironment().getPropertySources(),
+				this.servletContext, this.servletConfig);
 	}
 
+	@Override
+	@Nullable
 	public Theme getTheme(String themeName) {
+		Assert.state(this.themeSource != null, "No ThemeSource available");
 		return this.themeSource.getTheme(themeName);
 	}
 

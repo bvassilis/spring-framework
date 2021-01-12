@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,19 +16,29 @@
 
 package org.springframework.orm.jpa.persistenceunit;
 
+import java.util.List;
+
 import javax.persistence.spi.PersistenceUnitInfo;
 
 /**
  * Extension of the standard JPA PersistenceUnitInfo interface, for advanced collaboration
- * between Spring's {@link org.springframework.orm.jpa.LocalEntityManagerFactoryBean} and
- * {@link PersistenceUnitManager} implementations.
+ * between Spring's {@link org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean}
+ * and {@link PersistenceUnitManager} implementations.
  *
  * @author Juergen Hoeller
  * @since 3.0.1
  * @see PersistenceUnitManager
- * @see org.springframework.orm.jpa.LocalEntityManagerFactoryBean
+ * @see org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean
  */
 public interface SmartPersistenceUnitInfo extends PersistenceUnitInfo {
+
+	/**
+	 * Return a list of managed Java packages, to be introspected by the persistence provider.
+	 * Typically found through scanning but not exposable through {@link #getManagedClassNames()}.
+	 * @return a list of names of managed Java packages (potentially empty)
+	 * @since 4.1
+	 */
+	List<String> getManagedPackages();
 
 	/**
 	 * Set the persistence provider's own package name, for exclusion from class transformation.

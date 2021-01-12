@@ -1,17 +1,17 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.springframework.jmx;
@@ -21,7 +21,7 @@ import java.io.IOException;
 /**
  * @@org.springframework.jmx.export.metadata.ManagedResource
  *    (description="My Managed Bean", objectName="spring:bean=test",
- *    log=true, logFile="jmx.log", currencyTimeLimit=15, persistPolicy="OnUpdate",
+ *    log=true, logFile="build/jmx.log", currencyTimeLimit=15, persistPolicy="OnUpdate",
  *    persistPeriod=200, persistLocation="./foo", persistName="bar.jmx")
  * @@org.springframework.jmx.export.metadata.ManagedNotification
  *    (name="My Notification", description="A Notification", notificationType="type.foo,type.bar")
@@ -43,10 +43,12 @@ public class JmxTestBean implements IJmxTestBean {
 	 * @@org.springframework.jmx.export.metadata.ManagedAttribute
 	 *   (description="The Age Attribute", currencyTimeLimit=15)
 	 */
+	@Override
 	public int getAge() {
 		return age;
 	}
 
+	@Override
 	public void setAge(int age) {
 		this.age = age;
 	}
@@ -54,6 +56,7 @@ public class JmxTestBean implements IJmxTestBean {
 	/**
 	 * @@org.springframework.jmx.export.metadata.ManagedOperation(currencyTimeLimit=30)
 	 */
+	@Override
 	public long myOperation() {
 		return 1L;
 	}
@@ -63,6 +66,7 @@ public class JmxTestBean implements IJmxTestBean {
 	 *  (description="The Name Attribute",  currencyTimeLimit=20,
 	 *   defaultValue="bar", persistPolicy="OnUpdate")
 	 */
+	@Override
 	public void setName(String name) throws Exception {
 		if ("Juergen".equals(name)) {
 			throw new IllegalArgumentException("Juergen");
@@ -80,6 +84,7 @@ public class JmxTestBean implements IJmxTestBean {
 	 * @@org.springframework.jmx.export.metadata.ManagedAttribute
 	 *   (defaultValue="foo", persistPeriod=300)
 	 */
+	@Override
 	public String getName() {
 		return name;
 	}
@@ -117,6 +122,7 @@ public class JmxTestBean implements IJmxTestBean {
 	 * @@org.springframework.jmx.export.metadata.ManagedOperationParameter(index=0, name="x", description="Left operand")
 	 * @@org.springframework.jmx.export.metadata.ManagedOperationParameter(index=1, name="y", description="Right operand")
 	 */
+	@Override
 	public int add(int x, int y) {
 		return x + y;
 	}
@@ -124,6 +130,7 @@ public class JmxTestBean implements IJmxTestBean {
 	/**
 	 * Test method that is not exposed by the MetadataAssembler.
 	 */
+	@Override
 	public void dontExposeMe() {
 		throw new RuntimeException();
 	}
@@ -131,12 +138,14 @@ public class JmxTestBean implements IJmxTestBean {
 	protected void someProtectedMethod() {
 	}
 
+	@SuppressWarnings("unused")
 	private void somePrivateMethod() {
 	}
 
 	protected void getSomething() {
 	}
 
+	@SuppressWarnings("unused")
 	private void getSomethingElse() {
 	}
 

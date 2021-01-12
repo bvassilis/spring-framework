@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2008 the original author or authors.
- * 
+ * Copyright 2002-2020 the original author or authors.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,63 +16,33 @@
 
 package org.springframework.aop.interceptor;
 
-import static org.junit.Assert.*;
-import static test.util.TestResourceUtils.qualifiedResource;
+import org.junit.jupiter.api.Test;
 
-import org.aopalliance.intercept.MethodInvocation;
-import org.junit.Test;
-import org.springframework.beans.factory.xml.XmlBeanFactory;
-import org.springframework.core.io.Resource;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
+import org.springframework.beans.testfixture.beans.ITestBean;
 
-import test.beans.ITestBean;
-import test.beans.TestBean;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.core.testfixture.io.ResourceTestUtils.qualifiedResource;
 
 /**
  * Non-XML tests are in AbstractAopProxyTests
- * 
+ *
  * @author Rod Johnson
  * @author Chris Beams
  */
-public final class ExposeInvocationInterceptorTests {
-	
-	private static final Resource CONTEXT =
-		qualifiedResource(ExposeInvocationInterceptorTests.class, "context.xml");
+public class ExposeInvocationInterceptorTests {
 
 	@Test
 	public void testXmlConfig() {
-		XmlBeanFactory bf = new XmlBeanFactory(CONTEXT);
+		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
+		new XmlBeanDefinitionReader(bf).loadBeanDefinitions(
+				qualifiedResource(ExposeInvocationInterceptorTests.class, "context.xml"));
 		ITestBean tb = (ITestBean) bf.getBean("proxy");
-		String name= "tony";
+		String name = "tony";
 		tb.setName(name);
 		// Fires context checks
-		assertEquals(name, tb.getName());
+		assertThat(tb.getName()).isEqualTo(name);
 	}
 
-}
-
-
-abstract class ExposedInvocationTestBean extends TestBean {
-
-	public String getName() {
-		MethodInvocation invocation = ExposeInvocationInterceptor.currentInvocation();
-		assertions(invocation);
-		return super.getName();
-	}
-
-	public void absquatulate() {
-		MethodInvocation invocation = ExposeInvocationInterceptor.currentInvocation();
-		assertions(invocation);
-		super.absquatulate();
-	}
-	
-	protected abstract void assertions(MethodInvocation invocation);
-}
-
-
-class InvocationCheckExposedInvocationTestBean extends ExposedInvocationTestBean {
-	protected void assertions(MethodInvocation invocation) {
-		assertTrue(invocation.getThis() == this);
-		assertTrue("Invocation should be on ITestBean: " + invocation.getMethod(), 
-				ITestBean.class.isAssignableFrom(invocation.getMethod().getDeclaringClass()));
-	}
 }

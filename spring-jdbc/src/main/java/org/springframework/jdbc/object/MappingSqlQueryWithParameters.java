@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,9 +19,11 @@ package org.springframework.jdbc.object;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
+
 import javax.sql.DataSource;
 
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.lang.Nullable;
 
 /**
  * Reusable RDBMS query in which concrete subclasses must implement
@@ -44,21 +46,22 @@ import org.springframework.jdbc.core.RowMapper;
  * @author Rod Johnson
  * @author Thomas Risberg
  * @author Jean-Pierre Pawlak
+ * @param <T> the result type
  * @see org.springframework.jdbc.object.MappingSqlQuery
  * @see org.springframework.jdbc.object.SqlQuery
  */
 public abstract class MappingSqlQueryWithParameters<T> extends SqlQuery<T> {
 
 	/**
-	 * Constructor to allow use as a JavaBean
+	 * Constructor to allow use as a JavaBean.
 	 */
 	public MappingSqlQueryWithParameters() {
 	}
 
 	/**
 	 * Convenient constructor with DataSource and SQL string.
-	 * @param ds DataSource to use to get connections
-	 * @param sql SQL to run
+	 * @param ds the DataSource to use to get connections
+	 * @param sql the SQL to run
 	 */
 	public MappingSqlQueryWithParameters(DataSource ds, String sql) {
 		super(ds, sql);
@@ -70,47 +73,52 @@ public abstract class MappingSqlQueryWithParameters<T> extends SqlQuery<T> {
 	 * implementation of the mapRow() method.
 	 */
 	@Override
-	protected RowMapper<T> newRowMapper(Object[] parameters, Map context) {
+	protected RowMapper<T> newRowMapper(@Nullable Object[] parameters, @Nullable Map<?, ?> context) {
 		return new RowMapperImpl(parameters, context);
 	}
 
 	/**
 	 * Subclasses must implement this method to convert each row
 	 * of the ResultSet into an object of the result type.
-	 * @param rs ResultSet we're working through
+	 * @param rs the ResultSet we're working through
 	 * @param rowNum row number (from 0) we're up to
 	 * @param parameters to the query (passed to the execute() method).
 	 * Subclasses are rarely interested in these.
-	 * It can be <code>null</code> if there are no parameters.
+	 * It can be {@code null} if there are no parameters.
 	 * @param context passed to the execute() method.
-	 * It can be <code>null</code> if no contextual information is need.
+	 * It can be {@code null} if no contextual information is need.
 	 * @return an object of the result type
 	 * @throws SQLException if there's an error extracting data.
 	 * Subclasses can simply not catch SQLExceptions, relying on the
 	 * framework to clean up.
 	 */
-	protected abstract T mapRow(ResultSet rs, int rowNum, Object[] parameters, Map context)
+	@Nullable
+	protected abstract T mapRow(ResultSet rs, int rowNum, @Nullable Object[] parameters, @Nullable Map<?, ?> context)
 			throws SQLException;
 
 
 	/**
 	 * Implementation of RowMapper that calls the enclosing
-	 * class's <code>mapRow</code> method for each row.
+	 * class's {@code mapRow} method for each row.
 	 */
 	protected class RowMapperImpl implements RowMapper<T> {
 
+		@Nullable
 		private final Object[] params;
 
-		private final Map context;
+		@Nullable
+		private final Map<?, ?> context;
 
 		/**
 		 * Use an array results. More efficient if we know how many results to expect.
 		 */
-		public RowMapperImpl(Object[] parameters, Map context) {
+		public RowMapperImpl(@Nullable Object[] parameters, @Nullable Map<?, ?> context) {
 			this.params = parameters;
 			this.context = context;
 		}
 
+		@Override
+		@Nullable
 		public T mapRow(ResultSet rs, int rowNum) throws SQLException {
 			return MappingSqlQueryWithParameters.this.mapRow(rs, rowNum, this.params, this.context);
 		}

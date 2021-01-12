@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,10 +21,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * A comparator that chains a sequence of one or more more Comparators.
+ * A comparator that chains a sequence of one or more Comparators.
  *
  * <p>A compound comparator calls each Comparator in sequence until a single
  * Comparator returns a non-zero result, or the comparators are exhausted and
@@ -32,14 +33,19 @@ import org.springframework.util.Assert;
  *
  * <p>This facilitates in-memory sorting similar to multi-column sorting in SQL.
  * The order of any single Comparator in the list can also be reversed.
- * 
+ *
  * @author Keith Donald
  * @author Juergen Hoeller
  * @since 1.2.2
+ * @param <T> the type of objects that may be compared by this comparator
+ * @deprecated as of Spring Framework 5.0, in favor of the standard JDK 8
+ * {@link Comparator#thenComparing(Comparator)}
  */
+@Deprecated
+@SuppressWarnings({"serial", "rawtypes"})
 public class CompoundComparator<T> implements Comparator<T>, Serializable {
 
-	private final List<InvertibleComparator<T>> comparators;
+	private final List<InvertibleComparator> comparators;
 
 
 	/**
@@ -48,7 +54,7 @@ public class CompoundComparator<T> implements Comparator<T>, Serializable {
 	 * IllegalStateException is thrown.
 	 */
 	public CompoundComparator() {
-		this.comparators = new ArrayList<InvertibleComparator<T>>();
+		this.comparators = new ArrayList<>();
 	}
 
 	/**
@@ -58,9 +64,11 @@ public class CompoundComparator<T> implements Comparator<T>, Serializable {
 	 * @param comparators the comparators to build into a compound comparator
 	 * @see InvertibleComparator
 	 */
-	public CompoundComparator(Comparator[] comparators) {
-		this.comparators = new ArrayList<InvertibleComparator<T>>(comparators.length);
-		for (Comparator<T> comparator : comparators) {
+	@SuppressWarnings("unchecked")
+	public CompoundComparator(Comparator... comparators) {
+		Assert.notNull(comparators, "Comparators must not be null");
+		this.comparators = new ArrayList<>(comparators.length);
+		for (Comparator comparator : comparators) {
 			addComparator(comparator);
 		}
 	}
@@ -73,12 +81,13 @@ public class CompoundComparator<T> implements Comparator<T>, Serializable {
 	 * @param comparator the Comparator to add to the end of the chain
 	 * @see InvertibleComparator
 	 */
-	public void addComparator(Comparator<T> comparator) {
+	@SuppressWarnings("unchecked")
+	public void addComparator(Comparator<? extends T> comparator) {
 		if (comparator instanceof InvertibleComparator) {
-			this.comparators.add((InvertibleComparator<T>) comparator);
+			this.comparators.add((InvertibleComparator) comparator);
 		}
 		else {
-			this.comparators.add(new InvertibleComparator<T>(comparator));
+			this.comparators.add(new InvertibleComparator(comparator));
 		}
 	}
 
@@ -87,8 +96,9 @@ public class CompoundComparator<T> implements Comparator<T>, Serializable {
 	 * @param comparator the Comparator to add to the end of the chain
 	 * @param ascending the sort order: ascending (true) or descending (false)
 	 */
-	public void addComparator(Comparator<T> comparator, boolean ascending) {
-		this.comparators.add(new InvertibleComparator<T>(comparator, ascending));
+	@SuppressWarnings("unchecked")
+	public void addComparator(Comparator<? extends T> comparator, boolean ascending) {
+		this.comparators.add(new InvertibleComparator(comparator, ascending));
 	}
 
 	/**
@@ -99,12 +109,13 @@ public class CompoundComparator<T> implements Comparator<T>, Serializable {
 	 * @param comparator the Comparator to place at the given index
 	 * @see InvertibleComparator
 	 */
-	public void setComparator(int index, Comparator<T> comparator) {
+	@SuppressWarnings("unchecked")
+	public void setComparator(int index, Comparator<? extends T> comparator) {
 		if (comparator instanceof InvertibleComparator) {
-			this.comparators.set(index, (InvertibleComparator<T>) comparator);
+			this.comparators.set(index, (InvertibleComparator) comparator);
 		}
 		else {
-			this.comparators.set(index, new InvertibleComparator<T>(comparator));
+			this.comparators.set(index, new InvertibleComparator(comparator));
 		}
 	}
 
@@ -115,7 +126,7 @@ public class CompoundComparator<T> implements Comparator<T>, Serializable {
 	 * @param ascending the sort order: ascending (true) or descending (false)
 	 */
 	public void setComparator(int index, Comparator<T> comparator, boolean ascending) {
-		this.comparators.set(index, new InvertibleComparator<T>(comparator, ascending));
+		this.comparators.set(index, new InvertibleComparator<>(comparator, ascending));
 	}
 
 	/**
@@ -160,10 +171,12 @@ public class CompoundComparator<T> implements Comparator<T>, Serializable {
 	}
 
 
+	@Override
+	@SuppressWarnings("unchecked")
 	public int compare(T o1, T o2) {
-		Assert.state(this.comparators.size() > 0,
+		Assert.state(!this.comparators.isEmpty(),
 				"No sort definitions have been added to this CompoundComparator to compare");
-		for (InvertibleComparator<T> comparator : this.comparators) {
+		for (InvertibleComparator comparator : this.comparators) {
 			int result = comparator.compare(o1, o2);
 			if (result != 0) {
 				return result;
@@ -172,16 +185,12 @@ public class CompoundComparator<T> implements Comparator<T>, Serializable {
 		return 0;
 	}
 
+
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof CompoundComparator)) {
-			return false;
-		}
-		CompoundComparator other = (CompoundComparator) obj;
-		return this.comparators.equals(other.comparators);
+	@SuppressWarnings("unchecked")
+	public boolean equals(@Nullable Object other) {
+		return (this == other || (other instanceof CompoundComparator &&
+				this.comparators.equals(((CompoundComparator<T>) other).comparators)));
 	}
 
 	@Override

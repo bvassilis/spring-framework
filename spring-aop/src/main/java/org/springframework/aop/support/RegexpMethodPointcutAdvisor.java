@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +21,7 @@ import java.io.Serializable;
 import org.aopalliance.aop.Advice;
 
 import org.springframework.aop.Pointcut;
+import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
 
 /**
@@ -41,10 +42,13 @@ import org.springframework.util.ObjectUtils;
  * @see #setPatterns
  * @see JdkRegexpMethodPointcut
  */
+@SuppressWarnings("serial")
 public class RegexpMethodPointcutAdvisor extends AbstractGenericPointcutAdvisor {
 
+	@Nullable
 	private String[] patterns;
 
+	@Nullable
 	private AbstractRegexpMethodPointcut pointcut;
 
 	private final Object pointcutMonitor = new SerializableMonitor();
@@ -97,7 +101,7 @@ public class RegexpMethodPointcutAdvisor extends AbstractGenericPointcutAdvisor 
 	 * @see #setPatterns
 	 */
 	public void setPattern(String pattern) {
-		setPatterns(new String[] {pattern});
+		setPatterns(pattern);
 	}
 
 	/**
@@ -107,7 +111,7 @@ public class RegexpMethodPointcutAdvisor extends AbstractGenericPointcutAdvisor 
 	 * patterns matches, the pointcut matches.
 	 * @see AbstractRegexpMethodPointcut#setPatterns
 	 */
-	public void setPatterns(String[] patterns) {
+	public void setPatterns(String... patterns) {
 		this.patterns = patterns;
 	}
 
@@ -115,20 +119,23 @@ public class RegexpMethodPointcutAdvisor extends AbstractGenericPointcutAdvisor 
 	/**
 	 * Initialize the singleton Pointcut held within this Advisor.
 	 */
+	@Override
 	public Pointcut getPointcut() {
 		synchronized (this.pointcutMonitor) {
 			if (this.pointcut == null) {
 				this.pointcut = createPointcut();
-				this.pointcut.setPatterns(this.patterns);
+				if (this.patterns != null) {
+					this.pointcut.setPatterns(this.patterns);
+				}
 			}
-			return pointcut;
+			return this.pointcut;
 		}
 	}
 
 	/**
 	 * Create the actual pointcut: By default, a {@link JdkRegexpMethodPointcut}
 	 * will be used.
-	 * @return the Pointcut instance (never <code>null</code>)
+	 * @return the Pointcut instance (never {@code null})
 	 */
 	protected AbstractRegexpMethodPointcut createPointcut() {
 		return new JdkRegexpMethodPointcut();

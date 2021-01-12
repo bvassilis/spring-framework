@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,10 +20,13 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceException;
 import javax.persistence.spi.PersistenceUnitInfo;
 
-import junit.framework.TestCase;
-import org.easymock.MockControl;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  * Superclass for unit tests for EntityManagerFactory-creating beans.
@@ -31,44 +34,43 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  *
  * @author Rod Johnson
  * @author Juergen Hoeller
+ * @author Phillip Webb
  */
-public abstract class AbstractEntityManagerFactoryBeanTests extends TestCase {
-
-	protected static MockControl emfMc;
+public abstract class AbstractEntityManagerFactoryBeanTests {
 
 	protected static EntityManagerFactory mockEmf;
 
+	@BeforeEach
+	public void setUp() throws Exception {
+		mockEmf = mock(EntityManagerFactory.class);
+	}
 
-	@Override
-	protected void setUp() throws Exception {
-		emfMc = MockControl.createControl(EntityManagerFactory.class);
-		mockEmf = (EntityManagerFactory) emfMc.getMock();
+	@AfterEach
+	public void tearDown() throws Exception {
+		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty()).isTrue();
+		assertThat(TransactionSynchronizationManager.isSynchronizationActive()).isFalse();
+		assertThat(TransactionSynchronizationManager.isCurrentTransactionReadOnly()).isFalse();
+		assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
 	}
 
 	protected void checkInvariants(AbstractEntityManagerFactoryBean demf) {
-		assertTrue(EntityManagerFactory.class.isAssignableFrom(demf.getObjectType()));
+		assertThat(EntityManagerFactory.class.isAssignableFrom(demf.getObjectType())).isTrue();
 		Object gotObject = demf.getObject();
-		assertTrue("Object created by factory implements EntityManagerFactoryInfo",
-				gotObject instanceof EntityManagerFactoryInfo);
+		boolean condition = gotObject instanceof EntityManagerFactoryInfo;
+		assertThat(condition).as("Object created by factory implements EntityManagerFactoryInfo").isTrue();
 		EntityManagerFactoryInfo emfi = (EntityManagerFactoryInfo) demf.getObject();
-		assertSame("Successive invocations of getObject() return same object", emfi, demf.getObject());
-		assertSame(emfi, demf.getObject());
-		assertSame(emfi.getNativeEntityManagerFactory(), mockEmf);
-	}
-
-	@Override
-	protected void tearDown() throws Exception {
-		assertTrue(TransactionSynchronizationManager.getResourceMap().isEmpty());
-		assertFalse(TransactionSynchronizationManager.isSynchronizationActive());
-		assertFalse(TransactionSynchronizationManager.isCurrentTransactionReadOnly());
-		assertFalse(TransactionSynchronizationManager.isActualTransactionActive());
+		assertThat(demf.getObject()).as("Successive invocations of getObject() return same object").isSameAs(emfi);
+		assertThat(demf.getObject()).isSameAs(emfi);
+		assertThat(mockEmf).isSameAs(emfi.getNativeEntityManagerFactory());
 	}
 
 
 	protected static class DummyEntityManagerFactoryBean extends AbstractEntityManagerFactoryBean {
 
+		private static final long serialVersionUID = 1L;
+
 		private final EntityManagerFactory emf;
-		
+
 		public DummyEntityManagerFactoryBean(EntityManagerFactory emf) {
 			this.emf = emf;
 		}
@@ -78,10 +80,12 @@ public abstract class AbstractEntityManagerFactoryBeanTests extends TestCase {
 			return emf;
 		}
 
+		@Override
 		public PersistenceUnitInfo getPersistenceUnitInfo() {
 			throw new UnsupportedOperationException();
 		}
 
+		@Override
 		public String getPersistenceUnitName() {
 			return "test";
 		}

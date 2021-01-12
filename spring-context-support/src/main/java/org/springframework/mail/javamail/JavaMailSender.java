@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2006 the original author or authors.
+ * Copyright 2002-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -49,8 +49,8 @@ import org.springframework.mail.MailSender;
  * {@link org.springframework.mail.MailSender} client, but still straightforward
  * compared to traditional JavaMail code: Just let {@link #createMimeMessage()}
  * return a plain {@link MimeMessage} created with a
- * <code>Session.getInstance(new Properties())</code> call, and check the passed-in
- * messages in your mock implementations of the various <code>send</code> methods.
+ * {@code Session.getInstance(new Properties())} call, and check the passed-in
+ * messages in your mock implementations of the various {@code send} methods.
  *
  * @author Juergen Hoeller
  * @since 07.10.2003
@@ -104,7 +104,7 @@ public interface JavaMailSender extends MailSender {
 	 * in case of failure when sending a message
 	 * @see #createMimeMessage
 	 */
-	void send(MimeMessage[] mimeMessages) throws MailException;
+	void send(MimeMessage... mimeMessages) throws MailException;
 
 	/**
 	 * Send the JavaMail MIME message prepared by the given MimeMessagePreparator.
@@ -138,6 +138,6 @@ public interface JavaMailSender extends MailSender {
 	 * @throws org.springframework.mail.MailSendException
 	 * in case of failure when sending a message
 	 */
-	void send(MimeMessagePreparator[] mimeMessagePreparators) throws MailException;
+	void send(MimeMessagePreparator... mimeMessagePreparators) throws MailException;
 
 }

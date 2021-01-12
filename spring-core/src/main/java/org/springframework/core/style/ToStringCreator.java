@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,13 +16,14 @@
 
 package org.springframework.core.style;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
- * Utility class that builds pretty-printing <code>toString()</code> methods
+ * Utility class that builds pretty-printing {@code toString()} methods
  * with pluggable styling conventions. By default, ToStringCreator adheres
- * to Spring's <code>toString()</code> styling conventions.
- * 
+ * to Spring's {@code toString()} styling conventions.
+ *
  * @author Keith Donald
  * @author Juergen Hoeller
  * @since 1.2.2
@@ -36,11 +37,11 @@ public class ToStringCreator {
 			new DefaultToStringStyler(StylerUtils.DEFAULT_VALUE_STYLER);
 
 
-	private StringBuilder buffer = new StringBuilder(512);
+	private final StringBuilder buffer = new StringBuilder(256);
 
-	private ToStringStyler styler;
+	private final ToStringStyler styler;
 
-	private Object object;
+	private final Object object;
 
 	private boolean styledFirstField;
 
@@ -58,7 +59,7 @@ public class ToStringCreator {
 	 * @param obj the object to be stringified
 	 * @param styler the ValueStyler encapsulating pretty-print instructions
 	 */
-	public ToStringCreator(Object obj, ValueStyler styler) {
+	public ToStringCreator(Object obj, @Nullable ValueStyler styler) {
 		this(obj, new DefaultToStringStyler(styler != null ? styler : StylerUtils.DEFAULT_VALUE_STYLER));
 	}
 
@@ -67,7 +68,7 @@ public class ToStringCreator {
 	 * @param obj the object to be stringified
 	 * @param styler the ToStringStyler encapsulating pretty-print instructions
 	 */
-	public ToStringCreator(Object obj, ToStringStyler styler) {
+	public ToStringCreator(Object obj, @Nullable ToStringStyler styler) {
 		Assert.notNull(obj, "The object to be styled must not be null");
 		this.object = obj;
 		this.styler = (styler != null ? styler : DEFAULT_TO_STRING_STYLER);
@@ -82,7 +83,7 @@ public class ToStringCreator {
 	 * @return this, to support call-chaining
 	 */
 	public ToStringCreator append(String fieldName, byte value) {
-		return append(fieldName, new Byte(value));
+		return append(fieldName, Byte.valueOf(value));
 	}
 
 	/**
@@ -92,7 +93,7 @@ public class ToStringCreator {
 	 * @return this, to support call-chaining
 	 */
 	public ToStringCreator append(String fieldName, short value) {
-		return append(fieldName, new Short(value));
+		return append(fieldName, Short.valueOf(value));
 	}
 
 	/**
@@ -102,7 +103,7 @@ public class ToStringCreator {
 	 * @return this, to support call-chaining
 	 */
 	public ToStringCreator append(String fieldName, int value) {
-		return append(fieldName, new Integer(value));
+		return append(fieldName, Integer.valueOf(value));
 	}
 
 	/**
@@ -112,7 +113,7 @@ public class ToStringCreator {
 	 * @return this, to support call-chaining
 	 */
 	public ToStringCreator append(String fieldName, long value) {
-		return append(fieldName, new Long(value));
+		return append(fieldName, Long.valueOf(value));
 	}
 
 	/**
@@ -122,7 +123,7 @@ public class ToStringCreator {
 	 * @return this, to support call-chaining
 	 */
 	public ToStringCreator append(String fieldName, float value) {
-		return append(fieldName, new Float(value));
+		return append(fieldName, Float.valueOf(value));
 	}
 
 	/**
@@ -132,7 +133,7 @@ public class ToStringCreator {
 	 * @return this, to support call-chaining
 	 */
 	public ToStringCreator append(String fieldName, double value) {
-		return append(fieldName, new Double(value));
+		return append(fieldName, Double.valueOf(value));
 	}
 
 	/**
@@ -151,7 +152,7 @@ public class ToStringCreator {
 	 * @param value the field value
 	 * @return this, to support call-chaining
 	 */
-	public ToStringCreator append(String fieldName, Object value) {
+	public ToStringCreator append(String fieldName, @Nullable Object value) {
 		printFieldSeparatorIfNecessary();
 		this.styler.styleField(this.buffer, fieldName, value);
 		return this;
@@ -168,7 +169,7 @@ public class ToStringCreator {
 
 	/**
 	 * Append the provided value.
-	 * @param value The value to append
+	 * @param value the value to append
 	 * @return this, to support call-chaining.
 	 */
 	public ToStringCreator append(Object value) {

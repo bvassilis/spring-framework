@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,9 +19,13 @@ package org.springframework.web.servlet.tags.form;
 import javax.servlet.jsp.tagext.BodyTag;
 import javax.servlet.jsp.tagext.Tag;
 
-import org.springframework.beans.CustomEnum;
-import org.springframework.beans.GenericBean;
+import org.junit.jupiter.api.Test;
+
+import org.springframework.beans.testfixture.beans.CustomEnum;
+import org.springframework.beans.testfixture.beans.GenericBean;
 import org.springframework.web.servlet.support.BindStatus;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Juergen Hoeller
@@ -29,18 +33,22 @@ import org.springframework.web.servlet.support.BindStatus;
 public class OptionTagEnumTests extends AbstractHtmlElementTagTests {
 
 	private OptionTag tag;
-	
+
 	private SelectTag parentTag;
 
+	@Override
+	@SuppressWarnings("serial")
 	protected void onSetUp() {
 		this.tag = new OptionTag() {
+			@Override
 			protected TagWriter createTagWriter() {
 				return new TagWriter(getWriter());
 			}
 		};
 		this.parentTag = new SelectTag() {
+			@Override
 			public String getName() {
-				// Should not be used other than to delegate to 
+				// Should not be used other than to delegate to
 				// RequestDataValueDataProcessor
 				return "testName";
 			}
@@ -49,19 +57,22 @@ public class OptionTagEnumTests extends AbstractHtmlElementTagTests {
 		this.tag.setPageContext(getPageContext());
 	}
 
-	public void testWithJavaEnum() throws Exception {
+	@Test
+	@SuppressWarnings("rawtypes")
+	public void withJavaEnum() throws Exception {
 		GenericBean testBean = new GenericBean();
 		testBean.setCustomEnum(CustomEnum.VALUE_1);
 		getPageContext().getRequest().setAttribute("testBean", testBean);
 		String selectName = "testBean.customEnum";
-		getPageContext().setAttribute(SelectTag.LIST_VALUE_PAGE_ATTRIBUTE, new BindStatus(getRequestContext(), selectName, false));
+		getPageContext().setAttribute(SelectTag.LIST_VALUE_PAGE_ATTRIBUTE,
+				new BindStatus(getRequestContext(), selectName, false));
 
 		this.tag.setValue("VALUE_1");
 
 		int result = this.tag.doStartTag();
-		assertEquals(BodyTag.EVAL_BODY_BUFFERED, result);
+		assertThat(result).isEqualTo(BodyTag.EVAL_BODY_BUFFERED);
 		result = this.tag.doEndTag();
-		assertEquals(Tag.EVAL_PAGE, result);
+		assertThat(result).isEqualTo(Tag.EVAL_PAGE);
 
 		String output = getWriter().toString();
 
@@ -72,11 +83,11 @@ public class OptionTagEnumTests extends AbstractHtmlElementTagTests {
 	}
 
 	private void assertOptionTagOpened(String output) {
-		assertTrue(output.startsWith("<option"));
+		assertThat(output.startsWith("<option")).isTrue();
 	}
 
 	private void assertOptionTagClosed(String output) {
-		assertTrue(output.endsWith("</option>"));
+		assertThat(output.endsWith("</option>")).isTrue();
 	}
 
 }

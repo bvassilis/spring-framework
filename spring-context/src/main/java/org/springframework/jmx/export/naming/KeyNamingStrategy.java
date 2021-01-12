@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2006 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,18 +29,20 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.jmx.support.ObjectNameManager;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
- * <code>ObjectNamingStrategy</code> implementation that builds
- * <code>ObjectName</code> instances from the key used in the
- * "beans" map passed to <code>MBeanExporter</code>.
- * 
- * <p>Can also check object name mappings, given as <code>Properties</code>
- * or as <code>mappingLocations</code> of properties files. The key used
- * to look up is the key used in <code>MBeanExporter</code>'s "beans" map.
+ * {@code ObjectNamingStrategy} implementation that builds
+ * {@code ObjectName} instances from the key used in the
+ * "beans" map passed to {@code MBeanExporter}.
+ *
+ * <p>Can also check object name mappings, given as {@code Properties}
+ * or as {@code mappingLocations} of properties files. The key used
+ * to look up is the key used in {@code MBeanExporter}'s "beans" map.
  * If no mapping is found for a given key, the key itself is used to
- * build an <code>ObjectName</code>.
+ * build an {@code ObjectName}.
  *
  * @author Rob Harrop
  * @author Juergen Hoeller
@@ -53,26 +55,29 @@ import org.springframework.util.CollectionUtils;
 public class KeyNamingStrategy implements ObjectNamingStrategy, InitializingBean {
 
 	/**
-	 * <code>Log</code> instance for this class.
+	 * {@code Log} instance for this class.
 	 */
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	/**
-	 * Stores the mappings of bean key to <code>ObjectName</code>.
+	 * Stores the mappings of bean key to {@code ObjectName}.
 	 */
+	@Nullable
 	private Properties mappings;
 
 	/**
-	 * Stores the <code>Resource</code>s containing properties that should be loaded
-	 * into the final merged set of <code>Properties</code> used for <code>ObjectName</code>
+	 * Stores the {@code Resource}s containing properties that should be loaded
+	 * into the final merged set of {@code Properties} used for {@code ObjectName}
 	 * resolution.
 	 */
+	@Nullable
 	private Resource[] mappingLocations;
 
 	/**
-	 * Stores the result of merging the <code>mappings</code> <code>Properties</code>
-	 * with the the properties stored in the resources defined by <code>mappingLocations</code>.
+	 * Stores the result of merging the {@code mappings} {@code Properties}
+	 * with the properties stored in the resources defined by {@code mappingLocations}.
 	 */
+	@Nullable
 	private Properties mergedMappings;
 
 
@@ -90,46 +95,46 @@ public class KeyNamingStrategy implements ObjectNamingStrategy, InitializingBean
 	 * containing object name mappings.
 	 */
 	public void setMappingLocation(Resource location) {
-		this.mappingLocations = new Resource[]{location};
+		this.mappingLocations = new Resource[] {location};
 	}
 
 	/**
 	 * Set location of properties files to be loaded,
 	 * containing object name mappings.
 	 */
-	public void setMappingLocations(Resource[] mappingLocations) {
+	public void setMappingLocations(Resource... mappingLocations) {
 		this.mappingLocations = mappingLocations;
 	}
 
 
 	/**
-	 * Merges the <code>Properties</code> configured in the <code>mappings</code> and
-	 * <code>mappingLocations</code> into the final <code>Properties</code> instance
-	 * used for <code>ObjectName</code> resolution.
-	 * @throws IOException
+	 * Merges the {@code Properties} configured in the {@code mappings} and
+	 * {@code mappingLocations} into the final {@code Properties} instance
+	 * used for {@code ObjectName} resolution.
 	 */
+	@Override
 	public void afterPropertiesSet() throws IOException {
 		this.mergedMappings = new Properties();
-
 		CollectionUtils.mergePropertiesIntoMap(this.mappings, this.mergedMappings);
 
 		if (this.mappingLocations != null) {
-			for (int i = 0; i < this.mappingLocations.length; i++) {
-				Resource location = this.mappingLocations[i];
-				if (logger.isInfoEnabled()) {
-					logger.info("Loading JMX object name mappings file from " + location);
+			for (Resource location : this.mappingLocations) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Loading JMX object name mappings file from " + location);
 				}
 				PropertiesLoaderUtils.fillProperties(this.mergedMappings, location);
 			}
 		}
 	}
-	
+
 
 	/**
-	 * Attempts to retrieve the <code>ObjectName</code> via the given key, trying to
+	 * Attempts to retrieve the {@code ObjectName} via the given key, trying to
 	 * find a mapped value in the mappings first.
 	 */
-	public ObjectName getObjectName(Object managedBean, String beanKey) throws MalformedObjectNameException {
+	@Override
+	public ObjectName getObjectName(Object managedBean, @Nullable String beanKey) throws MalformedObjectNameException {
+		Assert.notNull(beanKey, "KeyNamingStrategy requires bean key");
 		String objectName = null;
 		if (this.mergedMappings != null) {
 			objectName = this.mergedMappings.getProperty(beanKey);

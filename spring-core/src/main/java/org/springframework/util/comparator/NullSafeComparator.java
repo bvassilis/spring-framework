@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2005 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,15 +18,17 @@ package org.springframework.util.comparator;
 
 import java.util.Comparator;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
  * A Comparator that will safely compare nulls to be lower or higher than
  * other objects. Can decorate a given Comparator or work on Comparables.
- * 
+ *
  * @author Keith Donald
  * @author Juergen Hoeller
  * @since 1.2.2
+ * @param <T> the type of objects that may be compared by this comparator
  * @see Comparable
  */
 public class NullSafeComparator<T> implements Comparator<T> {
@@ -34,14 +36,18 @@ public class NullSafeComparator<T> implements Comparator<T> {
 	/**
 	 * A shared default instance of this comparator, treating nulls lower
 	 * than non-null objects.
+	 * @see Comparators#nullsLow()
 	 */
-	public static final NullSafeComparator NULLS_LOW = new NullSafeComparator(true);
+	@SuppressWarnings("rawtypes")
+	public static final NullSafeComparator NULLS_LOW = new NullSafeComparator<>(true);
 
 	/**
 	 * A shared default instance of this comparator, treating nulls higher
 	 * than non-null objects.
+	 * @see Comparators#nullsHigh()
 	 */
-	public static final NullSafeComparator NULLS_HIGH = new NullSafeComparator(false);
+	@SuppressWarnings("rawtypes")
+	public static final NullSafeComparator NULLS_HIGH = new NullSafeComparator<>(false);
 
 
 	private final Comparator<T> nonNullComparator;
@@ -50,27 +56,27 @@ public class NullSafeComparator<T> implements Comparator<T> {
 
 
 	/**
-	 * Create a NullSafeComparator that sorts <code>null</code> based on
+	 * Create a NullSafeComparator that sorts {@code null} based on
 	 * the provided flag, working on Comparables.
 	 * <p>When comparing two non-null objects, their Comparable implementation
 	 * will be used: this means that non-null elements (that this Comparator
 	 * will be applied to) need to implement Comparable.
 	 * <p>As a convenience, you can use the default shared instances:
-	 * <code>NullSafeComparator.NULLS_LOW</code> and
-	 * <code>NullSafeComparator.NULLS_HIGH</code>.
+	 * {@code NullSafeComparator.NULLS_LOW} and
+	 * {@code NullSafeComparator.NULLS_HIGH}.
 	 * @param nullsLow whether to treat nulls lower or higher than non-null objects
-	 * @see java.lang.Comparable
+	 * @see Comparable
 	 * @see #NULLS_LOW
 	 * @see #NULLS_HIGH
 	 */
 	@SuppressWarnings("unchecked")
 	private NullSafeComparator(boolean nullsLow) {
-		this.nonNullComparator = new ComparableComparator();
+		this.nonNullComparator = ComparableComparator.INSTANCE;
 		this.nullsLow = nullsLow;
 	}
 
 	/**
-	 * Create a NullSafeComparator that sorts <code>null</code> based on the
+	 * Create a NullSafeComparator that sorts {@code null} based on the
 	 * provided flag, decorating the given Comparator.
 	 * <p>When comparing two non-null objects, the specified Comparator will be used.
 	 * The given underlying Comparator must be able to handle the elements that this
@@ -79,13 +85,14 @@ public class NullSafeComparator<T> implements Comparator<T> {
 	 * @param nullsLow whether to treat nulls lower or higher than non-null objects
 	 */
 	public NullSafeComparator(Comparator<T> comparator, boolean nullsLow) {
-		Assert.notNull(comparator, "The non-null comparator is required");
+		Assert.notNull(comparator, "Non-null Comparator is required");
 		this.nonNullComparator = comparator;
 		this.nullsLow = nullsLow;
 	}
 
 
-	public int compare(T o1, T o2) {
+	@Override
+	public int compare(@Nullable T o1, @Nullable T o2) {
 		if (o1 == o2) {
 			return 0;
 		}
@@ -98,21 +105,23 @@ public class NullSafeComparator<T> implements Comparator<T> {
 		return this.nonNullComparator.compare(o1, o2);
 	}
 
+
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
+	@SuppressWarnings("unchecked")
+	public boolean equals(@Nullable Object other) {
+		if (this == other) {
 			return true;
 		}
-		if (!(obj instanceof NullSafeComparator)) {
+		if (!(other instanceof NullSafeComparator)) {
 			return false;
 		}
-		NullSafeComparator other = (NullSafeComparator) obj;
-		return (this.nonNullComparator.equals(other.nonNullComparator) && this.nullsLow == other.nullsLow);
+		NullSafeComparator<T> otherComp = (NullSafeComparator<T>) other;
+		return (this.nonNullComparator.equals(otherComp.nonNullComparator) && this.nullsLow == otherComp.nullsLow);
 	}
 
 	@Override
 	public int hashCode() {
-		return (this.nullsLow ? -1 : 1) * this.nonNullComparator.hashCode();
+		return this.nonNullComparator.hashCode() * (this.nullsLow ? -1 : 1);
 	}
 
 	@Override

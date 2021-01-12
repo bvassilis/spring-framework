@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,20 +16,21 @@
 
 package org.springframework.context.annotation.configuration;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.junit.Test;
-import org.springframework.beans.TestBean;
+import org.junit.jupiter.api.Test;
+
+import org.springframework.beans.testfixture.beans.TestBean;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 /**
  * Tests that @Import may be used both as a locally declared and meta-declared
@@ -39,6 +40,7 @@ import org.springframework.context.annotation.Import;
  * @author Chris Beams
  * @since 3.1
  */
+@SuppressWarnings("resource")
 public class ImportAnnotationDetectionTests {
 
 	@Test
@@ -46,8 +48,8 @@ public class ImportAnnotationDetectionTests {
 		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
 		ctx.register(MultiMetaImportConfig.class);
 		ctx.refresh();
-		assertThat(ctx.containsBean("testBean1"), is(true));
-		assertThat(ctx.containsBean("testBean2"), is(true));
+		assertThat(ctx.containsBean("testBean1")).isTrue();
+		assertThat(ctx.containsBean("testBean2")).isTrue();
 	}
 
 	@Test
@@ -55,9 +57,9 @@ public class ImportAnnotationDetectionTests {
 		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
 		ctx.register(MultiMetaImportConfigWithLocalImport.class);
 		ctx.refresh();
-		assertThat(ctx.containsBean("testBean1"), is(true));
-		assertThat(ctx.containsBean("testBean2"), is(true));
-		assertThat(ctx.containsBean("testBean3"), is(true));
+		assertThat(ctx.containsBean("testBean1")).isTrue();
+		assertThat(ctx.containsBean("testBean2")).isTrue();
+		assertThat(ctx.containsBean("testBean3")).isTrue();
 	}
 
 	@Test
@@ -65,9 +67,19 @@ public class ImportAnnotationDetectionTests {
 		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
 		ctx.register(MultiMetaImportConfigWithLocalImportWithBeanOverride.class);
 		ctx.refresh();
-		assertThat(ctx.containsBean("testBean1"), is(true));
-		assertThat(ctx.containsBean("testBean2"), is(true));
-		assertThat(ctx.getBean("testBean2", TestBean.class).getName(), is("2a"));
+		assertThat(ctx.containsBean("testBean1")).isTrue();
+		assertThat(ctx.containsBean("testBean2")).isTrue();
+		assertThat(ctx.getBean("testBean2", TestBean.class).getName()).isEqualTo("2a");
+	}
+
+	@Test
+	public void importFromBean() throws Exception {
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+		ctx.register(ImportFromBean.class);
+		ctx.refresh();
+		assertThat(ctx.containsBean("importAnnotationDetectionTests.ImportFromBean")).isTrue();
+		assertThat(ctx.containsBean("testBean1")).isTrue();
+		assertThat(ctx.getBean("testBean1", TestBean.class).getName()).isEqualTo("1");
 	}
 
 	@Configuration
@@ -135,5 +147,10 @@ public class ImportAnnotationDetectionTests {
 		TestBean testBean3() {
 			return new TestBean("3");
 		}
+	}
+
+	@MetaImport1
+	static class ImportFromBean {
+
 	}
 }

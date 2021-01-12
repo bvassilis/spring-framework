@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +19,7 @@ package org.springframework.beans;
 import java.util.Map;
 
 import org.springframework.core.convert.TypeDescriptor;
+import org.springframework.lang.Nullable;
 
 /**
  * Common interface for classes that can access named properties
@@ -38,6 +39,11 @@ public interface PropertyAccessor {
 	 * Follows normal Java conventions: getFoo().getBar() would be "foo.bar".
 	 */
 	String NESTED_PROPERTY_SEPARATOR = ".";
+
+	/**
+	 * Path separator for nested properties.
+	 * Follows normal Java conventions: getFoo().getBar() would be "foo.bar".
+	 */
 	char NESTED_PROPERTY_SEPARATOR_CHAR = '.';
 
 	/**
@@ -45,6 +51,11 @@ public interface PropertyAccessor {
 	 * indexed or mapped property like "person.addresses[0]".
 	 */
 	String PROPERTY_KEY_PREFIX = "[";
+
+	/**
+	 * Marker that indicates the start of a property key for an
+	 * indexed or mapped property like "person.addresses[0]".
+	 */
 	char PROPERTY_KEY_PREFIX_CHAR = '[';
 
 	/**
@@ -52,12 +63,17 @@ public interface PropertyAccessor {
 	 * indexed or mapped property like "person.addresses[0]".
 	 */
 	String PROPERTY_KEY_SUFFIX = "]";
+
+	/**
+	 * Marker that indicates the end of a property key for an
+	 * indexed or mapped property like "person.addresses[0]".
+	 */
 	char PROPERTY_KEY_SUFFIX_CHAR = ']';
 
 
 	/**
 	 * Determine whether the specified property is readable.
-	 * <p>Returns <code>false</code> if the property doesn't exist.
+	 * <p>Returns {@code false} if the property doesn't exist.
 	 * @param propertyName the property to check
 	 * (may be a nested path and/or an indexed/mapped property)
 	 * @return whether the property is readable
@@ -66,7 +82,7 @@ public interface PropertyAccessor {
 
 	/**
 	 * Determine whether the specified property is writable.
-	 * <p>Returns <code>false</code> if the property doesn't exist.
+	 * <p>Returns {@code false} if the property doesn't exist.
 	 * @param propertyName the property to check
 	 * (may be a nested path and/or an indexed/mapped property)
 	 * @return whether the property is writable
@@ -80,13 +96,12 @@ public interface PropertyAccessor {
 	 * @param propertyName the property to check
 	 * (may be a nested path and/or an indexed/mapped property)
 	 * @return the property type for the particular property,
-	 * or <code>null</code> if not determinable
-	 * @throws InvalidPropertyException if there is no such property or
-	 * if the property isn't readable
+	 * or {@code null} if not determinable
 	 * @throws PropertyAccessException if the property was valid but the
 	 * accessor method failed
 	 */
-	Class getPropertyType(String propertyName) throws BeansException;
+	@Nullable
+	Class<?> getPropertyType(String propertyName) throws BeansException;
 
 	/**
 	 * Return a type descriptor for the specified property:
@@ -94,10 +109,11 @@ public interface PropertyAccessor {
 	 * @param propertyName the property to check
 	 * (may be a nested path and/or an indexed/mapped property)
 	 * @return the property type for the particular property,
-	 * or <code>null</code> if not determinable
-	 * @throws InvalidPropertyException if there is no such property or
-	 * if the property isn't readable
+	 * or {@code null} if not determinable
+	 * @throws PropertyAccessException if the property was valid but the
+	 * accessor method failed
 	 */
+	@Nullable
 	TypeDescriptor getPropertyTypeDescriptor(String propertyName) throws BeansException;
 
 	/**
@@ -110,6 +126,7 @@ public interface PropertyAccessor {
 	 * @throws PropertyAccessException if the property was valid but the
 	 * accessor method failed
 	 */
+	@Nullable
 	Object getPropertyValue(String propertyName) throws BeansException;
 
 	/**
@@ -120,9 +137,9 @@ public interface PropertyAccessor {
 	 * @throws InvalidPropertyException if there is no such property or
 	 * if the property isn't writable
 	 * @throws PropertyAccessException if the property was valid but the
-	 * accessor method failed or a type mismatch occured
+	 * accessor method failed or a type mismatch occurred
 	 */
-	void setPropertyValue(String propertyName, Object value) throws BeansException;
+	void setPropertyValue(String propertyName, @Nullable Object value) throws BeansException;
 
 	/**
 	 * Set the specified value as current property value.
@@ -130,7 +147,7 @@ public interface PropertyAccessor {
 	 * @throws InvalidPropertyException if there is no such property or
 	 * if the property isn't writable
 	 * @throws PropertyAccessException if the property was valid but the
-	 * accessor method failed or a type mismatch occured
+	 * accessor method failed or a type mismatch occurred
 	 */
 	void setPropertyValue(PropertyValue pv) throws BeansException;
 
@@ -139,12 +156,12 @@ public interface PropertyAccessor {
 	 * <p>Bulk updates from PropertyValues are more powerful: This method is
 	 * provided for convenience. Behavior will be identical to that of
 	 * the {@link #setPropertyValues(PropertyValues)} method.
-	 * @param map Map to take properties from. Contains property value objects,
+	 * @param map a Map to take properties from. Contains property value objects,
 	 * keyed by property name
 	 * @throws InvalidPropertyException if there is no such property or
 	 * if the property isn't writable
 	 * @throws PropertyBatchUpdateException if one or more PropertyAccessExceptions
-	 * occured for specific properties during the batch update. This exception bundles
+	 * occurred for specific properties during the batch update. This exception bundles
 	 * all individual PropertyAccessExceptions. All other properties will have been
 	 * successfully updated.
 	 */
@@ -160,11 +177,11 @@ public interface PropertyAccessor {
 	 * This exception can be examined later to see all binding errors.
 	 * Properties that were successfully updated remain changed.
 	 * <p>Does not allow unknown fields or invalid fields.
-	 * @param pvs PropertyValues to set on the target object
+	 * @param pvs a PropertyValues to set on the target object
 	 * @throws InvalidPropertyException if there is no such property or
 	 * if the property isn't writable
 	 * @throws PropertyBatchUpdateException if one or more PropertyAccessExceptions
-	 * occured for specific properties during the batch update. This exception bundles
+	 * occurred for specific properties during the batch update. This exception bundles
 	 * all individual PropertyAccessExceptions. All other properties will have been
 	 * successfully updated.
 	 * @see #setPropertyValues(PropertyValues, boolean, boolean)
@@ -180,18 +197,18 @@ public interface PropertyAccessor {
 	 * {@link PropertyBatchUpdateException} containing all the individual errors.
 	 * This exception can be examined later to see all binding errors.
 	 * Properties that were successfully updated remain changed.
-	 * @param pvs PropertyValues to set on the target object
+	 * @param pvs a PropertyValues to set on the target object
 	 * @param ignoreUnknown should we ignore unknown properties (not found in the bean)
 	 * @throws InvalidPropertyException if there is no such property or
 	 * if the property isn't writable
 	 * @throws PropertyBatchUpdateException if one or more PropertyAccessExceptions
-	 * occured for specific properties during the batch update. This exception bundles
+	 * occurred for specific properties during the batch update. This exception bundles
 	 * all individual PropertyAccessExceptions. All other properties will have been
 	 * successfully updated.
 	 * @see #setPropertyValues(PropertyValues, boolean, boolean)
 	 */
 	void setPropertyValues(PropertyValues pvs, boolean ignoreUnknown)
-	    throws BeansException;
+			throws BeansException;
 
 	/**
 	 * Perform a batch update with full control over behavior.
@@ -202,17 +219,17 @@ public interface PropertyAccessor {
 	 * {@link PropertyBatchUpdateException} containing all the individual errors.
 	 * This exception can be examined later to see all binding errors.
 	 * Properties that were successfully updated remain changed.
-	 * @param pvs PropertyValues to set on the target object
+	 * @param pvs a PropertyValues to set on the target object
 	 * @param ignoreUnknown should we ignore unknown properties (not found in the bean)
 	 * @param ignoreInvalid should we ignore invalid properties (found but not accessible)
 	 * @throws InvalidPropertyException if there is no such property or
 	 * if the property isn't writable
 	 * @throws PropertyBatchUpdateException if one or more PropertyAccessExceptions
-	 * occured for specific properties during the batch update. This exception bundles
+	 * occurred for specific properties during the batch update. This exception bundles
 	 * all individual PropertyAccessExceptions. All other properties will have been
 	 * successfully updated.
 	 */
 	void setPropertyValues(PropertyValues pvs, boolean ignoreUnknown, boolean ignoreInvalid)
-	    throws BeansException;
+			throws BeansException;
 
 }

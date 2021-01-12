@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,10 +18,12 @@ package org.springframework.scripting;
 
 import java.io.IOException;
 
+import org.springframework.lang.Nullable;
+
 /**
  * Script definition interface, encapsulating the configuration
  * of a specific script as well as a factory method for
- * creating the actual scripted Java <code>Object</code>.
+ * creating the actual scripted Java {@code Object}.
  *
  * @author Juergen Hoeller
  * @author Rob Harrop
@@ -45,17 +47,18 @@ public interface ScriptFactory {
 
 	/**
 	 * Return the business interfaces that the script is supposed to implement.
-	 * <p>Can return <code>null</code> if the script itself determines
+	 * <p>Can return {@code null} if the script itself determines
 	 * its Java interfaces (such as in the case of Groovy).
 	 * @return the interfaces for the script
 	 */
-	Class[] getScriptInterfaces();
+	@Nullable
+	Class<?>[] getScriptInterfaces();
 
 	/**
 	 * Return whether the script requires a config interface to be
 	 * generated for it. This is typically the case for scripts that
 	 * do not determine Java signatures themselves, with no appropriate
-	 * config interface specified in <code>getScriptInterfaces()</code>.
+	 * config interface specified in {@code getScriptInterfaces()}.
 	 * @return whether the script requires a generated config interface
 	 * @see #getScriptInterfaces()
 	 */
@@ -67,15 +70,16 @@ public interface ScriptFactory {
 	 * a generated script class. Note that this method may be invoked
 	 * concurrently and must be implemented in a thread-safe fashion.
 	 * @param scriptSource the actual ScriptSource to retrieve
-	 * the script source text from (never <code>null</code>)
+	 * the script source text from (never {@code null})
 	 * @param actualInterfaces the actual interfaces to expose,
 	 * including script interfaces as well as a generated config interface
-	 * (if applicable; may be <code>null</code>)
+	 * (if applicable; may be {@code null})
 	 * @return the scripted Java object
 	 * @throws IOException if script retrieval failed
 	 * @throws ScriptCompilationException if script compilation failed
 	 */
-	Object getScriptedObject(ScriptSource scriptSource, Class[] actualInterfaces)
+	@Nullable
+	Object getScriptedObject(ScriptSource scriptSource, @Nullable Class<?>... actualInterfaces)
 			throws IOException, ScriptCompilationException;
 
 	/**
@@ -84,21 +88,22 @@ public interface ScriptFactory {
 	 * a generated script class. Note that this method may be invoked
 	 * concurrently and must be implemented in a thread-safe fashion.
 	 * @param scriptSource the actual ScriptSource to retrieve
-	 * the script source text from (never <code>null</code>)
-	 * @return the type of the scripted Java object, or <code>null</code>
+	 * the script source text from (never {@code null})
+	 * @return the type of the scripted Java object, or {@code null}
 	 * if none could be determined
 	 * @throws IOException if script retrieval failed
 	 * @throws ScriptCompilationException if script compilation failed
 	 * @since 2.0.3
 	 */
-	Class getScriptedObjectType(ScriptSource scriptSource)
+	@Nullable
+	Class<?> getScriptedObjectType(ScriptSource scriptSource)
 			throws IOException, ScriptCompilationException;
 
 	/**
 	 * Determine whether a refresh is required (e.g. through
-	 * ScriptSource's <code>isModified()</code> method).
+	 * ScriptSource's {@code isModified()} method).
 	 * @param scriptSource the actual ScriptSource to retrieve
-	 * the script source text from (never <code>null</code>)
+	 * the script source text from (never {@code null})
 	 * @return whether a fresh {@link #getScriptedObject} call is required
 	 * @since 2.5.2
 	 * @see ScriptSource#isModified()

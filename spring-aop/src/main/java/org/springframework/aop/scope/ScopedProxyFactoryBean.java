@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,18 +28,20 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.FactoryBeanNotInitializedException;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 /**
  * Convenient proxy factory bean for scoped objects.
- * 
+ *
  * <p>Proxies created using this factory bean are thread-safe singletons
  * and may be injected into shared objects, with transparent scoping behavior.
  *
  * <p>Proxies returned by this class implement the {@link ScopedObject} interface.
  * This presently allows for removing the corresponding object from the scope,
  * seamlessly creating a new instance in the scope on next access.
- * 
+ *
  * <p>Please note that the proxies created by this factory are
  * <i>class-based</i> proxies by default. This can be customized
  * through switching the "proxyTargetClass" property to "false".
@@ -49,15 +51,19 @@ import org.springframework.util.ClassUtils;
  * @since 2.0
  * @see #setProxyTargetClass
  */
-public class ScopedProxyFactoryBean extends ProxyConfig implements FactoryBean<Object>, BeanFactoryAware {
+@SuppressWarnings("serial")
+public class ScopedProxyFactoryBean extends ProxyConfig
+		implements FactoryBean<Object>, BeanFactoryAware, AopInfrastructureBean {
 
-	/** The TargetSource that manages scoping */
+	/** The TargetSource that manages scoping. */
 	private final SimpleBeanTargetSource scopedTargetSource = new SimpleBeanTargetSource();
 
-	/** The name of the target bean */
+	/** The name of the target bean. */
+	@Nullable
 	private String targetBeanName;
 
-	/** The cached singleton proxy */
+	/** The cached singleton proxy. */
+	@Nullable
 	private Object proxy;
 
 
@@ -77,6 +83,7 @@ public class ScopedProxyFactoryBean extends ProxyConfig implements FactoryBean<O
 		this.scopedTargetSource.setTargetBeanName(targetBeanName);
 	}
 
+	@Override
 	public void setBeanFactory(BeanFactory beanFactory) {
 		if (!(beanFactory instanceof ConfigurableBeanFactory)) {
 			throw new IllegalStateException("Not running in a ConfigurableBeanFactory: " + beanFactory);
@@ -89,7 +96,8 @@ public class ScopedProxyFactoryBean extends ProxyConfig implements FactoryBean<O
 		pf.copyFrom(this);
 		pf.setTargetSource(this.scopedTargetSource);
 
-		Class beanType = beanFactory.getType(this.targetBeanName);
+		Assert.notNull(this.targetBeanName, "Property 'targetBeanName' is required");
+		Class<?> beanType = beanFactory.getType(this.targetBeanName);
 		if (beanType == null) {
 			throw new IllegalStateException("Cannot create scoped proxy for bean '" + this.targetBeanName +
 					"': Target type could not be determined at the time of proxy creation.");
@@ -110,6 +118,7 @@ public class ScopedProxyFactoryBean extends ProxyConfig implements FactoryBean<O
 	}
 
 
+	@Override
 	public Object getObject() {
 		if (this.proxy == null) {
 			throw new FactoryBeanNotInitializedException();
@@ -117,16 +126,15 @@ public class ScopedProxyFactoryBean extends ProxyConfig implements FactoryBean<O
 		return this.proxy;
 	}
 
+	@Override
 	public Class<?> getObjectType() {
 		if (this.proxy != null) {
 			return this.proxy.getClass();
 		}
-		if (this.scopedTargetSource != null) {
-			return this.scopedTargetSource.getTargetClass();
-		}
-		return null;
+		return this.scopedTargetSource.getTargetClass();
 	}
 
+	@Override
 	public boolean isSingleton() {
 		return true;
 	}

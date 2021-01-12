@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,25 +16,21 @@
 
 package org.springframework.jdbc.core;
 
-import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import javax.sql.rowset.CachedRowSet;
 
-import com.sun.rowset.CachedRowSetImpl;
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetFactory;
+import javax.sql.rowset.RowSetProvider;
 
 import org.springframework.jdbc.support.rowset.ResultSetWrappingSqlRowSet;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
-import org.springframework.util.ReflectionUtils;
 
 /**
- * ResultSetExtractor implementation that returns a Spring SqlRowSet
- * representation for each given ResultSet.
+ * {@link ResultSetExtractor} implementation that returns a Spring {@link SqlRowSet}
+ * representation for each given {@link ResultSet}.
  *
  * <p>The default implementation uses a standard JDBC CachedRowSet underneath.
- * This means that JDBC RowSet support needs to be available at runtime:
- * by default, Sun's <code>com.sun.rowset.CachedRowSetImpl</code> class on Java 5 and 6,
- * or the <code>javax.sql.rowset.RowSetProvider</code> mechanism on Java 7 / JDBC 4.1.
  *
  * @author Juergen Hoeller
  * @since 1.2
@@ -45,38 +41,33 @@ import org.springframework.util.ReflectionUtils;
  */
 public class SqlRowSetResultSetExtractor implements ResultSetExtractor<SqlRowSet> {
 
-	private static Object rowSetFactory = null;
-
-	private static Method createCachedRowSet = null;
+	private static final RowSetFactory rowSetFactory;
 
 	static {
-		ClassLoader cl = SqlRowSetResultSetExtractor.class.getClassLoader();
 		try {
-			Class rowSetProviderClass = cl.loadClass("javax.sql.rowset.RowSetProvider");
-			Method newFactory = rowSetProviderClass.getMethod("newFactory");
-			rowSetFactory = ReflectionUtils.invokeMethod(newFactory, null);
-			createCachedRowSet = rowSetFactory.getClass().getMethod("createCachedRowSet");
+			rowSetFactory = RowSetProvider.newFactory();
 		}
-		catch (Exception ex) {
-			// JDBC 4.1 API not available - fall back to Sun CachedRowSetImpl
+		catch (SQLException ex) {
+			throw new IllegalStateException("Cannot create RowSetFactory through RowSetProvider", ex);
 		}
 	}
 
 
+	@Override
 	public SqlRowSet extractData(ResultSet rs) throws SQLException {
 		return createSqlRowSet(rs);
 	}
 
 	/**
-	 * Create a SqlRowSet that wraps the given ResultSet,
+	 * Create a {@link SqlRowSet} that wraps the given {@link ResultSet},
 	 * representing its data in a disconnected fashion.
-	 * <p>This implementation creates a Spring ResultSetWrappingSqlRowSet
-	 * instance that wraps a standard JDBC CachedRowSet instance.
+	 * <p>This implementation creates a Spring {@link ResultSetWrappingSqlRowSet}
+	 * instance that wraps a standard JDBC {@link CachedRowSet} instance.
 	 * Can be overridden to use a different implementation.
 	 * @param rs the original ResultSet (connected)
 	 * @return the disconnected SqlRowSet
 	 * @throws SQLException if thrown by JDBC methods
-	 * @see #newCachedRowSet
+	 * @see #newCachedRowSet()
 	 * @see org.springframework.jdbc.support.rowset.ResultSetWrappingSqlRowSet
 	 */
 	protected SqlRowSet createSqlRowSet(ResultSet rs) throws SQLException {
@@ -86,23 +77,17 @@ public class SqlRowSetResultSetExtractor implements ResultSetExtractor<SqlRowSet
 	}
 
 	/**
-	 * Create a new CachedRowSet instance, to be populated by
-	 * the <code>createSqlRowSet</code> implementation.
-	 * <p>The default implementation creates a new instance of
-	 * Sun's <code>com.sun.rowset.CachedRowSetImpl</code> class.
+	 * Create a new {@link CachedRowSet} instance, to be populated by
+	 * the {@code createSqlRowSet} implementation.
+	 * <p>The default implementation uses JDBC 4.1's {@link RowSetFactory}.
 	 * @return a new CachedRowSet instance
 	 * @throws SQLException if thrown by JDBC methods
 	 * @see #createSqlRowSet
-	 * @see com.sun.rowset.CachedRowSetImpl
+	 * @see RowSetProvider#newFactory()
+	 * @see RowSetFactory#createCachedRowSet()
 	 */
 	protected CachedRowSet newCachedRowSet() throws SQLException {
-		if (createCachedRowSet != null) {
-			// RowSetProvider.newFactory().createCachedRowSet();
-			return (CachedRowSet) ReflectionUtils.invokeJdbcMethod(createCachedRowSet, rowSetFactory);
-		}
-		else {
-			return new CachedRowSetImpl();
-		}
+		return rowSetFactory.createCachedRowSet();
 	}
 
 }

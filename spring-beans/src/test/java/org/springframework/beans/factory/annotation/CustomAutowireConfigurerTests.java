@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,40 +16,38 @@
 
 package org.springframework.beans.factory.annotation;
 
-import static org.junit.Assert.assertEquals;
-import static test.util.TestResourceUtils.qualifiedResource;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.config.DependencyDescriptor;
 import org.springframework.beans.factory.support.AutowireCandidateResolver;
-import org.springframework.beans.factory.support.BeanDefinitionReader;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
-import org.springframework.core.io.Resource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.core.testfixture.io.ResourceTestUtils.qualifiedResource;
 
 /**
  * Unit tests for {@link CustomAutowireConfigurer}.
- * 
+ *
  * @author Mark Fisher
  * @author Juergen Hoeller
  * @author Chris Beams
  */
-public final class CustomAutowireConfigurerTests {
-
-	private static final Resource CONTEXT = qualifiedResource(CustomAutowireConfigurerTests.class, "context.xml");
+public class CustomAutowireConfigurerTests {
 
 	@Test
 	public void testCustomResolver() {
 		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
-		BeanDefinitionReader reader = new XmlBeanDefinitionReader(bf);
-		reader.loadBeanDefinitions(CONTEXT);
+		new XmlBeanDefinitionReader(bf).loadBeanDefinitions(
+				qualifiedResource(CustomAutowireConfigurerTests.class, "context.xml"));
+
 		CustomAutowireConfigurer cac = new CustomAutowireConfigurer();
 		CustomResolver customResolver = new CustomResolver();
 		bf.setAutowireCandidateResolver(customResolver);
 		cac.postProcessBeanFactory(bf);
 		TestBean testBean = (TestBean) bf.getBean("testBean");
-		assertEquals("#1!", testBean.getName());
+		assertThat(testBean.getName()).isEqualTo("#1!");
 	}
 
 
@@ -69,6 +67,7 @@ public final class CustomAutowireConfigurerTests {
 
 	public static class CustomResolver implements AutowireCandidateResolver {
 
+		@Override
 		public boolean isAutowireCandidate(BeanDefinitionHolder bdHolder, DependencyDescriptor descriptor) {
 			if (!bdHolder.getBeanDefinition().isAutowireCandidate()) {
 				return false;
@@ -82,7 +81,13 @@ public final class CustomAutowireConfigurerTests {
 			return false;
 		}
 
+		@Override
 		public Object getSuggestedValue(DependencyDescriptor descriptor) {
+			return null;
+		}
+
+		@Override
+		public Object getLazyResolutionProxyIfNecessary(DependencyDescriptor descriptor, String beanName) {
 			return null;
 		}
 	}

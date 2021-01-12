@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,6 +33,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.jmx.JmxException;
 import org.springframework.jmx.MBeanServerNotFoundException;
 import org.springframework.jmx.support.NotificationListenerHolder;
+import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
 
 /**
@@ -49,24 +50,29 @@ import org.springframework.util.CollectionUtils;
 public class NotificationListenerRegistrar extends NotificationListenerHolder
 		implements InitializingBean, DisposableBean {
 
-	/** Logger available to subclasses */
+	/** Logger available to subclasses. */
 	protected final Log logger = LogFactory.getLog(getClass());
-
-	private MBeanServerConnection server;
-
-	private JMXServiceURL serviceUrl;
-
-	private Map<String, ?> environment;
-
-	private String agentId;
 
 	private final ConnectorDelegate connector = new ConnectorDelegate();
 
+	@Nullable
+	private MBeanServerConnection server;
+
+	@Nullable
+	private JMXServiceURL serviceUrl;
+
+	@Nullable
+	private Map<String, ?> environment;
+
+	@Nullable
+	private String agentId;
+
+	@Nullable
 	private ObjectName[] actualObjectNames;
 
 
 	/**
-	 * Set the <code>MBeanServerConnection</code> used to connect to the
+	 * Set the {@code MBeanServerConnection} used to connect to the
 	 * MBean which all invocations are routed to.
 	 */
 	public void setServer(MBeanServerConnection server) {
@@ -77,7 +83,7 @@ public class NotificationListenerRegistrar extends NotificationListenerHolder
 	 * Specify the environment for the JMX connector.
 	 * @see javax.management.remote.JMXConnectorFactory#connect(javax.management.remote.JMXServiceURL, java.util.Map)
 	 */
-	public void setEnvironment(Map<String, ?> environment) {
+	public void setEnvironment(@Nullable Map<String, ?> environment) {
 		this.environment = environment;
 	}
 
@@ -88,19 +94,20 @@ public class NotificationListenerRegistrar extends NotificationListenerHolder
 	 * "environment[myKey]". This is particularly useful for
 	 * adding or overriding entries in child bean definitions.
 	 */
+	@Nullable
 	public Map<String, ?> getEnvironment() {
 		return this.environment;
 	}
 
 	/**
-	 * Set the service URL of the remote <code>MBeanServer</code>.
+	 * Set the service URL of the remote {@code MBeanServer}.
 	 */
 	public void setServiceUrl(String url) throws MalformedURLException {
 		this.serviceUrl = new JMXServiceURL(url);
 	}
 
 	/**
-	 * Set the agent id of the <code>MBeanServer</code> to locate.
+	 * Set the agent id of the {@code MBeanServer} to locate.
 	 * <p>Default is none. If specified, this will result in an
 	 * attempt being made to locate the attendant MBeanServer, unless
 	 * the {@link #setServiceUrl "serviceUrl"} property has been set.
@@ -112,6 +119,7 @@ public class NotificationListenerRegistrar extends NotificationListenerHolder
 	}
 
 
+	@Override
 	public void afterPropertiesSet() {
 		if (getNotificationListener() == null) {
 			throw new IllegalArgumentException("Property 'notificationListener' is required");
@@ -123,8 +131,8 @@ public class NotificationListenerRegistrar extends NotificationListenerHolder
 	}
 
 	/**
-	 * Registers the specified <code>NotificationListener</code>.
-	 * <p>Ensures that an <code>MBeanServerConnection</code> is configured and attempts
+	 * Registers the specified {@code NotificationListener}.
+	 * <p>Ensures that an {@code MBeanServerConnection} is configured and attempts
 	 * to detect a local connection if one is not supplied.
 	 */
 	public void prepare() {
@@ -133,12 +141,14 @@ public class NotificationListenerRegistrar extends NotificationListenerHolder
 		}
 		try {
 			this.actualObjectNames = getResolvedObjectNames();
-			if (logger.isDebugEnabled()) {
-				logger.debug("Registering NotificationListener for MBeans " + Arrays.asList(this.actualObjectNames));
-			}
-			for (ObjectName actualObjectName : this.actualObjectNames) {
-				this.server.addNotificationListener(
-						actualObjectName, getNotificationListener(), getNotificationFilter(), getHandback());
+			if (this.actualObjectNames != null) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Registering NotificationListener for MBeans " + Arrays.asList(this.actualObjectNames));
+				}
+				for (ObjectName actualObjectName : this.actualObjectNames) {
+					this.server.addNotificationListener(
+							actualObjectName, getNotificationListener(), getNotificationFilter(), getHandback());
+				}
 			}
 		}
 		catch (IOException ex) {
@@ -151,11 +161,12 @@ public class NotificationListenerRegistrar extends NotificationListenerHolder
 	}
 
 	/**
-	 * Unregisters the specified <code>NotificationListener</code>.
+	 * Unregisters the specified {@code NotificationListener}.
 	 */
+	@Override
 	public void destroy() {
 		try {
-			if (this.actualObjectNames != null) {
+			if (this.server != null && this.actualObjectNames != null) {
 				for (ObjectName actualObjectName : this.actualObjectNames) {
 					try {
 						this.server.removeNotificationListener(

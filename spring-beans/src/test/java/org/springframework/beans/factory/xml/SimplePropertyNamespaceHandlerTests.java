@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,13 +16,16 @@
 
 package org.springframework.beans.factory.xml;
 
-import static org.junit.Assert.assertEquals;
-import org.junit.Test;
-import test.beans.ITestBean;
-import test.beans.TestBean;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.BeanDefinitionStoreException;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.testfixture.beans.ITestBean;
+import org.springframework.beans.testfixture.beans.TestBean;
 import org.springframework.core.io.ClassPathResource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * @author Rob Harrop
@@ -33,37 +36,43 @@ public class SimplePropertyNamespaceHandlerTests {
 
 	@Test
 	public void simpleBeanConfigured() throws Exception {
-		XmlBeanFactory beanFactory =
-				new XmlBeanFactory(new ClassPathResource("simplePropertyNamespaceHandlerTests.xml", getClass()));
+		DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+		new XmlBeanDefinitionReader(beanFactory).loadBeanDefinitions(
+				new ClassPathResource("simplePropertyNamespaceHandlerTests.xml", getClass()));
 		ITestBean rob = (TestBean) beanFactory.getBean("rob");
 		ITestBean sally = (TestBean) beanFactory.getBean("sally");
-		assertEquals("Rob Harrop", rob.getName());
-		assertEquals(24, rob.getAge());
-		assertEquals(rob.getSpouse(), sally);
+		assertThat(rob.getName()).isEqualTo("Rob Harrop");
+		assertThat(rob.getAge()).isEqualTo(24);
+		assertThat(sally).isEqualTo(rob.getSpouse());
 	}
 
 	@Test
 	public void innerBeanConfigured() throws Exception {
-		XmlBeanFactory beanFactory =
-				new XmlBeanFactory(new ClassPathResource("simplePropertyNamespaceHandlerTests.xml", getClass()));
+		DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+		new XmlBeanDefinitionReader(beanFactory).loadBeanDefinitions(
+				new ClassPathResource("simplePropertyNamespaceHandlerTests.xml", getClass()));
 		TestBean sally = (TestBean) beanFactory.getBean("sally2");
 		ITestBean rob = sally.getSpouse();
-		assertEquals("Rob Harrop", rob.getName());
-		assertEquals(24, rob.getAge());
-		assertEquals(rob.getSpouse(), sally);
+		assertThat(rob.getName()).isEqualTo("Rob Harrop");
+		assertThat(rob.getAge()).isEqualTo(24);
+		assertThat(sally).isEqualTo(rob.getSpouse());
 	}
 
-	@Test(expected = BeanDefinitionStoreException.class)
+	@Test
 	public void withPropertyDefinedTwice() throws Exception {
-		new XmlBeanFactory(new ClassPathResource("simplePropertyNamespaceHandlerTestsWithErrors.xml", getClass()));
+		DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+		assertThatExceptionOfType(BeanDefinitionStoreException.class).isThrownBy(() ->
+				new XmlBeanDefinitionReader(beanFactory).loadBeanDefinitions(
+							new ClassPathResource("simplePropertyNamespaceHandlerTestsWithErrors.xml", getClass())));
 	}
 
 	@Test
 	public void propertyWithNameEndingInRef() throws Exception {
-		XmlBeanFactory beanFactory =
-				new XmlBeanFactory(new ClassPathResource("simplePropertyNamespaceHandlerTests.xml", getClass()));
+		DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+		new XmlBeanDefinitionReader(beanFactory).loadBeanDefinitions(
+				new ClassPathResource("simplePropertyNamespaceHandlerTests.xml", getClass()));
 		ITestBean sally = (TestBean) beanFactory.getBean("derivedSally");
-		assertEquals("r", sally.getSpouse().getName());
+		assertThat(sally.getSpouse().getName()).isEqualTo("r");
 	}
 
 }

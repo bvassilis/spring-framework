@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,7 @@
 package org.springframework.beans.factory.config;
 
 import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.lang.Nullable;
 
 /**
  * Strategy interface used by a {@link ConfigurableBeanFactory},
@@ -38,14 +39,14 @@ import org.springframework.beans.factory.ObjectFactory;
  * this SPI is completely generic: It provides the ability to get and put
  * objects from any underlying storage mechanism, such as an HTTP session
  * or a custom conversation mechanism. The name passed into this class's
- * <code>get</code> and <code>remove</code> methods will identify the
+ * {@code get} and {@code remove} methods will identify the
  * target object in the current scope.
  *
- * <p><code>Scope</code> implementations are expected to be thread-safe.
- * One <code>Scope</code> instance can be used with multiple bean factories
+ * <p>{@code Scope} implementations are expected to be thread-safe.
+ * One {@code Scope} instance can be used with multiple bean factories
  * at the same time, if desired (unless it explicitly wants to be aware of
  * the containing BeanFactory), with any number of threads accessing
- * the <code>Scope</code> concurrently from any number of factories.
+ * the {@code Scope} concurrently from any number of factories.
  *
  * @author Juergen Hoeller
  * @author Rob Harrop
@@ -67,14 +68,15 @@ public interface Scope {
 	 * @param name the name of the object to retrieve
 	 * @param objectFactory the {@link ObjectFactory} to use to create the scoped
 	 * object if it is not present in the underlying storage mechanism
-	 * @return the desired object (never <code>null</code>)
+	 * @return the desired object (never {@code null})
+	 * @throws IllegalStateException if the underlying scope is not currently active
 	 */
 	Object get(String name, ObjectFactory<?> objectFactory);
 
 	/**
-	 * Remove the object with the given <code>name</code> from the underlying scope.
-	 * <p>Returns <code>null</code> if no object was found; otherwise
-	 * returns the removed <code>Object</code>.
+	 * Remove the object with the given {@code name} from the underlying scope.
+	 * <p>Returns {@code null} if no object was found; otherwise
+	 * returns the removed {@code Object}.
 	 * <p>Note that an implementation should also remove a registered destruction
 	 * callback for the specified object, if any. It does, however, <i>not</i>
 	 * need to <i>execute</i> a registered destruction callback in this case,
@@ -83,9 +85,11 @@ public interface Scope {
 	 * {@link UnsupportedOperationException} if they do not support explicitly
 	 * removing an object.
 	 * @param name the name of the object to remove
-	 * @return the removed object, or <code>null</code> if no object was present
+	 * @return the removed object, or {@code null} if no object was present
+	 * @throws IllegalStateException if the underlying scope is not currently active
 	 * @see #registerDestructionCallback
 	 */
+	@Nullable
 	Object remove(String name);
 
 	/**
@@ -100,7 +104,7 @@ public interface Scope {
 	 * at the appropriate time. If such a callback is not supported by the
 	 * underlying runtime environment at all, the callback <i>must be
 	 * ignored and a corresponding warning should be logged</i>.
-	 * <p>Note that 'destruction' refers to to automatic destruction of
+	 * <p>Note that 'destruction' refers to automatic destruction of
 	 * the object as part of the scope's own lifecycle, not to the individual
 	 * scoped object having been explicitly removed by the application.
 	 * If a scoped object gets removed via this facade's {@link #remove(String)}
@@ -112,6 +116,7 @@ public interface Scope {
 	 * so it can safely be executed without an enclosing try-catch block.
 	 * Furthermore, the Runnable will usually be serializable, provided
 	 * that its target object is serializable as well.
+	 * @throws IllegalStateException if the underlying scope is not currently active
 	 * @see org.springframework.beans.factory.DisposableBean
 	 * @see org.springframework.beans.factory.support.AbstractBeanDefinition#getDestroyMethodName()
 	 * @see DestructionAwareBeanPostProcessor
@@ -122,8 +127,10 @@ public interface Scope {
 	 * Resolve the contextual object for the given key, if any.
 	 * E.g. the HttpServletRequest object for key "request".
 	 * @param key the contextual key
-	 * @return the corresponding object, or <code>null</code> if none found
+	 * @return the corresponding object, or {@code null} if none found
+	 * @throws IllegalStateException if the underlying scope is not currently active
 	 */
+	@Nullable
 	Object resolveContextualObject(String key);
 
 	/**
@@ -135,11 +142,13 @@ public interface Scope {
 	 * case of a custom conversation that sits within the overall session,
 	 * the specific ID for the current conversation would be appropriate.
 	 * <p><b>Note: This is an optional operation.</b> It is perfectly valid to
-	 * return <code>null</code> in an implementation of this method if the
+	 * return {@code null} in an implementation of this method if the
 	 * underlying storage mechanism has no obvious candidate for such an ID.
-	 * @return the conversation ID, or <code>null</code> if there is no
+	 * @return the conversation ID, or {@code null} if there is no
 	 * conversation ID for the current scope
+	 * @throws IllegalStateException if the underlying scope is not currently active
 	 */
+	@Nullable
 	String getConversationId();
 
 }

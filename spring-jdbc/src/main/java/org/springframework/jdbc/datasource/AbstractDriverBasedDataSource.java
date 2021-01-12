@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import org.springframework.util.Assert;
+import org.springframework.lang.Nullable;
 
 /**
  * Abstract base class for JDBC {@link javax.sql.DataSource} implementations
@@ -33,12 +33,22 @@ import org.springframework.util.Assert;
  */
 public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 
+	@Nullable
 	private String url;
 
+	@Nullable
 	private String username;
 
+	@Nullable
 	private String password;
 
+	@Nullable
+	private String catalog;
+
+	@Nullable
+	private String schema;
+
+	@Nullable
 	private Properties connectionProperties;
 
 
@@ -46,14 +56,14 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * Set the JDBC URL to use for connecting through the Driver.
 	 * @see java.sql.Driver#connect(String, java.util.Properties)
 	 */
-	public void setUrl(String url) {
-		Assert.hasText(url, "Property 'url' must not be empty");
-		this.url = url.trim();
+	public void setUrl(@Nullable String url) {
+		this.url = (url != null ? url.trim() : null);
 	}
 
 	/**
 	 * Return the JDBC URL to use for connecting through the Driver.
 	 */
+	@Nullable
 	public String getUrl() {
 		return this.url;
 	}
@@ -62,13 +72,14 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * Set the JDBC username to use for connecting through the Driver.
 	 * @see java.sql.Driver#connect(String, java.util.Properties)
 	 */
-	public void setUsername(String username) {
+	public void setUsername(@Nullable String username) {
 		this.username = username;
 	}
 
 	/**
 	 * Return the JDBC username to use for connecting through the Driver.
 	 */
+	@Nullable
 	public String getUsername() {
 		return this.username;
 	}
@@ -77,15 +88,52 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * Set the JDBC password to use for connecting through the Driver.
 	 * @see java.sql.Driver#connect(String, java.util.Properties)
 	 */
-	public void setPassword(String password) {
+	public void setPassword(@Nullable String password) {
 		this.password = password;
 	}
 
 	/**
 	 * Return the JDBC password to use for connecting through the Driver.
 	 */
+	@Nullable
 	public String getPassword() {
 		return this.password;
+	}
+
+	/**
+	 * Specify a database catalog to be applied to each Connection.
+	 * @since 4.3.2
+	 * @see Connection#setCatalog
+	 */
+	public void setCatalog(@Nullable String catalog) {
+		this.catalog = catalog;
+	}
+
+	/**
+	 * Return the database catalog to be applied to each Connection, if any.
+	 * @since 4.3.2
+	 */
+	@Nullable
+	public String getCatalog() {
+		return this.catalog;
+	}
+
+	/**
+	 * Specify a database schema to be applied to each Connection.
+	 * @since 4.3.2
+	 * @see Connection#setSchema
+	 */
+	public void setSchema(@Nullable String schema) {
+		this.schema = schema;
+	}
+
+	/**
+	 * Return the database schema to be applied to each Connection, if any.
+	 * @since 4.3.2
+	 */
+	@Nullable
+	public String getSchema() {
+		return this.schema;
 	}
 
 	/**
@@ -96,34 +144,37 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * DataSource will override the corresponding connection properties.
 	 * @see java.sql.Driver#connect(String, java.util.Properties)
 	 */
-	public void setConnectionProperties(Properties connectionProperties) {
+	public void setConnectionProperties(@Nullable Properties connectionProperties) {
 		this.connectionProperties = connectionProperties;
 	}
 
 	/**
 	 * Return the connection properties to be passed to the Driver, if any.
 	 */
+	@Nullable
 	public Properties getConnectionProperties() {
 		return this.connectionProperties;
 	}
 
 
 	/**
-	 * This implementation delegates to <code>getConnectionFromDriver</code>,
+	 * This implementation delegates to {@code getConnectionFromDriver},
 	 * using the default username and password of this DataSource.
 	 * @see #getConnectionFromDriver(String, String)
 	 * @see #setUsername
 	 * @see #setPassword
 	 */
+	@Override
 	public Connection getConnection() throws SQLException {
 		return getConnectionFromDriver(getUsername(), getPassword());
 	}
 
 	/**
-	 * This implementation delegates to <code>getConnectionFromDriver</code>,
+	 * This implementation delegates to {@code getConnectionFromDriver},
 	 * using the given username and password.
 	 * @see #getConnectionFromDriver(String, String)
 	 */
+	@Override
 	public Connection getConnection(String username, String password) throws SQLException {
 		return getConnectionFromDriver(username, password);
 	}
@@ -138,15 +189,27 @@ public abstract class AbstractDriverBasedDataSource extends AbstractDataSource {
 	 * @throws SQLException in case of failure
 	 * @see java.sql.Driver#connect(String, java.util.Properties)
 	 */
-	protected Connection getConnectionFromDriver(String username, String password) throws SQLException {
-		Properties props = new Properties(getConnectionProperties());
+	protected Connection getConnectionFromDriver(@Nullable String username, @Nullable String password) throws SQLException {
+		Properties mergedProps = new Properties();
+		Properties connProps = getConnectionProperties();
+		if (connProps != null) {
+			mergedProps.putAll(connProps);
+		}
 		if (username != null) {
-			props.setProperty("user", username);
+			mergedProps.setProperty("user", username);
 		}
 		if (password != null) {
-			props.setProperty("password", password);
+			mergedProps.setProperty("password", password);
 		}
-		return getConnectionFromDriver(props);
+
+		Connection con = getConnectionFromDriver(mergedProps);
+		if (this.catalog != null) {
+			con.setCatalog(this.catalog);
+		}
+		if (this.schema != null) {
+			con.setSchema(this.schema);
+		}
+		return con;
 	}
 
 	/**

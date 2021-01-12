@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,16 +18,18 @@ package org.springframework.beans.support;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
  * PagedListHolder is a simple state holder for handling lists of objects,
  * separating them into pages. Page numbering starts with 0.
  *
- * <p>This is mainly targetted at usage in web UIs. Typically, an instance will be
+ * <p>This is mainly targeted at usage in web UIs. Typically, an instance will be
  * instantiated with a list of beans, put into the session, and exported as model.
  * The properties can all be set/get programmatically, but the most common way will
  * be data binding, i.e. populating the bean from request parameters. The getters
@@ -44,22 +46,33 @@ import org.springframework.util.Assert;
  *
  * @author Juergen Hoeller
  * @since 19.05.2003
+ * @param <E> the element type
  * @see #getPageList()
  * @see org.springframework.beans.support.MutableSortDefinition
  */
+@SuppressWarnings("serial")
 public class PagedListHolder<E> implements Serializable {
 
+	/**
+	 * The default page size.
+	 */
 	public static final int DEFAULT_PAGE_SIZE = 10;
 
+	/**
+	 * The default maximum number of page links.
+	 */
 	public static final int DEFAULT_MAX_LINKED_PAGES = 10;
 
 
-	private List<E> source;
+	private List<E> source = Collections.emptyList();
 
+	@Nullable
 	private Date refreshDate;
 
+	@Nullable
 	private SortDefinition sort;
 
+	@Nullable
 	private SortDefinition sortUsed;
 
 	private int pageSize = DEFAULT_PAGE_SIZE;
@@ -77,7 +90,7 @@ public class PagedListHolder<E> implements Serializable {
 	 * @see #setSource
 	 */
 	public PagedListHolder() {
-		this(new ArrayList<E>(0));
+		this(new ArrayList<>(0));
 	}
 
 	/**
@@ -121,6 +134,7 @@ public class PagedListHolder<E> implements Serializable {
 	/**
 	 * Return the last time the list has been fetched from the source provider.
 	 */
+	@Nullable
 	public Date getRefreshDate() {
 		return this.refreshDate;
 	}
@@ -130,13 +144,14 @@ public class PagedListHolder<E> implements Serializable {
 	 * Typically an instance of MutableSortDefinition.
 	 * @see org.springframework.beans.support.MutableSortDefinition
 	 */
-	public void setSort(SortDefinition sort) {
+	public void setSort(@Nullable SortDefinition sort) {
 		this.sort = sort;
 	}
 
 	/**
 	 * Return the sort definition for this holder.
 	 */
+	@Nullable
 	public SortDefinition getSort() {
 		return this.sort;
 	}
@@ -288,9 +303,9 @@ public class PagedListHolder<E> implements Serializable {
 
 
 	/**
-	 * Resort the list if necessary, i.e. if the current <code>sort</code> instance
-	 * isn't equal to the backed-up <code>sortUsed</code> instance.
-	 * <p>Calls <code>doSort</code> to trigger actual sorting.
+	 * Resort the list if necessary, i.e. if the current {@code sort} instance
+	 * isn't equal to the backed-up {@code sortUsed} instance.
+	 * <p>Calls {@code doSort} to trigger actual sorting.
 	 * @see #doSort
 	 */
 	public void resort() {
@@ -309,7 +324,7 @@ public class PagedListHolder<E> implements Serializable {
 	 * Can be overridden in subclasses, in particular in case of custom
 	 * extensions to the SortDefinition interface. Is allowed to return
 	 * null, which means that no sort state will be held, triggering
-	 * actual sorting for each <code>resort</code> call.
+	 * actual sorting for each {@code resort} call.
 	 * @param sort the current SortDefinition object
 	 * @return a deep copy of the SortDefinition object
 	 * @see MutableSortDefinition#MutableSortDefinition(SortDefinition)

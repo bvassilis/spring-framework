@@ -1,32 +1,36 @@
-The following has been tested against Intellij IDEA 11.0.1
+The following has been tested against IntelliJ IDEA 2016.2.2
 
 ## Steps
 
 _Within your locally cloned spring-framework working directory:_
 
-1. Generate IDEA metadata with `./gradlew cleanIdea idea`
-2. Import into IDEA as usual
-3. Set the Project JDK as appropriate
-4. Add git support
-5. Code away
+1. Precompile `spring-oxm` with `./gradlew :spring-oxm:compileTestJava`
+2. Import into IntelliJ (File -> New -> Project from Existing Sources -> Navigate to directory -> Select build.gradle)
+3. When prompted exclude the `spring-aspects` module (or after the import via File-> Project Structure -> Modules)
+4. Code away
 
 ## Known issues
 
-1. MockServletContext and friends will fail to compile in spring-web. To fix this, uncheck the 'export' setting for all servlet-api and tomcat-servlet-api jars. The problem is that spring-web needs Servlet 2.5, but it's picking up Servlet 3.0 from projects that it depends on.
-2. spring-context will fail to build because there's a duplicate instance of GroovyMessenger in spring-context/src/test/java/org/springframework/scripting/groovy/Messenger.groovy. The solution to this is not known.  It's not a problem on Eclipse, because Eclipse doesn't automatically compile .groovy files like IDEA (apparently) does.
+1. `spring-core` and `spring-oxm` should be pre-compiled due to repackaged dependencies.
+See `*RepackJar` tasks in the build and https://youtrack.jetbrains.com/issue/IDEA-160605).
+2. `spring-aspects` does not compile due to references to aspect types unknown to
+IntelliJ IDEA. See https://youtrack.jetbrains.com/issue/IDEA-64446 for details. In the meantime, the
+'spring-aspects' can be excluded from the project to avoid compilation errors.
+3. While JUnit tests pass from the command line with Gradle, some may fail when run from
+IntelliJ IDEA. Resolving this is a work in progress. If attempting to run all JUnit tests from within
+IntelliJ IDEA, you will likely need to set the following VM options to avoid out of memory errors:
+    -XX:MaxPermSize=2048m -Xmx2048m -XX:MaxHeapSize=2048m
+4. If you invoke "Rebuild Project" in the IDE, you'll have to generate some test
+resources of the `spring-oxm` module again (`./gradlew :spring-oxm:compileTestJava`)    
 
-There are no other known problems at this time.  Please add to this list, and if you're ambitious, consider playing with the Gradle IDEA generation DSL to fix these problems automatically, e.g.:
-
-* http://gradle.org/docs/current/dsl/org.gradle.plugins.ide.idea.model.IdeaProject.html
-* http://gradle.org/docs/current/dsl/org.gradle.plugins.ide.idea.model.IdeaModule.html
-* http://gradle.org/docs/current/groovydoc/org/gradle/plugins/ide/idea/model/IdeaModule.html
 
 ## Tips
 
-In any case, please do not check in your own generated .iml, .ipr, or .iws files. You'll notice these files are already intentionally in .gitignore. The same policy goes for eclipse metadata.
+In any case, please do not check in your own generated .iml, .ipr, or .iws files.
+You'll notice these files are already intentionally in .gitignore. The same policy goes for eclipse metadata.
 
 ## FAQ
 
-Q. What about IDEA's own [Gradle support](http://confluence.jetbrains.net/display/IDEADEV/Gradle+integration)?
+Q. What about IntelliJ IDEA's own [Gradle support](https://confluence.jetbrains.net/display/IDEADEV/Gradle+integration)?
 
-A. Unknown. Please report back if you try it and it goes well for you.
+A. Keep an eye on https://youtrack.jetbrains.com/issue/IDEA-53476

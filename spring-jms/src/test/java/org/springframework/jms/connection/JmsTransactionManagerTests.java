@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,21 +22,13 @@ import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageProducer;
-import javax.jms.QueueConnection;
-import javax.jms.QueueConnectionFactory;
-import javax.jms.QueueSession;
 import javax.jms.Session;
-import javax.jms.TopicConnection;
-import javax.jms.TopicConnectionFactory;
-import javax.jms.TopicSession;
 
-import junit.framework.TestCase;
-import org.easymock.MockControl;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.jms.StubQueue;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.JmsTemplate102;
-import org.springframework.jms.core.MessageCreator;
 import org.springframework.jms.core.SessionCallback;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -46,460 +38,283 @@ import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 /**
  * @author Juergen Hoeller
  * @since 26.07.2004
  */
-public class JmsTransactionManagerTests extends TestCase {
+public class JmsTransactionManagerTests {
 
+	@AfterEach
+	public void verifyTransactionSynchronizationManagerState() {
+		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty()).isTrue();
+		assertThat(TransactionSynchronizationManager.isSynchronizationActive()).isFalse();
+	}
+
+
+	@Test
 	public void testTransactionCommit() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
-		MockControl sessionControl = MockControl.createControl(Session.class);
-		final Session session = (Session) sessionControl.getMock();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
+		final Session session = mock(Session.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.createSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session, 1);
-		session.commit();
-		sessionControl.setVoidCallable(1);
-		session.close();
-		sessionControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		sessionControl.replay();
-		conControl.replay();
-		cfControl.replay();
+		given(cf.createConnection()).willReturn(con);
+		given(con.createSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(session);
 
 		JmsTransactionManager tm = new JmsTransactionManager(cf);
 		TransactionStatus ts = tm.getTransaction(new DefaultTransactionDefinition());
 		JmsTemplate jt = new JmsTemplate(cf);
-		jt.execute(new SessionCallback() {
-			public Object doInJms(Session sess) {
-				assertTrue(sess == session);
-				return null;
-			}
+		jt.execute((SessionCallback<Void>) sess -> {
+			assertThat(session).isSameAs(sess);
+			return null;
 		});
 		tm.commit(ts);
 
-		sessionControl.verify();
-		conControl.verify();
-		cfControl.verify();
+		verify(session).commit();
+		verify(session).close();
+		verify(con).close();
 	}
 
+	@Test
 	public void testTransactionRollback() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
-		MockControl sessionControl = MockControl.createControl(Session.class);
-		final Session session = (Session) sessionControl.getMock();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
+		final Session session = mock(Session.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.createSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session, 1);
-		session.rollback();
-		sessionControl.setVoidCallable(1);
-		session.close();
-		sessionControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		sessionControl.replay();
-		conControl.replay();
-		cfControl.replay();
+		given(cf.createConnection()).willReturn(con);
+		given(con.createSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(session);
 
 		JmsTransactionManager tm = new JmsTransactionManager(cf);
 		TransactionStatus ts = tm.getTransaction(new DefaultTransactionDefinition());
 		JmsTemplate jt = new JmsTemplate(cf);
-		jt.execute(new SessionCallback() {
-			public Object doInJms(Session sess) {
-				assertTrue(sess == session);
-				return null;
-			}
+		jt.execute((SessionCallback<Void>) sess -> {
+			assertThat(session).isSameAs(sess);
+			return null;
 		});
 		tm.rollback(ts);
 
-		sessionControl.verify();
-		conControl.verify();
-		cfControl.verify();
+		verify(session).rollback();
+		verify(session).close();
+		verify(con).close();
 	}
 
+	@Test
 	public void testParticipatingTransactionWithCommit() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		final ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
-		MockControl sessionControl = MockControl.createControl(Session.class);
-		final Session session = (Session) sessionControl.getMock();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
+		final Session session = mock(Session.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.createSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session, 1);
-		session.commit();
-		sessionControl.setVoidCallable(1);
-		session.close();
-		sessionControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		sessionControl.replay();
-		conControl.replay();
-		cfControl.replay();
+		given(cf.createConnection()).willReturn(con);
+		given(con.createSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(session);
 
 		JmsTransactionManager tm = new JmsTransactionManager(cf);
 		TransactionStatus ts = tm.getTransaction(new DefaultTransactionDefinition());
 		final JmsTemplate jt = new JmsTemplate(cf);
-		jt.execute(new SessionCallback() {
-			public Object doInJms(Session sess) {
-				assertTrue(sess == session);
-				return null;
-			}
+		jt.execute((SessionCallback<Void>) sess -> {
+			assertThat(session).isSameAs(sess);
+			return null;
 		});
 		TransactionTemplate tt = new TransactionTemplate(tm);
 		tt.execute(new TransactionCallbackWithoutResult() {
+			@Override
 			protected void doInTransactionWithoutResult(TransactionStatus status) {
-				jt.execute(new SessionCallback() {
-					public Object doInJms(Session sess) {
-						assertTrue(sess == session);
-						return null;
-					}
+				jt.execute((SessionCallback<Void>) sess -> {
+					assertThat(session).isSameAs(sess);
+					return null;
 				});
 			}
 		});
 		tm.commit(ts);
 
-		sessionControl.verify();
-		conControl.verify();
-		cfControl.verify();
+		verify(session).commit();
+		verify(session).close();
+		verify(con).close();
 	}
 
+	@Test
 	public void testParticipatingTransactionWithRollbackOnly() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		final ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
-		MockControl sessionControl = MockControl.createControl(Session.class);
-		final Session session = (Session) sessionControl.getMock();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
+		final Session session = mock(Session.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.createSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session, 1);
-		session.rollback();
-		sessionControl.setVoidCallable(1);
-		session.close();
-		sessionControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		sessionControl.replay();
-		conControl.replay();
-		cfControl.replay();
+		given(cf.createConnection()).willReturn(con);
+		given(con.createSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(session);
 
 		JmsTransactionManager tm = new JmsTransactionManager(cf);
 		TransactionStatus ts = tm.getTransaction(new DefaultTransactionDefinition());
 		final JmsTemplate jt = new JmsTemplate(cf);
-		jt.execute(new SessionCallback() {
-			public Object doInJms(Session sess) {
-				assertTrue(sess == session);
-				return null;
-			}
+		jt.execute((SessionCallback<Void>) sess -> {
+			assertThat(session).isSameAs(sess);
+			return null;
 		});
 		TransactionTemplate tt = new TransactionTemplate(tm);
 		tt.execute(new TransactionCallbackWithoutResult() {
+			@Override
 			protected void doInTransactionWithoutResult(TransactionStatus status) {
-				jt.execute(new SessionCallback() {
-					public Object doInJms(Session sess) {
-						assertTrue(sess == session);
-						return null;
-					}
+				jt.execute((SessionCallback<Void>) sess -> {
+					assertThat(session).isSameAs(sess);
+					return null;
 				});
 				status.setRollbackOnly();
 			}
 		});
-		try {
-			tm.commit(ts);
-			fail("Should have thrown UnexpectedRollbackException");
-		}
-		catch (UnexpectedRollbackException ex) {
-			// expected
-		}
+		assertThatExceptionOfType(UnexpectedRollbackException.class).isThrownBy(() ->
+				tm.commit(ts));
 
-		sessionControl.verify();
-		conControl.verify();
-		cfControl.verify();
+		verify(session).rollback();
+		verify(session).close();
+		verify(con).close();
 	}
 
+	@Test
 	public void testSuspendedTransaction() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		final ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
-		MockControl sessionControl = MockControl.createControl(Session.class);
-		final Session session = (Session) sessionControl.getMock();
-		MockControl session2Control = MockControl.createControl(Session.class);
-		final Session session2 = (Session) session2Control.getMock();
+		final ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
+		final Session session = mock(Session.class);
+		final Session session2 = mock(Session.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 2);
-		con.createSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session, 1);
-		con.createSession(false, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session2, 1);
-		session.commit();
-		sessionControl.setVoidCallable(1);
-		session.close();
-		sessionControl.setVoidCallable(1);
-		session2.close();
-		session2Control.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(2);
-
-		sessionControl.replay();
-		conControl.replay();
-		cfControl.replay();
+		given(cf.createConnection()).willReturn(con);
+		given(con.createSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(session);
+		given(con.createSession(false, Session.AUTO_ACKNOWLEDGE)).willReturn(session2);
 
 		JmsTransactionManager tm = new JmsTransactionManager(cf);
 		TransactionStatus ts = tm.getTransaction(new DefaultTransactionDefinition());
 		final JmsTemplate jt = new JmsTemplate(cf);
-		jt.execute(new SessionCallback() {
-			public Object doInJms(Session sess) {
-				assertTrue(sess == session);
-				return null;
-			}
+		jt.execute((SessionCallback<Void>) sess -> {
+			assertThat(session).isSameAs(sess);
+			return null;
 		});
 		TransactionTemplate tt = new TransactionTemplate(tm);
 		tt.setPropagationBehavior(TransactionDefinition.PROPAGATION_NOT_SUPPORTED);
 		tt.execute(new TransactionCallbackWithoutResult() {
+			@Override
 			protected void doInTransactionWithoutResult(TransactionStatus status) {
-				jt.execute(new SessionCallback() {
-					public Object doInJms(Session sess) {
-						assertTrue(sess != session);
-						return null;
-					}
+				jt.execute((SessionCallback<Void>) sess -> {
+					assertThat(session).isNotSameAs(sess);
+					return null;
 				});
 			}
 		});
-		jt.execute(new SessionCallback() {
-			public Object doInJms(Session sess) {
-				assertTrue(sess == session);
-				return null;
-			}
+		jt.execute((SessionCallback<Void>) sess -> {
+			assertThat(session).isSameAs(sess);
+			return null;
 		});
 		tm.commit(ts);
 
-		sessionControl.verify();
-		conControl.verify();
-		cfControl.verify();
+		verify(session).commit();
+		verify(session).close();
+		verify(session2).close();
+		verify(con, times(2)).close();
 	}
 
+	@Test
 	public void testTransactionSuspension() throws JMSException {
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		final ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
-		MockControl sessionControl = MockControl.createControl(Session.class);
-		final Session session = (Session) sessionControl.getMock();
-		MockControl session2Control = MockControl.createControl(Session.class);
-		final Session session2 = (Session) session2Control.getMock();
+		final ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
+		final Session session = mock(Session.class);
+		final Session session2 = mock(Session.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 2);
-		con.createSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session, 1);
-		con.createSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session2, 1);
-		session.commit();
-		sessionControl.setVoidCallable(1);
-		session2.commit();
-		session2Control.setVoidCallable(1);
-		session.close();
-		sessionControl.setVoidCallable(1);
-		session2.close();
-		session2Control.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(2);
-
-		sessionControl.replay();
-		conControl.replay();
-		cfControl.replay();
+		given(cf.createConnection()).willReturn(con);
+		given(con.createSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(session, session2);
 
 		JmsTransactionManager tm = new JmsTransactionManager(cf);
 		TransactionStatus ts = tm.getTransaction(new DefaultTransactionDefinition());
 		final JmsTemplate jt = new JmsTemplate(cf);
-		jt.execute(new SessionCallback() {
-			public Object doInJms(Session sess) {
-				assertTrue(sess == session);
-				return null;
-			}
+		jt.execute((SessionCallback<Void>) sess -> {
+			assertThat(session).isSameAs(sess);
+			return null;
 		});
 		TransactionTemplate tt = new TransactionTemplate(tm);
 		tt.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 		tt.execute(new TransactionCallbackWithoutResult() {
+			@Override
 			protected void doInTransactionWithoutResult(TransactionStatus status) {
-				jt.execute(new SessionCallback() {
-					public Object doInJms(Session sess) {
-						assertTrue(sess != session);
-						return null;
-					}
+				jt.execute((SessionCallback<Void>) sess -> {
+					assertThat(session).isNotSameAs(sess);
+					return null;
 				});
 			}
 		});
-		jt.execute(new SessionCallback() {
-			public Object doInJms(Session sess) {
-				assertTrue(sess == session);
-				return null;
-			}
+		jt.execute((SessionCallback<Void>) sess -> {
+			assertThat(session).isSameAs(sess);
+			return null;
 		});
 		tm.commit(ts);
 
-		sessionControl.verify();
-		conControl.verify();
-		cfControl.verify();
+		verify(session).commit();
+		verify(session2).commit();
+		verify(session).close();
+		verify(session2).close();
+		verify(con, times(2)).close();
 	}
 
+	@Test
 	public void testTransactionCommitWithMessageProducer() throws JMSException {
 		Destination dest = new StubQueue();
 
-		MockControl cfControl = MockControl.createControl(ConnectionFactory.class);
-		ConnectionFactory cf = (ConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(Connection.class);
-		Connection con = (Connection) conControl.getMock();
-		MockControl sessionControl = MockControl.createControl(Session.class);
-		Session session = (Session) sessionControl.getMock();
-		MockControl producerControl = MockControl.createControl(MessageProducer.class);
-		MessageProducer producer = (MessageProducer) producerControl.getMock();
-		MockControl messageControl = MockControl.createControl(Message.class);
-		final Message message = (Message) messageControl.getMock();
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
+		Session session = mock(Session.class);
+		MessageProducer producer = mock(MessageProducer.class);
+		final Message message = mock(Message.class);
 
-		cf.createConnection();
-		cfControl.setReturnValue(con, 1);
-		con.createSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session, 1);
-		session.createProducer(dest);
-		sessionControl.setReturnValue(producer, 1);
-		producer.send(message);
-		producerControl.setVoidCallable(1);
-		session.getTransacted();
-		sessionControl.setReturnValue(true, 1);
-		session.commit();
-		sessionControl.setVoidCallable(1);
-		producer.close();
-		producerControl.setVoidCallable(1);
-		session.close();
-		sessionControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		producerControl.replay();
-		sessionControl.replay();
-		conControl.replay();
-		cfControl.replay();
+		given(cf.createConnection()).willReturn(con);
+		given(con.createSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(session);
+		given(session.createProducer(dest)).willReturn(producer);
+		given(session.getTransacted()).willReturn(true);
 
 		JmsTransactionManager tm = new JmsTransactionManager(cf);
 		TransactionStatus ts = tm.getTransaction(new DefaultTransactionDefinition());
 		JmsTemplate jt = new JmsTemplate(cf);
-		jt.send(dest, new MessageCreator() {
-			public Message createMessage(Session session) throws JMSException {
-				return message;
-			}
-		});
+		jt.send(dest, sess -> message);
 		tm.commit(ts);
 
-		producerControl.verify();
-		sessionControl.verify();
-		conControl.verify();
-		cfControl.verify();
+		verify(producer).send(message);
+		verify(session).commit();
+		verify(producer).close();
+		verify(session).close();
+		verify(con).close();
 	}
 
-	public void testTransactionCommit102WithQueue() throws JMSException {
-		MockControl cfControl = MockControl.createControl(QueueConnectionFactory.class);
-		QueueConnectionFactory cf = (QueueConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(QueueConnection.class);
-		QueueConnection con = (QueueConnection) conControl.getMock();
-		MockControl sessionControl = MockControl.createControl(QueueSession.class);
-		final QueueSession session = (QueueSession) sessionControl.getMock();
+	@Test
+	public void testLazyTransactionalSession() throws JMSException {
+		ConnectionFactory cf = mock(ConnectionFactory.class);
+		Connection con = mock(Connection.class);
+		final Session session = mock(Session.class);
 
-		cf.createQueueConnection();
-		cfControl.setReturnValue(con, 1);
-		con.createQueueSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session, 1);
-		session.commit();
-		sessionControl.setVoidCallable(1);
-		session.close();
-		sessionControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		sessionControl.replay();
-		conControl.replay();
-		cfControl.replay();
-
-		JmsTransactionManager tm = new JmsTransactionManager102(cf, false);
+		JmsTransactionManager tm = new JmsTransactionManager(cf);
+		tm.setLazyResourceRetrieval(true);
 		TransactionStatus ts = tm.getTransaction(new DefaultTransactionDefinition());
-		JmsTemplate jt = new JmsTemplate102(cf, false);
-		jt.execute(new SessionCallback() {
-			public Object doInJms(Session sess) {
-				assertTrue(sess == session);
-				return null;
-			}
+
+		given(cf.createConnection()).willReturn(con);
+		given(con.createSession(true, Session.AUTO_ACKNOWLEDGE)).willReturn(session);
+
+		JmsTemplate jt = new JmsTemplate(cf);
+		jt.execute((SessionCallback<Void>) sess -> {
+			assertThat(session).isSameAs(sess);
+			return null;
 		});
 		tm.commit(ts);
 
-		sessionControl.verify();
-		conControl.verify();
-		cfControl.verify();
+		verify(session).commit();
+		verify(session).close();
+		verify(con).close();
 	}
 
-	public void testTransactionCommit102WithTopic() throws JMSException {
-		MockControl cfControl = MockControl.createControl(TopicConnectionFactory.class);
-		TopicConnectionFactory cf = (TopicConnectionFactory) cfControl.getMock();
-		MockControl conControl = MockControl.createControl(TopicConnection.class);
-		TopicConnection con = (TopicConnection) conControl.getMock();
-		MockControl sessionControl = MockControl.createControl(TopicSession.class);
-		final TopicSession session = (TopicSession) sessionControl.getMock();
+	@Test
+	public void testLazyWithoutSessionAccess() {
+		ConnectionFactory cf = mock(ConnectionFactory.class);
 
-		cf.createTopicConnection();
-		cfControl.setReturnValue(con, 1);
-		con.createTopicSession(true, Session.AUTO_ACKNOWLEDGE);
-		conControl.setReturnValue(session, 1);
-		session.commit();
-		sessionControl.setVoidCallable(1);
-		session.close();
-		sessionControl.setVoidCallable(1);
-		con.close();
-		conControl.setVoidCallable(1);
-
-		sessionControl.replay();
-		conControl.replay();
-		cfControl.replay();
-
-		JmsTransactionManager tm = new JmsTransactionManager102(cf, true);
+		JmsTransactionManager tm = new JmsTransactionManager(cf);
+		tm.setLazyResourceRetrieval(true);
 		TransactionStatus ts = tm.getTransaction(new DefaultTransactionDefinition());
-		JmsTemplate jt = new JmsTemplate102(cf, true);
-		jt.execute(new SessionCallback() {
-			public Object doInJms(Session sess) {
-				assertTrue(sess == session);
-				return null;
-			}
-		});
 		tm.commit(ts);
-
-		sessionControl.verify();
-		conControl.verify();
-		cfControl.verify();
-	}
-
-	protected void tearDown() {
-		assertTrue(TransactionSynchronizationManager.getResourceMap().isEmpty());
-		assertFalse(TransactionSynchronizationManager.isSynchronizationActive());
 	}
 
 }

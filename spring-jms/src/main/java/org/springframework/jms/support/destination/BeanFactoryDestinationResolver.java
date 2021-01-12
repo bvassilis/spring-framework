@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2007 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,13 +23,14 @@ import javax.jms.Session;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
  * {@link DestinationResolver} implementation based on a Spring {@link BeanFactory}.
  *
  * <p>Will lookup Spring managed beans identified by bean name,
- * expecting them to be of type <code>javax.jms.Destination</code>.
+ * expecting them to be of type {@code javax.jms.Destination}.
  *
  * @author Juergen Hoeller
  * @since 2.5
@@ -37,12 +38,13 @@ import org.springframework.util.Assert;
  */
 public class BeanFactoryDestinationResolver implements DestinationResolver, BeanFactoryAware {
 
+	@Nullable
 	private BeanFactory beanFactory;
 
 
 	/**
 	 * Create a new instance of the {@link BeanFactoryDestinationResolver} class.
-	 * <p>The BeanFactory to access must be set via <code>setBeanFactory</code>.
+	 * <p>The BeanFactory to access must be set via {@code setBeanFactory}.
 	 * @see #setBeanFactory
 	 */
 	public BeanFactoryDestinationResolver() {
@@ -55,7 +57,7 @@ public class BeanFactoryDestinationResolver implements DestinationResolver, Bean
 	 * replaced by the {@link BeanFactory} that creates it (c.f. the
 	 * {@link BeanFactoryAware} contract). So only use this constructor if you
 	 * are using this class outside the context of a Spring IoC container.
-	 * @param beanFactory the bean factory to be used to lookup {@link javax.jms.Destination Destinatiosn}
+	 * @param beanFactory the bean factory to be used to lookup {@link javax.jms.Destination Destination}
 	 */
 	public BeanFactoryDestinationResolver(BeanFactory beanFactory) {
 		Assert.notNull(beanFactory, "BeanFactory is required");
@@ -63,21 +65,23 @@ public class BeanFactoryDestinationResolver implements DestinationResolver, Bean
 	}
 
 
+	@Override
 	public void setBeanFactory(BeanFactory beanFactory) {
 		this.beanFactory = beanFactory;
 	}
 
 
-	public Destination resolveDestinationName(Session session, String destinationName, boolean pubSubDomain)
+	@Override
+	public Destination resolveDestinationName(@Nullable Session session, String destinationName, boolean pubSubDomain)
 			throws JMSException {
 
 		Assert.state(this.beanFactory != null, "BeanFactory is required");
 		try {
-			return (Destination) this.beanFactory.getBean(destinationName, Destination.class);
+			return this.beanFactory.getBean(destinationName, Destination.class);
 		}
 		catch (BeansException ex) {
 			throw new DestinationResolutionException(
-					"Failed to look up Destinaton bean with name '" + destinationName + "'", ex);
+					"Failed to look up Destination bean with name '" + destinationName + "'", ex);
 		}
 	}
 

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
@@ -35,18 +34,23 @@ import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.beans.PropertyValue;
 import org.springframework.beans.PropertyValues;
 import org.springframework.context.EnvironmentAware;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.EnvironmentCapable;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceEditor;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.context.support.StandardServletEnvironment;
 import org.springframework.web.context.support.ServletContextResourceLoader;
+import org.springframework.web.context.support.StandardServletEnvironment;
 
 /**
  * Simple extension of {@link javax.servlet.http.HttpServlet} which treats
- * its config parameters (<code>init-param</code> entries within the
- * <code>servlet</code> tag in <code>web.xml</code>) as bean properties.
+ * its config parameters ({@code init-param} entries within the
+ * {@code servlet} tag in {@code web.xml}) as bean properties.
  *
  * <p>A handy superclass for any type of servlet. Type conversion of config
  * parameters is automatic, with the corresponding setter method getting
@@ -55,7 +59,7 @@ import org.springframework.web.context.support.ServletContextResourceLoader;
  * setter will simply be ignored.
  *
  * <p>This servlet leaves request handling to subclasses, inheriting the default
- * behavior of HttpServlet (<code>doGet</code>, <code>doPost</code>, etc).
+ * behavior of HttpServlet ({@code doGet}, {@code doPost}, etc).
  *
  * <p>This generic servlet base class has no dependency on the Spring
  * {@link org.springframework.context.ApplicationContext} concept. Simple
@@ -76,18 +80,15 @@ import org.springframework.web.context.support.ServletContextResourceLoader;
  * @see #doPost
  */
 @SuppressWarnings("serial")
-public abstract class HttpServletBean extends HttpServlet implements EnvironmentAware {
+public abstract class HttpServletBean extends HttpServlet implements EnvironmentCapable, EnvironmentAware {
 
-	/** Logger available to subclasses */
+	/** Logger available to subclasses. */
 	protected final Log logger = LogFactory.getLog(getClass());
 
-	/** 
-	 * Set of required properties (Strings) that must be supplied as
-	 * config parameters to this servlet.
-	 */
-	private final Set<String> requiredProperties = new HashSet<String>();
+	@Nullable
+	private ConfigurableEnvironment environment;
 
-	private Environment environment = new StandardServletEnvironment();
+	private final Set<String> requiredProperties = new HashSet<>(4);
 
 
 	/**
@@ -104,6 +105,41 @@ public abstract class HttpServletBean extends HttpServlet implements Environment
 	}
 
 	/**
+	 * Set the {@code Environment} that this servlet runs in.
+	 * <p>Any environment set here overrides the {@link StandardServletEnvironment}
+	 * provided by default.
+	 * @throws IllegalArgumentException if environment is not assignable to
+	 * {@code ConfigurableEnvironment}
+	 */
+	@Override
+	public void setEnvironment(Environment environment) {
+		Assert.isInstanceOf(ConfigurableEnvironment.class, environment, "ConfigurableEnvironment required");
+		this.environment = (ConfigurableEnvironment) environment;
+	}
+
+	/**
+	 * Return the {@link Environment} associated with this servlet.
+	 * <p>If none specified, a default environment will be initialized via
+	 * {@link #createEnvironment()}.
+	 */
+	@Override
+	public ConfigurableEnvironment getEnvironment() {
+		if (this.environment == null) {
+			this.environment = createEnvironment();
+		}
+		return this.environment;
+	}
+
+	/**
+	 * Create and return a new {@link StandardServletEnvironment}.
+	 * <p>Subclasses may override this in order to configure the environment or
+	 * specialize the environment type returned.
+	 */
+	protected ConfigurableEnvironment createEnvironment() {
+		return new StandardServletEnvironment();
+	}
+
+	/**
 	 * Map config parameters onto bean properties of this servlet, and
 	 * invoke subclass initialization.
 	 * @throws ServletException if bean properties are invalid (or required
@@ -111,30 +147,27 @@ public abstract class HttpServletBean extends HttpServlet implements Environment
 	 */
 	@Override
 	public final void init() throws ServletException {
-		if (logger.isDebugEnabled()) {
-			logger.debug("Initializing servlet '" + getServletName() + "'");
-		}
 
 		// Set bean properties from init parameters.
-		try {
-			PropertyValues pvs = new ServletConfigPropertyValues(getServletConfig(), this.requiredProperties);
-			BeanWrapper bw = PropertyAccessorFactory.forBeanPropertyAccess(this);
-			ResourceLoader resourceLoader = new ServletContextResourceLoader(getServletContext());
-			bw.registerCustomEditor(Resource.class, new ResourceEditor(resourceLoader, this.environment));
-			initBeanWrapper(bw);
-			bw.setPropertyValues(pvs, true);
-		}
-		catch (BeansException ex) {
-			logger.error("Failed to set bean properties on servlet '" + getServletName() + "'", ex);
-			throw ex;
+		PropertyValues pvs = new ServletConfigPropertyValues(getServletConfig(), this.requiredProperties);
+		if (!pvs.isEmpty()) {
+			try {
+				BeanWrapper bw = PropertyAccessorFactory.forBeanPropertyAccess(this);
+				ResourceLoader resourceLoader = new ServletContextResourceLoader(getServletContext());
+				bw.registerCustomEditor(Resource.class, new ResourceEditor(resourceLoader, getEnvironment()));
+				initBeanWrapper(bw);
+				bw.setPropertyValues(pvs, true);
+			}
+			catch (BeansException ex) {
+				if (logger.isErrorEnabled()) {
+					logger.error("Failed to set bean properties on servlet '" + getServletName() + "'", ex);
+				}
+				throw ex;
+			}
 		}
 
 		// Let subclasses do whatever initialization they like.
 		initServletBean();
-
-		if (logger.isDebugEnabled()) {
-			logger.debug("Servlet '" + getServletName() + "' configured successfully");
-		}
 	}
 
 	/**
@@ -148,28 +181,6 @@ public abstract class HttpServletBean extends HttpServlet implements Environment
 	protected void initBeanWrapper(BeanWrapper bw) throws BeansException {
 	}
 
-
-	/**
-	 * Overridden method that simply returns <code>null</code> when no
-	 * ServletConfig set yet.
-	 * @see #getServletConfig()
-	 */
-	@Override
-	public final String getServletName() {
-		return (getServletConfig() != null ? getServletConfig().getServletName() : null);
-	}
-
-	/**
-	 * Overridden method that simply returns <code>null</code> when no
-	 * ServletConfig set yet.
-	 * @see #getServletConfig()
-	 */
-	@Override
-	public final ServletContext getServletContext() {
-		return (getServletConfig() != null ? getServletConfig().getServletContext() : null);
-	}
-
-
 	/**
 	 * Subclasses may override this to perform custom initialization.
 	 * All bean properties of this servlet will have been set before this
@@ -181,12 +192,14 @@ public abstract class HttpServletBean extends HttpServlet implements Environment
 	}
 
 	/**
-	 * {@inheritDoc}
-	 * <p>Any environment set here overrides the {@link StandardServletEnvironment}
-	 * provided by default.
+	 * Overridden method that simply returns {@code null} when no
+	 * ServletConfig set yet.
+	 * @see #getServletConfig()
 	 */
-	public void setEnvironment(Environment environment) {
-		this.environment = environment;
+	@Override
+	@Nullable
+	public String getServletName() {
+		return (getServletConfig() != null ? getServletConfig().getServletName() : null);
 	}
 
 
@@ -197,20 +210,20 @@ public abstract class HttpServletBean extends HttpServlet implements Environment
 
 		/**
 		 * Create new ServletConfigPropertyValues.
-		 * @param config ServletConfig we'll use to take PropertyValues from
+		 * @param config the ServletConfig we'll use to take PropertyValues from
 		 * @param requiredProperties set of property names we need, where
 		 * we can't accept default values
 		 * @throws ServletException if any required properties are missing
 		 */
 		public ServletConfigPropertyValues(ServletConfig config, Set<String> requiredProperties)
-		    throws ServletException {
-			
-			Set<String> missingProps = (requiredProperties != null && !requiredProperties.isEmpty()) ?
-					new HashSet<String>(requiredProperties) : null;
+				throws ServletException {
 
-			Enumeration en = config.getInitParameterNames();
-			while (en.hasMoreElements()) {
-				String property = (String) en.nextElement();
+			Set<String> missingProps = (!CollectionUtils.isEmpty(requiredProperties) ?
+					new HashSet<>(requiredProperties) : null);
+
+			Enumeration<String> paramNames = config.getInitParameterNames();
+			while (paramNames.hasMoreElements()) {
+				String property = paramNames.nextElement();
 				Object value = config.getInitParameter(property);
 				addPropertyValue(new PropertyValue(property, value));
 				if (missingProps != null) {
@@ -219,11 +232,11 @@ public abstract class HttpServletBean extends HttpServlet implements Environment
 			}
 
 			// Fail if we are still missing properties.
-			if (missingProps != null && missingProps.size() > 0) {
+			if (!CollectionUtils.isEmpty(missingProps)) {
 				throw new ServletException(
-				    "Initialization from ServletConfig for servlet '" + config.getServletName() +
-				    "' failed; the following required properties were missing: " +
-				    StringUtils.collectionToDelimitedString(missingProps, ", "));
+						"Initialization from ServletConfig for servlet '" + config.getServletName() +
+						"' failed; the following required properties were missing: " +
+						StringUtils.collectionToDelimitedString(missingProps, ", "));
 			}
 		}
 	}

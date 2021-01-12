@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,7 @@
 package org.springframework.transaction.jta;
 
 import java.util.List;
+
 import javax.transaction.Status;
 import javax.transaction.Synchronization;
 
@@ -24,8 +25,8 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationUtils;
 
 /**
- * Adapter for a JTA Synchronization, invoking the <code>afterCommit</code> /
- * <code>afterCompletion</code> callbacks of Spring {@link TransactionSynchronization}
+ * Adapter for a JTA Synchronization, invoking the {@code afterCommit} /
+ * {@code afterCompletion} callbacks of Spring {@link TransactionSynchronization}
  * objects callbacks after the outer JTA transaction has completed.
  * Applied when participating in an existing (non-Spring) JTA transaction.
  *
@@ -49,9 +50,11 @@ public class JtaAfterCompletionSynchronization implements Synchronization {
 	}
 
 
+	@Override
 	public void beforeCompletion() {
 	}
 
+	@Override
 	public void afterCompletion(int status) {
 		switch (status) {
 			case Status.STATUS_COMMITTED:

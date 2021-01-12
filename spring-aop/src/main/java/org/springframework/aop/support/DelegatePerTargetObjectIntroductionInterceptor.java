@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2087 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,8 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.DynamicIntroductionAdvice;
 import org.springframework.aop.IntroductionInterceptor;
 import org.springframework.aop.ProxyMethodInvocation;
+import org.springframework.lang.Nullable;
+import org.springframework.util.ReflectionUtils;
 
 /**
  * Convenient implementation of the
@@ -34,7 +36,7 @@ import org.springframework.aop.ProxyMethodInvocation;
  * object will have its <i>own</i> delegate (whereas DelegatingIntroductionInterceptor
  * shares the same delegate, and hence the same state across all targets).
  *
- * <p>The <code>suppressInterface</code> method can be used to suppress interfaces
+ * <p>The {@code suppressInterface} method can be used to suppress interfaces
  * implemented by the delegate class but which should not be introduced to the
  * owning AOP proxy.
  *
@@ -50,23 +52,24 @@ import org.springframework.aop.ProxyMethodInvocation;
  * @see #suppressInterface
  * @see DelegatingIntroductionInterceptor
  */
+@SuppressWarnings("serial")
 public class DelegatePerTargetObjectIntroductionInterceptor extends IntroductionInfoSupport
 		implements IntroductionInterceptor {
 
-	/** 
+	/**
 	 * Hold weak references to keys as we don't want to interfere with garbage collection..
 	 */
-	private final Map<Object, Object> delegateMap = new WeakHashMap<Object, Object>();
+	private final Map<Object, Object> delegateMap = new WeakHashMap<>();
 
-	private Class defaultImplType;
+	private Class<?> defaultImplType;
 
-	private Class interfaceType;
+	private Class<?> interfaceType;
 
 
-	public DelegatePerTargetObjectIntroductionInterceptor(Class defaultImplType, Class interfaceType) {
+	public DelegatePerTargetObjectIntroductionInterceptor(Class<?> defaultImplType, Class<?> interfaceType) {
 		this.defaultImplType = defaultImplType;
 		this.interfaceType = interfaceType;
-		// cCeate a new delegate now (but don't store it in the map).
+		// Create a new delegate now (but don't store it in the map).
 		// We do this for two reasons:
 		// 1) to fail early if there is a problem instantiating delegates
 		// 2) to populate the interface map once and once only
@@ -82,15 +85,17 @@ public class DelegatePerTargetObjectIntroductionInterceptor extends Introduction
 	 * behaviour in around advice. However, subclasses should invoke this
 	 * method, which handles introduced interfaces and forwarding to the target.
 	 */
+	@Override
+	@Nullable
 	public Object invoke(MethodInvocation mi) throws Throwable {
 		if (isMethodOnIntroducedInterface(mi)) {
 			Object delegate = getIntroductionDelegateFor(mi.getThis());
-			
+
 			// Using the following method rather than direct reflection,
 			// we get correct handling of InvocationTargetException
 			// if the introduced method throws an exception.
 			Object retVal = AopUtils.invokeJoinpointUsingReflection(delegate, mi.getMethod(), mi.getArguments());
-			
+
 			// Massage return value if possible: if the delegate returned itself,
 			// we really want to return the proxy.
 			if (retVal == delegate && mi instanceof ProxyMethodInvocation) {
@@ -109,12 +114,13 @@ public class DelegatePerTargetObjectIntroductionInterceptor extends Introduction
 	 * that it is introduced into. This method is <strong>never</strong> called for
 	 * {@link MethodInvocation MethodInvocations} on the introduced interfaces.
 	 */
+	@Nullable
 	protected Object doProceed(MethodInvocation mi) throws Throwable {
 		// If we get here, just pass the invocation on.
 		return mi.proceed();
 	}
 
-	private Object getIntroductionDelegateFor(Object targetObject) {
+	private Object getIntroductionDelegateFor(@Nullable Object targetObject) {
 		synchronized (this.delegateMap) {
 			if (this.delegateMap.containsKey(targetObject)) {
 				return this.delegateMap.get(targetObject);
@@ -126,10 +132,10 @@ public class DelegatePerTargetObjectIntroductionInterceptor extends Introduction
 			}
 		}
 	}
-	
+
 	private Object createNewDelegate() {
 		try {
-			return this.defaultImplType.newInstance();
+			return ReflectionUtils.accessibleConstructor(this.defaultImplType).newInstance();
 		}
 		catch (Throwable ex) {
 			throw new IllegalArgumentException("Cannot create default implementation for '" +

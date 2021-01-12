@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2011 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,20 +16,19 @@
 
 package org.springframework.web.servlet.tags.form;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-
 import java.util.Collections;
 
 import javax.servlet.jsp.PageContext;
 import javax.servlet.jsp.tagext.Tag;
 
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.support.StaticWebApplicationContext;
-import org.springframework.web.servlet.support.RequestContextUtils;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.web.servlet.support.RequestDataValueProcessor;
+import org.springframework.web.testfixture.servlet.MockHttpServletRequest;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.BDDMockito.given;
 
 /**
  * @author Rob Harrop
@@ -37,21 +36,24 @@ import org.springframework.web.servlet.support.RequestDataValueProcessor;
  * @author Juergen Hoeller
  * @author Scott Andrews
  * @author Jeremy Grelle
+ * @author Rossen Stoyanchev
  */
 public class FormTagTests extends AbstractHtmlElementTagTests {
-	
+
 	private static final String REQUEST_URI = "/my/form";
 
 	private static final String QUERY_STRING = "foo=bar";
 
-
 	private FormTag tag;
-	
+
 	private MockHttpServletRequest request;
 
 
+	@Override
+	@SuppressWarnings("serial")
 	protected void onSetUp() {
 		this.tag = new FormTag() {
+			@Override
 			protected TagWriter createTagWriter() {
 				return new TagWriter(getWriter());
 			}
@@ -66,7 +68,8 @@ public class FormTagTests extends AbstractHtmlElementTagTests {
 		this.request = request;
 	}
 
-	public void testWriteForm() throws Exception {
+	@Test
+	public void writeForm() throws Exception {
 		String commandName = "myCommand";
 		String name = "formName";
 		String action = "/form.html";
@@ -85,7 +88,7 @@ public class FormTagTests extends AbstractHtmlElementTagTests {
 		this.tag.setName(name);
 		this.tag.setCssClass(cssClass);
 		this.tag.setCssStyle(cssStyle);
-		this.tag.setCommandName(commandName);
+		this.tag.setModelAttribute(commandName);
 		this.tag.setAction(action);
 		this.tag.setMethod(method);
 		this.tag.setTarget(target);
@@ -98,16 +101,14 @@ public class FormTagTests extends AbstractHtmlElementTagTests {
 		this.tag.setDynamicAttribute(null, dynamicAttribute2, dynamicAttribute2);
 
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.EVAL_BODY_INCLUDE, result);
-		assertEquals("Form attribute not exposed", commandName,
-				getPageContext().getRequest().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME));
+		assertThat(result).isEqualTo(Tag.EVAL_BODY_INCLUDE);
+		assertThat(getPageContext().getRequest().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME)).as("Form attribute not exposed").isEqualTo(commandName);
 
 		result = this.tag.doEndTag();
-		assertEquals(Tag.EVAL_PAGE, result);
+		assertThat(result).isEqualTo(Tag.EVAL_PAGE);
 
 		this.tag.doFinally();
-		assertNull("Form attribute not cleared after tag ends",
-				getPageContext().getRequest().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME));
+		assertThat(getPageContext().getRequest().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME)).as("Form attribute not cleared after tag ends").isNull();
 
 		String output = getOutput();
 		assertFormTagOpened(output);
@@ -129,30 +130,29 @@ public class FormTagTests extends AbstractHtmlElementTagTests {
 		assertContainsAttribute(output, dynamicAttribute2, dynamicAttribute2);
 	}
 
-	public void testWithActionFromRequest() throws Exception {
+	@Test
+	public void withActionFromRequest() throws Exception {
 		String commandName = "myCommand";
 		String enctype = "my/enctype";
 		String method = "POST";
 		String onsubmit = "onsubmit";
 		String onreset = "onreset";
 
-		this.tag.setCommandName(commandName);
+		this.tag.setModelAttribute(commandName);
 		this.tag.setMethod(method);
 		this.tag.setEnctype(enctype);
 		this.tag.setOnsubmit(onsubmit);
 		this.tag.setOnreset(onreset);
 
 		int result = this.tag.doStartTag();
-		assertEquals(Tag.EVAL_BODY_INCLUDE, result);
-		assertEquals("Form attribute not exposed", commandName,
-				getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE));
+		assertThat(result).isEqualTo(Tag.EVAL_BODY_INCLUDE);
+		assertThat(getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE)).as("Form attribute not exposed").isEqualTo(commandName);
 
 		result = this.tag.doEndTag();
-		assertEquals(Tag.EVAL_PAGE, result);
+		assertThat(result).isEqualTo(Tag.EVAL_PAGE);
 
 		this.tag.doFinally();
-		assertNull("Form attribute not cleared after tag ends",
-				getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE));
+		assertThat(getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE)).as("Form attribute not cleared after tag ends").isNull();
 
 		String output = getOutput();
 		assertFormTagOpened(output);
@@ -166,46 +166,72 @@ public class FormTagTests extends AbstractHtmlElementTagTests {
 		assertAttributeNotPresent(output, "name");
 	}
 
-	public void testWithNullResolvedCommand() throws Exception {
-		try {
-			tag.setCommandName("${null}");
-			tag.doStartTag();
-			fail("Must not be able to have a command name that resolves to null");
-		}
-		catch (IllegalArgumentException ex) {
-			// expected
-		}
+	@Test
+	public void prependServletPath() throws Exception {
+
+		this.request.setContextPath("/myApp");
+		this.request.setServletPath("/main");
+		this.request.setPathInfo("/index.html");
+
+		String commandName = "myCommand";
+		String action = "/form.html";
+		String enctype = "my/enctype";
+		String method = "POST";
+		String onsubmit = "onsubmit";
+		String onreset = "onreset";
+
+		this.tag.setModelAttribute(commandName);
+		this.tag.setServletRelativeAction(action);
+		this.tag.setMethod(method);
+		this.tag.setEnctype(enctype);
+		this.tag.setOnsubmit(onsubmit);
+		this.tag.setOnreset(onreset);
+
+		int result = this.tag.doStartTag();
+		assertThat(result).isEqualTo(Tag.EVAL_BODY_INCLUDE);
+		assertThat(getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE)).as("Form attribute not exposed").isEqualTo(commandName);
+
+		result = this.tag.doEndTag();
+		assertThat(result).isEqualTo(Tag.EVAL_PAGE);
+
+		this.tag.doFinally();
+		assertThat(getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE)).as("Form attribute not cleared after tag ends").isNull();
+
+		String output = getOutput();
+		assertFormTagOpened(output);
+		assertFormTagClosed(output);
+
+		assertContainsAttribute(output, "action", "/myApp/main/form.html");
+		assertContainsAttribute(output, "method", method);
+		assertContainsAttribute(output, "enctype", enctype);
+		assertContainsAttribute(output, "onsubmit", onsubmit);
+		assertContainsAttribute(output, "onreset", onreset);
+		assertAttributeNotPresent(output, "name");
 	}
 
-	/*
-	 * See http://opensource.atlassian.com/projects/spring/browse/SPR-2645
+	@Test
+	public void withNullResolvedCommand() throws Exception {
+		tag.setModelAttribute(null);
+		assertThatIllegalArgumentException().isThrownBy(
+				tag::doStartTag);
+	}
+
+	/**
+	 * https://jira.spring.io/browse/SPR-2645
 	 */
-	public void testXSSScriptingExploitWhenActionIsResolvedFromQueryString() throws Exception {
+	@Test
+	public void xssExploitWhenActionIsResolvedFromQueryString() throws Exception {
 		String xssQueryString = QUERY_STRING + "&stuff=\"><script>alert('XSS!')</script>";
 		request.setQueryString(xssQueryString);
 		tag.doStartTag();
-		assertEquals("<form id=\"command\" action=\"/my/form?foo=bar&amp;stuff=&quot;&gt;&lt;script&gt;alert(&#39;XSS!&#39;)&lt;/script&gt;\" method=\"post\">",
-				getOutput());
+		assertThat(getOutput()).isEqualTo(("<form id=\"command\" action=\"/my/form?foo=bar&amp;stuff=&quot;&gt;&lt;" +
+						"script&gt;alert(&#39;XSS!&#39;)&lt;/script&gt;\" method=\"post\">"));
 	}
-	
-	public void testGet() throws Exception {
+
+	@Test
+	public void get() throws Exception {
 		this.tag.setMethod("get");
-		
-		this.tag.doStartTag();
-		this.tag.doEndTag();
-		this.tag.doFinally();
-		
-		String output = getOutput();
-		String formOutput = getFormTag(output);
-		String inputOutput = getInputTag(output);
-		
-		assertContainsAttribute(formOutput, "method", "get");
-		assertEquals("", inputOutput);
-	}
-	
-	public void testPost() throws Exception {
-		this.tag.setMethod("post");
-		
+
 		this.tag.doStartTag();
 		this.tag.doEndTag();
 		this.tag.doFinally();
@@ -213,14 +239,31 @@ public class FormTagTests extends AbstractHtmlElementTagTests {
 		String output = getOutput();
 		String formOutput = getFormTag(output);
 		String inputOutput = getInputTag(output);
-		
-		assertContainsAttribute(formOutput, "method", "post");
-		assertEquals("", inputOutput);
+
+		assertContainsAttribute(formOutput, "method", "get");
+		assertThat(inputOutput).isEqualTo("");
 	}
-	
-	public void testPut() throws Exception {
+
+	@Test
+	public void post() throws Exception {
+		this.tag.setMethod("post");
+
+		this.tag.doStartTag();
+		this.tag.doEndTag();
+		this.tag.doFinally();
+
+		String output = getOutput();
+		String formOutput = getFormTag(output);
+		String inputOutput = getInputTag(output);
+
+		assertContainsAttribute(formOutput, "method", "post");
+		assertThat(inputOutput).isEqualTo("");
+	}
+
+	@Test
+	public void put() throws Exception {
 		this.tag.setMethod("put");
-		
+
 		this.tag.doStartTag();
 		this.tag.doEndTag();
 		this.tag.doFinally();
@@ -234,10 +277,11 @@ public class FormTagTests extends AbstractHtmlElementTagTests {
 		assertContainsAttribute(inputOutput, "value", "put");
 		assertContainsAttribute(inputOutput, "type", "hidden");
 	}
-	
-	public void testDelete() throws Exception {
+
+	@Test
+	public void delete() throws Exception {
 		this.tag.setMethod("delete");
-		
+
 		this.tag.doStartTag();
 		this.tag.doEndTag();
 		this.tag.doFinally();
@@ -251,11 +295,12 @@ public class FormTagTests extends AbstractHtmlElementTagTests {
 		assertContainsAttribute(inputOutput, "value", "delete");
 		assertContainsAttribute(inputOutput, "type", "hidden");
 	}
-	
-	public void testCustomMethodParameter() throws Exception {
+
+	@Test
+	public void customMethodParameter() throws Exception {
 		this.tag.setMethod("put");
 		this.tag.setMethodParam("methodParameter");
-		
+
 		this.tag.doStartTag();
 		this.tag.doEndTag();
 		this.tag.doFinally();
@@ -270,34 +315,49 @@ public class FormTagTests extends AbstractHtmlElementTagTests {
 		assertContainsAttribute(inputOutput, "type", "hidden");
 	}
 
-	public void testClearAttributesOnFinally() throws Exception {
+	@Test
+	public void clearAttributesOnFinally() throws Exception {
 		this.tag.setModelAttribute("model");
 		getPageContext().setAttribute("model", "foo bar");
-		assertNull(getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE));
+		assertThat(getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE)).isNull();
 		this.tag.doStartTag();
-		assertNotNull(getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE));
+		assertThat(getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE)).isNotNull();
 		this.tag.doFinally();
-		assertNull(getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE));
+		assertThat(getPageContext().getAttribute(FormTag.MODEL_ATTRIBUTE_VARIABLE_NAME, PageContext.REQUEST_SCOPE)).isNull();
 	}
-	
-	public void testRequestDataValueProcessorHooks() throws Exception {
+
+	@Test
+	public void requestDataValueProcessorHooks() throws Exception {
 		String action = "/my/form?foo=bar";
 		RequestDataValueProcessor processor = getMockRequestDataValueProcessor();
-		expect(processor.processAction(this.request, action)).andReturn(action);
-		expect(processor.getExtraHiddenFields(this.request)).andReturn(Collections.singletonMap("key", "value"));
-		replay(processor);
-		
+		given(processor.processAction(this.request, action, "post")).willReturn(action);
+		given(processor.getExtraHiddenFields(this.request)).willReturn(Collections.singletonMap("key", "value"));
+
 		this.tag.doStartTag();
 		this.tag.doEndTag();
 		this.tag.doFinally();
-		
+
 		String output = getOutput();
-		
-		assertEquals("<input type=\"hidden\" name=\"key\" value=\"value\"></input>", getInputTag(output));
+
+		assertThat(getInputTag(output)).isEqualTo("<div>\n<input type=\"hidden\" name=\"key\" value=\"value\" />\n</div>");
 		assertFormTagOpened(output);
 		assertFormTagClosed(output);
-		
-		verify(processor);
+	}
+
+	@Test
+	public void defaultActionEncoded() throws Exception {
+
+		this.request.setRequestURI("/a b c");
+		request.setQueryString("");
+
+		this.tag.doStartTag();
+		this.tag.doEndTag();
+		this.tag.doFinally();
+
+		String output = getOutput();
+		String formOutput = getFormTag(output);
+
+		assertContainsAttribute(formOutput, "action", "/a%20b%20c");
 	}
 
 	private String getFormTag(String output) {
@@ -314,11 +374,11 @@ public class FormTagTests extends AbstractHtmlElementTagTests {
 
 
 	private static void assertFormTagOpened(String output) {
-		assertTrue(output.startsWith("<form "));
+		assertThat(output.startsWith("<form ")).isTrue();
 	}
 
 	private static void assertFormTagClosed(String output) {
-		assertTrue(output.endsWith("</form>"));
+		assertThat(output.endsWith("</form>")).isTrue();
 	}
-	
+
 }

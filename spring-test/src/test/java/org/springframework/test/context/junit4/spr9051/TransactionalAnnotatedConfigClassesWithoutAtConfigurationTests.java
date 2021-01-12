@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,13 +16,11 @@
 
 package org.springframework.test.context.junit4.spr9051;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-
 import javax.sql.DataSource;
 
 import org.junit.Before;
-import org.springframework.beans.Employee;
+
+import org.springframework.beans.testfixture.beans.Employee;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -33,12 +31,14 @@ import org.springframework.test.context.transaction.AfterTransaction;
 import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * Concrete implementation of {@link AbstractTransactionalAnnotatedConfigClassTests}
  * that does <b>not</b> use a true {@link Configuration @Configuration class} but
  * rather a <em>lite mode</em> configuration class (see the Javadoc for {@link Bean @Bean}
  * for details).
- * 
+ *
  * @author Sam Brannen
  * @since 3.2
  * @see Bean
@@ -50,7 +50,7 @@ public class TransactionalAnnotatedConfigClassesWithoutAtConfigurationTests exte
 
 	/**
 	 * This is intentionally <b>not</b> annotated with {@code @Configuration}.
-	 * 
+	 *
 	 * <p>Consequently, this class contains <i>annotated factory bean methods</i>
 	 * instead of standard singleton bean methods.
 	 */
@@ -74,10 +74,10 @@ public class TransactionalAnnotatedConfigClassesWithoutAtConfigurationTests exte
 		/**
 		 * Since this method does not reside in a true {@code @Configuration class},
 		 * it acts as a factory method when invoked directly (e.g., from
-		 * {@link #transactionManager()}) and as a singleton bean when retrieved 
+		 * {@link #transactionManager()}) and as a singleton bean when retrieved
 		 * through the application context (e.g., when injected into the test
 		 * instance). The result is that this method will be called twice:
-		 * 
+		 *
 		 * <ol>
 		 * <li>once <em>indirectly</em> by the {@link TransactionalTestExecutionListener}
 		 * when it retrieves the {@link PlatformTransactionManager} from the
@@ -94,7 +94,7 @@ public class TransactionalAnnotatedConfigClassesWithoutAtConfigurationTests exte
 		@Bean
 		public DataSource dataSource() {
 			return new EmbeddedDatabaseBuilder()//
-			.addScript("classpath:/org/springframework/test/context/junit4/spr9051/schema.sql")//
+			.addScript("classpath:/org/springframework/test/jdbc/schema.sql")//
 			// Ensure that this in-memory database is only used by this class:
 			.setName(getClass().getName())//
 			.build();
@@ -106,12 +106,12 @@ public class TransactionalAnnotatedConfigClassesWithoutAtConfigurationTests exte
 	@Before
 	public void compareDataSources() throws Exception {
 		// NOTE: the two DataSource instances are NOT the same!
-		assertNotSame(dataSourceFromTxManager, dataSourceViaInjection);
+		assertThat(dataSourceViaInjection).isNotSameAs(dataSourceFromTxManager);
 	}
 
 	/**
-	 * Overrides {@code afterTransaction()} in order to assert a different result. 
-	 * 
+	 * Overrides {@code afterTransaction()} in order to assert a different result.
+	 *
 	 * <p>See in-line comments for details.
 	 *
 	 * @see AbstractTransactionalAnnotatedConfigClassTests#afterTransaction()
@@ -120,7 +120,7 @@ public class TransactionalAnnotatedConfigClassesWithoutAtConfigurationTests exte
 	@AfterTransaction
 	@Override
 	public void afterTransaction() {
-		assertEquals("Deleting yoda", 1, deletePerson(YODA));
+		assertThat(deletePerson(YODA)).as("Deleting yoda").isEqualTo(1);
 
 		// NOTE: We would actually expect that there are now ZERO entries in the
 		// person table, since the transaction is rolled back by the framework;

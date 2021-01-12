@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,8 +16,10 @@
 
 package org.springframework.web.context.request.async;
 
-import org.springframework.web.context.request.NativeWebRequest;
+import java.util.function.Consumer;
 
+import org.springframework.lang.Nullable;
+import org.springframework.web.context.request.NativeWebRequest;
 
 /**
  * Extends {@link NativeWebRequest} with methods for asynchronous request processing.
@@ -29,17 +31,27 @@ public interface AsyncWebRequest extends NativeWebRequest {
 
 	/**
 	 * Set the time required for concurrent handling to complete.
-	 * @param timeout amount of time in milliseconds
+	 * This property should not be set when concurrent handling is in progress,
+	 * i.e. when {@link #isAsyncStarted()} is {@code true}.
+	 * @param timeout amount of time in milliseconds; {@code null} means no
+	 * 	timeout, i.e. rely on the default timeout of the container.
 	 */
-	void setTimeout(Long timeout);
+	void setTimeout(@Nullable Long timeout);
 
 	/**
-	 * Provide a Runnable to invoke on timeout.
+	 * Add a handler to invoke when concurrent handling has timed out.
 	 */
-	void setTimeoutHandler(Runnable runnable);
+	void addTimeoutHandler(Runnable runnable);
 
 	/**
-	 * Provide a Runnable to invoke at the end of asynchronous request processing.
+	 * Add a handler to invoke when an error occurred while concurrent
+	 * handling of a request.
+	 * @since 5.0
+	 */
+	void addErrorHandler(Consumer<Throwable> exceptionHandler);
+
+	/**
+	 * Add a handler to invoke when request processing completes.
 	 */
 	void addCompletionHandler(Runnable runnable);
 
@@ -52,9 +64,9 @@ public interface AsyncWebRequest extends NativeWebRequest {
 	void startAsync();
 
 	/**
-	 * Whether the request is in asynchronous mode after a call to {@link #startAsync()}.
-	 * Returns "false" if asynchronous processing never started, has completed, or the
-	 * request was dispatched for further processing.
+	 * Whether the request is in async mode following a call to {@link #startAsync()}.
+	 * Returns "false" if asynchronous processing never started, has completed,
+	 * or the request was dispatched for further processing.
 	 */
 	boolean isAsyncStarted();
 
@@ -65,13 +77,7 @@ public interface AsyncWebRequest extends NativeWebRequest {
 	void dispatch();
 
 	/**
-	 * Whether the request was dispatched to the container.
-	 */
-	boolean isDispatched();
-
-	/**
-	 * Whether asynchronous processing has completed in which case the request
-	 * response should no longer be used.
+	 * Whether asynchronous processing has completed.
 	 */
 	boolean isAsyncComplete();
 

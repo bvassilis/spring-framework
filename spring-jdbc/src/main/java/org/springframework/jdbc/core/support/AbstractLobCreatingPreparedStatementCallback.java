@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2008 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,15 +23,16 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.PreparedStatementCallback;
 import org.springframework.jdbc.support.lob.LobCreator;
 import org.springframework.jdbc.support.lob.LobHandler;
+import org.springframework.util.Assert;
 
 /**
- * Abstract PreparedStatementCallback implementation that manages a LobCreator.
+ * Abstract {@link PreparedStatementCallback} implementation that manages a {@link LobCreator}.
  * Typically used as inner class, with access to surrounding method arguments.
  *
- * <p>Delegates to the <code>setValues</code> template method for setting values
+ * <p>Delegates to the {@code setValues} template method for setting values
  * on the PreparedStatement, using a given LobCreator for BLOB/CLOB arguments.
  *
- * <p>A usage example with JdbcTemplate:
+ * <p>A usage example with {@link org.springframework.jdbc.core.JdbcTemplate}:
  *
  * <pre class="code">JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);  // reusable object
  * LobHandler lobHandler = new DefaultLobHandler();  // reusable object
@@ -62,18 +63,16 @@ public abstract class AbstractLobCreatingPreparedStatementCallback implements Pr
 	 * @param lobHandler the LobHandler to create LobCreators with
 	 */
 	public AbstractLobCreatingPreparedStatementCallback(LobHandler lobHandler) {
+		Assert.notNull(lobHandler, "LobHandler must not be null");
 		this.lobHandler = lobHandler;
 	}
 
 
+	@Override
 	public final Integer doInPreparedStatement(PreparedStatement ps) throws SQLException, DataAccessException {
-		LobCreator lobCreator = this.lobHandler.getLobCreator();
-		try {
+		try (LobCreator lobCreator = this.lobHandler.getLobCreator()) {
 			setValues(ps, lobCreator);
 			return ps.executeUpdate();
-		}
-		finally {
-			lobCreator.close();
 		}
 	}
 

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2009 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +21,7 @@ import javax.naming.NamingException;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 
 /**
@@ -29,7 +30,7 @@ import org.springframework.util.ClassUtils;
  *
  * <p>See {@link org.springframework.jndi.JndiObjectLocator} for info on
  * how to specify the JNDI location of the target EJB.
- * 
+ *
  * <p>If you want control over interceptor chaining, use an AOP ProxyFactoryBean
  * with SimpleRemoteSlsbInvokerInterceptor rather than rely on this class.
  *
@@ -41,7 +42,7 @@ import org.springframework.util.ClassUtils;
  * bound at the target location yet. The best solution is to set the lookupHomeOnStartup
  * property to false, in which case the home will be fetched on first access to the EJB.
  * (This flag is only true by default for backwards compatibility reasons).
- * 
+ *
  * <p>This proxy factory is typically used with an RMI business interface, which serves
  * as super-interface of the EJB component interface. Alternatively, this factory
  * can also proxy a remote SLSB with a matching non-RMI business interface, i.e. an
@@ -61,12 +62,15 @@ import org.springframework.util.ClassUtils;
 public class SimpleRemoteStatelessSessionProxyFactoryBean extends SimpleRemoteSlsbInvokerInterceptor
 	implements FactoryBean<Object>, BeanClassLoaderAware {
 
-	/** The business interface of the EJB we're proxying */
-	private Class businessInterface;
+	/** The business interface of the EJB we're proxying. */
+	@Nullable
+	private Class<?> businessInterface;
 
+	@Nullable
 	private ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader();
 
-	/** EJBObject */
+	/** EJBObject. */
+	@Nullable
 	private Object proxy;
 
 
@@ -80,17 +84,19 @@ public class SimpleRemoteStatelessSessionProxyFactoryBean extends SimpleRemoteSl
 	 * converted to Spring's generic RemoteAccessException.
 	 * @param businessInterface the business interface of the EJB
 	 */
-	public void setBusinessInterface(Class businessInterface) {
+	public void setBusinessInterface(@Nullable Class<?> businessInterface) {
 		this.businessInterface = businessInterface;
 	}
 
 	/**
 	 * Return the business interface of the EJB we're proxying.
 	 */
-	public Class getBusinessInterface() {
+	@Nullable
+	public Class<?> getBusinessInterface() {
 		return this.businessInterface;
 	}
 
+	@Override
 	public void setBeanClassLoader(ClassLoader classLoader) {
 		this.beanClassLoader = classLoader;
 	}
@@ -105,14 +111,18 @@ public class SimpleRemoteStatelessSessionProxyFactoryBean extends SimpleRemoteSl
 	}
 
 
+	@Override
+	@Nullable
 	public Object getObject() {
 		return this.proxy;
 	}
 
+	@Override
 	public Class<?> getObjectType() {
 		return this.businessInterface;
 	}
 
+	@Override
 	public boolean isSingleton() {
 		return true;
 	}

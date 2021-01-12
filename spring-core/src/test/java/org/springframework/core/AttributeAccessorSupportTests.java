@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2006 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,54 +16,80 @@
 
 package org.springframework.core;
 
-import junit.framework.TestCase;
-
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
+ * Unit tests for {@link AttributeAccessorSupport}.
+ *
  * @author Rob Harrop
+ * @author Sam Brannen
  * @since 2.0
  */
-public class AttributeAccessorSupportTests extends TestCase {
+class AttributeAccessorSupportTests {
 
-	private static final String NAME = "foo";
+	private static final String NAME = "name";
 
-	private static final String VALUE = "bar";
+	private static final String VALUE = "value";
 
-	private AttributeAccessor attributeAccessor;
+	private final AttributeAccessor attributeAccessor = new SimpleAttributeAccessorSupport();
 
-	protected void setUp() throws Exception {
-		this.attributeAccessor = new AttributeAccessorSupport() {
-		};
-	}
 
-	public void testSetAndGet() throws Exception {
+	@Test
+	void setAndGet() {
 		this.attributeAccessor.setAttribute(NAME, VALUE);
-		assertEquals(VALUE, this.attributeAccessor.getAttribute(NAME));
+		assertThat(this.attributeAccessor.getAttribute(NAME)).isEqualTo(VALUE);
 	}
 
-	public void testSetAndHas() throws Exception {
-		assertFalse(this.attributeAccessor.hasAttribute(NAME));
+	@Test
+	void setAndHas() {
+		assertThat(this.attributeAccessor.hasAttribute(NAME)).isFalse();
 		this.attributeAccessor.setAttribute(NAME, VALUE);
-		assertTrue(this.attributeAccessor.hasAttribute(NAME));
+		assertThat(this.attributeAccessor.hasAttribute(NAME)).isTrue();
 	}
 
-	public void testRemove() throws Exception {
-		assertFalse(this.attributeAccessor.hasAttribute(NAME));
+	@Test
+	void computeAttribute() {
+		AtomicInteger atomicInteger = new AtomicInteger();
+		Function<String, String> computeFunction = name -> "computed-" + atomicInteger.incrementAndGet();
+
+		assertThat(this.attributeAccessor.hasAttribute(NAME)).isFalse();
+		this.attributeAccessor.computeAttribute(NAME, computeFunction);
+		assertThat(this.attributeAccessor.getAttribute(NAME)).isEqualTo("computed-1");
+		this.attributeAccessor.computeAttribute(NAME, computeFunction);
+		assertThat(this.attributeAccessor.getAttribute(NAME)).isEqualTo("computed-1");
+
+		this.attributeAccessor.removeAttribute(NAME);
+		assertThat(this.attributeAccessor.hasAttribute(NAME)).isFalse();
+		this.attributeAccessor.computeAttribute(NAME, computeFunction);
+		assertThat(this.attributeAccessor.getAttribute(NAME)).isEqualTo("computed-2");
+	}
+
+	@Test
+	void remove() {
+		assertThat(this.attributeAccessor.hasAttribute(NAME)).isFalse();
 		this.attributeAccessor.setAttribute(NAME, VALUE);
-		assertEquals(VALUE, this.attributeAccessor.removeAttribute(NAME));
-		assertFalse(this.attributeAccessor.hasAttribute(NAME));
+		assertThat(this.attributeAccessor.removeAttribute(NAME)).isEqualTo(VALUE);
+		assertThat(this.attributeAccessor.hasAttribute(NAME)).isFalse();
 	}
 
-	public void testAttributeNames() throws Exception {
+	@Test
+	void attributeNames() {
 		this.attributeAccessor.setAttribute(NAME, VALUE);
 		this.attributeAccessor.setAttribute("abc", "123");
 		String[] attributeNames = this.attributeAccessor.attributeNames();
 		Arrays.sort(attributeNames);
-		assertTrue(Arrays.binarySearch(attributeNames, NAME) > -1);
-		assertTrue(Arrays.binarySearch(attributeNames, "abc") > -1);
+		assertThat(Arrays.binarySearch(attributeNames, "abc")).isEqualTo(0);
+		assertThat(Arrays.binarySearch(attributeNames, NAME)).isEqualTo(1);
 	}
-	protected void tearDown() throws Exception {
-		this.attributeAccessor.removeAttribute(NAME);
+
+	@SuppressWarnings("serial")
+	private static class SimpleAttributeAccessorSupport extends AttributeAccessorSupport {
 	}
+
 }
